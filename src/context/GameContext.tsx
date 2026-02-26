@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { GameState, Player } from '../types';
+
+const roundBudget = (value: number) => Math.round(value * 10) / 10;
 import { initialPlayers, initialLeagueTable, initialMatches, transferMarketPlayers } from '../data/initialData';
 
 const STORAGE_KEY = 'teamsoccer-manager-state';
@@ -54,7 +56,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (state.budget < player.value) return;
     setState(prev => ({
       ...prev,
-      budget: Math.round((prev.budget - player.value) * 10) / 10,
+      budget: roundBudget(prev.budget - player.value),
       players: [...prev.players, { ...player, inSquad: true }],
     }));
     setMarketPlayers(prev => prev.filter(p => p.id !== player.id));
@@ -65,7 +67,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if (!player) return;
     setState(prev => ({
       ...prev,
-      budget: Math.round((prev.budget + player.value * 0.85) * 10) / 10,
+      budget: roundBudget(prev.budget + player.value * 0.85),
       players: prev.players.filter(p => p.id !== playerId),
     }));
     setMarketPlayers(prev => [...prev, { ...player, inSquad: false }]);
@@ -105,9 +107,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const isDraw = myGoals === theirGoals;
 
     const attackers = starters.filter(p => ['ST', 'CF', 'LW', 'RW', 'CAM'].includes(p.position));
+    const scorerPool = attackers.length > 0 ? attackers : starters;
     const updatedPlayers = [...state.players];
+    if (scorerPool.length === 0) return;
     for (let i = 0; i < myGoals; i++) {
-      const scorer = attackers[Math.floor(Math.random() * attackers.length)] || starters[Math.floor(Math.random() * starters.length)];
+      const scorer = scorerPool[Math.floor(Math.random() * scorerPool.length)];
       const idx = updatedPlayers.findIndex(p => p.id === scorer.id);
       if (idx >= 0) updatedPlayers[idx] = { ...updatedPlayers[idx], goals: updatedPlayers[idx].goals + 1 };
       const assistIdx = Math.floor(Math.random() * starters.length);
@@ -155,7 +159,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         m.id === nextMatch.id ? { ...m, homeGoals, awayGoals, played: true } : m
       ),
       leagueTable: updatedTable,
-      budget: prev.budget + (isWin ? 0.5 : isDraw ? 0.2 : 0),
+      budget: roundBudget(prev.budget + (isWin ? 0.5 : isDraw ? 0.2 : 0)),
     }));
   };
 

@@ -74,6 +74,13 @@ function MarketPlayerCard({ player, canAfford, onBuy }: { player: Player; canAff
   );
 }
 
+const positionGroupLabel: Record<string, string> = {
+  GK: 'Porteros',
+  CB: 'Defensas', LB: 'Defensas', RB: 'Defensas',
+  CM: 'Centrocampistas', CDM: 'Centrocampistas', CAM: 'Centrocampistas',
+  LW: 'Delanteros', RW: 'Delanteros', ST: 'Delanteros', CF: 'Delanteros',
+};
+
 export default function Transfers() {
   const { state, marketPlayers, buyPlayer } = useGame();
 
@@ -107,7 +114,7 @@ export default function Transfers() {
         <div key={pos}>
           <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
             <span className={`text-white text-xs px-2 py-1 rounded ${positionColors[pos] || 'bg-gray-500'}`}>{pos}</span>
-            {pos === 'GK' ? 'Porteros' : pos === 'CB' || pos === 'LB' || pos === 'RB' ? 'Defensas' : pos === 'CM' || pos === 'CDM' || pos === 'CAM' ? 'Centrocampistas' : 'Delanteros'}
+            {positionGroupLabel[pos] ?? 'Jugadores'}
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
             {byPosition[pos].map(player => (

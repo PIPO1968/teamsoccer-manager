@@ -86,7 +86,7 @@ function FootballPitch({ formation, players }: { formation: Formation; players: 
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-lg ${positionColors[player.position] || 'bg-gray-500'}`}>
               {player.overall}
             </div>
-            <div className="bg-black/70 text-white text-xs px-1 rounded mt-0.5 whitespace-nowrap max-w-16 overflow-hidden text-center" style={{ fontSize: '9px' }}>
+            <div className="bg-black/70 text-white text-[9px] px-1 rounded mt-0.5 whitespace-nowrap max-w-16 overflow-hidden text-center">
               {player.name.split(' ')[0]}
             </div>
           </div>
