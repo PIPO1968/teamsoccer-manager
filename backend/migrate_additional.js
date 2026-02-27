@@ -1,1 +1,33 @@
-console.log('Migraciones adicionales no son necesarias.');
+import { Pool } from 'pg';
+import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const pool = new Pool({
+    host: process.env.PGHOST,
+    user: process.env.PGUSER,
+    password: process.env.PGPASSWORD,
+    database: process.env.PGDATABASE,
+    port: process.env.PGPORT || 5432,
+});
+
+async function migrateAdditional() {
+    try {
+        const schemaPath = path.join(__dirname, 'sql', 'railway_schema_additional.sql');
+        const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+        await pool.query(schemaSql);
+        console.log('Migración adicional aplicada o ya existe.');
+    } catch (err) {
+        console.error('Error en la migración adicional:', err);
+    } finally {
+        await pool.end();
+    }
+}
+
+migrateAdditional();
