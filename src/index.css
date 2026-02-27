@@ -1,0 +1,271 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 60 33% 96%;  /* Light beige background */
+    --foreground: 0 0% 20%;    /* Dark text */
+
+    --card: 0 0% 100%;         /* White cards */
+    --card-foreground: 0 0% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 20%;
+
+    --primary: 120 50% 34%;    /* TeamSoccer green */
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 120 33% 25%;  /* Darker green */
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 88%;
+    --muted-foreground: 0 0% 40%;
+
+    --accent: 39 100% 51%;     /* Yellow accent */
+    --accent-foreground: 0 0% 20%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --success: 142 76% 36%;    /* Success green */
+    --success-foreground: 0 0% 98%;
+
+    --border: 0 0% 82%;
+    --input: 0 0% 82%;
+    --ring: 120 50% 34%;
+
+    --radius: 0.25rem;
+
+    --sidebar-background: 120 50% 34%;  /* Green sidebar */
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 120 33% 25%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 120 30% 40%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 120 30% 30%;
+    --sidebar-ring: 120 50% 34%;
+  }
+
+  .dark {
+    --background: 0 0% 10%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 15%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 15%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 120 50% 34%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 120 33% 25%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 65%;
+
+    --accent: 39 100% 51%;
+    --accent-foreground: 0 0% 20%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --success: 142 76% 36%;    /* Success green */
+    --success-foreground: 0 0% 98%;
+
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 120 50% 34%;
+    
+    --sidebar-background: 120 30% 20%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 120 50% 34%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 120 30% 25%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 120 30% 15%;
+    --sidebar-ring: 120 50% 34%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Open Sans', sans-serif;
+    background-image: var(--teamsoccer-pattern-bg);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Roboto', sans-serif;
+    @apply font-semibold;
+  }
+
+  /* TeamSoccer-style pattern background */
+  :root {
+    --teamsoccer-pattern-bg: repeating-linear-gradient(
+      135deg,
+      rgba(46, 125, 50, 0.03),
+      rgba(46, 125, 50, 0.03) 5px,
+      rgba(46, 125, 50, 0.05) 5px,
+      rgba(46, 125, 50, 0.05) 10px
+    );
+  }
+
+  /* Enhanced pitch styling */
+  .pitch-background {
+    background: linear-gradient(to bottom, #48bb78, #38a169);
+    position: relative;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+    border: 2px solid white;
+    overflow: hidden;
+  }
+
+  /* Pitch pattern using repeating linear gradients */
+  .pitch-background::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 15px,
+        rgba(255, 255, 255, 0.03) 15px,
+        rgba(255, 255, 255, 0.03) 30px
+      );
+    z-index: 0;
+  }
+
+  .stadium-background {
+    background: radial-gradient(ellipse at center, #4a5568, #2d3748);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Stadium seats */
+  .stadium-background::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+      repeating-linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.05),
+        rgba(255, 255, 255, 0.05) 5px,
+        transparent 5px,
+        transparent 15px
+      );
+    z-index: 0;
+  }
+
+  /* Player animation for ball movement */
+  .player-anim {
+    will-change: transform, left, top;
+  }
+
+  /* Ball pulsing shadow effect */
+  @keyframes ballPulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+    70% { box-shadow: 0 0 0 5px rgba(255, 255, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+  }
+
+  /* TeamSoccer-style components */
+  .teamsoccer-header {
+    @apply bg-teamsoccer-green text-white py-2 px-3 font-medium text-sm rounded-t-md border-b border-teamsoccer-green-dark;
+  }
+
+  .teamsoccer-panel {
+    @apply bg-white rounded-md shadow-sm border border-gray-200 overflow-hidden;
+  }
+
+  .teamsoccer-table {
+    @apply w-full border-collapse;
+  }
+
+  .teamsoccer-table th {
+    @apply bg-gray-100 text-left py-2 px-3 font-medium text-sm border-b border-gray-200;
+  }
+
+  .teamsoccer-table td {
+    @apply py-2 px-3 border-b border-gray-100;
+  }
+
+  .teamsoccer-table tr:hover {
+    @apply bg-gray-50;
+  }
+
+  .teamsoccer-nav-item {
+    @apply px-3 py-2 flex items-center gap-2 hover:bg-teamsoccer-green-dark hover:text-white rounded transition-colors;
+  }
+
+  .teamsoccer-nav-item.active {
+    @apply bg-teamsoccer-green-dark text-white;
+  }
+
+  .teamsoccer-btn {
+    @apply px-4 py-2 rounded shadow-sm font-medium text-sm flex items-center gap-2;
+  }
+
+  .teamsoccer-btn-primary {
+    @apply bg-teamsoccer-green text-white hover:bg-teamsoccer-green-dark;
+  }
+
+  .teamsoccer-btn-secondary {
+    @apply bg-white border border-gray-300 text-gray-700 hover:bg-gray-50;
+  }
+
+  /* Better contrast header styles with TeamSoccer branding */
+  .teamsoccer-header {
+    @apply bg-primary text-white py-3 px-4 font-semibold text-sm rounded-t-md border-b border-primary;
+  }
+
+  .teamsoccer-panel {
+    @apply bg-white rounded-md shadow-sm border border-gray-200 overflow-hidden;
+  }
+
+  /* Text shadow utilities for better readability */
+  .text-shadow-sm {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  }
+  
+  .text-shadow {
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  }
+  
+  .text-shadow-lg {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+  }
+}
+
+@layer components {
+  .skill-bar {
+    @apply h-2 bg-gray-200 rounded-full overflow-hidden;
+  }
+  
+  .skill-bar-fill {
+    @apply h-full transition-all duration-500;
+  }
+  
+  .skill-label {
+    @apply text-xs font-medium;
+  }
+  
+  .skill-value {
+    @apply text-xs font-semibold ml-1;
+  }
+}
