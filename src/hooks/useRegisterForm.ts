@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiPost } from "@/services/apiClient";
 
 
 type RegisterFormData = {
@@ -97,76 +97,22 @@ export const useRegisterForm = (onSuccess: () => void) => {
     setErrors({}); // Clear any previous errors
 
     try {
-      // Registro con Supabase Auth
-      const { data, error } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            username: formData.username,
-            country: formData.country,
-            teamName: formData.teamName
-          }
+      await apiPost<
+        { success: boolean; userId: number; managerId: number; teamId: number; status: string },
+        {
+          email: string;
+          password: string;
+          username: string;
+          country: string | number;
+          teamName: string;
         }
-      });
-      if (error) {
-        setErrors({ general: error.message });
-        setLoading(false);
-        return;
-      }
-
-      // Obtener el user_id del usuario recién creado
-      const user_id = data?.user?.id;
-      if (!user_id) {
-        setErrors({ general: "No se pudo obtener el user_id de Supabase Auth." });
-        setLoading(false);
-        return;
-      }
-
-      // Crear usuario en tabla users (opcional)
-      const { error: userError } = await supabase.from('users').insert({
+      >("/register", {
         email: formData.email,
         password: formData.password,
-        username: formData.username
-      });
-      if (userError) {
-        setErrors({ general: userError.message });
-        setLoading(false);
-        return;
-      }
-
-      // Lógica para admin y status
-      const adminEmails = ["PIPO68", "pipo68@example.com", "pipocanarias@hotmail.com"];
-      const isAdmin = adminEmails.includes(formData.username) || adminEmails.includes(formData.email);
-      const managerStatus = isAdmin ? "active" : "waiting_list";
-      const is_admin = isAdmin ? 10 : 0;
-
-      // Crear manager con user_id
-      const { error: managerError } = await supabase.from('managers').insert({
-        user_id,
         username: formData.username,
-        email: formData.email,
-        country_id: typeof formData.country === 'number' ? formData.country : null,
-        is_admin: is_admin,
-        status: managerStatus
+        country: formData.country,
+        teamName: formData.teamName,
       });
-      if (managerError) {
-        setErrors({ general: managerError.message });
-        setLoading(false);
-        return;
-      }
-
-      // Crear equipo asociado
-      const { error: teamError } = await supabase.from('teams').insert({
-        name: formData.teamName,
-        manager_id: user_id,
-        country_id: typeof formData.country === 'number' ? formData.country : null
-      });
-      if (teamError) {
-        setErrors({ general: teamError.message });
-        setLoading(false);
-        return;
-      }
 
       setLoading(false);
       onSuccess();

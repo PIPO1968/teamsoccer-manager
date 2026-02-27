@@ -8,7 +8,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 
 interface WaitlistManager {
   user_id: number;
@@ -25,7 +25,7 @@ interface WaitlistManager {
 
 const WaitlistManagers = () => {
   const { manager } = useAuth();
-  
+
   // Check if user has required admin level
   if (!manager?.is_admin || manager.is_admin <= 1) {
     return <Navigate to="/dashboard" replace />;
@@ -34,57 +34,10 @@ const WaitlistManagers = () => {
   const { data: waitlistManagers, isLoading, error } = useQuery({
     queryKey: ['waitlist-managers'],
     queryFn: async (): Promise<WaitlistManager[]> => {
-      const { data, error } = await supabase
-        .from('managers')
-        .select(`
-          user_id,
-          username,
-          email,
-          country_id,
-          created_at,
-          is_admin,
-          is_premium,
-          leagues_regions!managers_country_id_fkey (name),
-          teams (name)
-        `)
-        .eq('status', 'waiting_list')
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching waitlist managers:', error);
-        throw error;
-      }
-
-      // Check league structure for each manager's country
-      const managersWithLeagueInfo = await Promise.all(
-        data.map(async (manager) => {
-          // Check if the country has a league structure
-          const { data: leagueData, error: leagueError } = await supabase
-            .from('leagues')
-            .select('league_id')
-            .eq('region_id', manager.country_id)
-            .limit(1);
-
-          if (leagueError) {
-            console.error('Error checking league structure:', leagueError);
-          }
-
-          return {
-            user_id: manager.user_id,
-            username: manager.username,
-            email: manager.email,
-            country_id: manager.country_id,
-            country_name: manager.leagues_regions?.name || 'Unknown',
-            team_name: manager.teams?.[0]?.name,
-            created_at: manager.created_at,
-            has_league_structure: leagueData && leagueData.length > 0,
-            is_admin: manager.is_admin || 0,
-            is_premium: manager.is_premium || 0
-          };
-        })
+      const response = await apiFetch<{ success: boolean; managers: WaitlistManager[] }>(
+        "/admin/waitlist-managers"
       );
-
-      return managersWithLeagueInfo;
+      return response.managers || [];
     },
   });
 
@@ -147,7 +100,7 @@ const WaitlistManagers = () => {
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <Link to={`/manager/${manager.user_id}`}>{manager.username}</Link>
-                        <ManagerStatusIndicators 
+                        <ManagerStatusIndicators
                           managerId={manager.user_id}
                           isPremium={manager.is_premium}
                           isAdmin={manager.is_admin}
@@ -162,11 +115,10 @@ const WaitlistManagers = () => {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        manager.has_league_structure 
-                          ? 'bg-green-100 text-green-800' 
+                      <span className={`px-2 py-1 rounded text-xs ${manager.has_league_structure
+                          ? 'bg-green-100 text-green-800'
                           : 'bg-red-100 text-red-800'
-                      }`}>
+                        }`}>
                         {manager.has_league_structure ? 'Available' : 'Missing'}
                       </span>
                     </TableCell>

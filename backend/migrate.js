@@ -1,6 +1,13 @@
 import { Pool } from 'pg';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const pool = new Pool({
     host: process.env.PGHOST,
@@ -10,20 +17,28 @@ const pool = new Pool({
     port: process.env.PGPORT || 5432,
 });
 
-const createUsersTable = `
-CREATE TABLE IF NOT EXISTS users (
-  id SERIAL PRIMARY KEY,
-  email VARCHAR(255) UNIQUE NOT NULL,
-  password VARCHAR(255) NOT NULL,
-  username VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-`;
-
 async function migrate() {
     try {
-        await pool.query(createUsersTable);
-        console.log('Tabla users creada o ya existe.');
+        const schemaPath = path.join(__dirname, 'sql', 'railway_schema.sql');
+        const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+        const shouldReset = ['1', 'true', 'yes'].includes((process.env.RESET_DB || '').toLowerCase());
+
+        if (shouldReset) {
+            await pool.query(`
+                DROP TABLE IF EXISTS players CASCADE;
+                DROP TABLE IF EXISTS team_finances CASCADE;
+                DROP TABLE IF EXISTS stadiums CASCADE;
+                DROP TABLE IF EXISTS matches CASCADE;
+                DROP TABLE IF EXISTS teams CASCADE;
+                DROP TABLE IF EXISTS managers CASCADE;
+                DROP TABLE IF EXISTS leagues_regions CASCADE;
+                DROP TABLE IF EXISTS users CASCADE;
+            `);
+            console.log('Tablas existentes eliminadas.');
+        }
+
+        await pool.query(schemaSql);
+        console.log('Esquema aplicado o ya existe.');
     } catch (err) {
         console.error('Error en la migración:', err);
     } finally {

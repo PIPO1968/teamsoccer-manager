@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 
 export type SeasonInfo = {
   current_season: number;
@@ -15,14 +15,10 @@ export const useCurrentSeason = () => {
   useEffect(() => {
     const fetchCurrentSeason = async () => {
       try {
-        const { data, error: fetchError } = await supabase
-          .from('seasons')
-          .select('current_season, current_week')
-          .single();
-
-        if (fetchError) throw fetchError;
-
-        setSeasonInfo(data);
+        const response = await apiFetch<{ success: boolean; season: SeasonInfo }>(
+          "/meta/current-season"
+        );
+        setSeasonInfo(response.season);
       } catch (err) {
         console.error("Error fetching season info:", err);
         setError(err instanceof Error ? err.message : "Error fetching season info");

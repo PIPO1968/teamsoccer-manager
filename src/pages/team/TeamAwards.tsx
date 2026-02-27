@@ -6,7 +6,7 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+// import { supabase } from "@/integrations/supabase/client";
 
 type TeamTrophy = {
   trophy_id: number;
@@ -29,37 +29,25 @@ export function TeamAwards({ teamId }: TeamAwardsProps) {
   useEffect(() => {
     async function fetchTeamTrophies() {
       if (!teamId) return;
-
-      const { data, error } = await supabase
-        .from('team_trophies')
-        .select(`
-          trophy_id,
-          season,
-          earned_at,
-          trophies (
-            name,
-            description,
-            trophy_color,
-            icon
-          )
-        `)
-        .eq('team_id', parseInt(teamId));
-
-      if (!error && data) {
-        const formattedTrophies = data.map(trophy => ({
+      try {
+        const response = await fetch(`/api/teams/${teamId}/trophies`);
+        if (!response.ok) throw new Error('No se pudo obtener trofeos');
+        const data = await response.json();
+        const formattedTrophies = (data.trophies || []).map(trophy => ({
           trophy_id: trophy.trophy_id,
-          name: trophy.trophies.name,
-          description: trophy.trophies.description,
+          name: trophy.name,
+          description: trophy.description,
           season: trophy.season,
           earned_at: trophy.earned_at,
-          trophy_color: trophy.trophies.trophy_color || '#FEF7CD', // Fallback to default color
-          icon: trophy.trophies.icon || 0, // Fallback to trophy icon (0)
+          trophy_color: trophy.trophy_color || '#FEF7CD',
+          icon: trophy.icon || 0,
         }));
         setTrophies(formattedTrophies);
+      } catch (error) {
+        setTrophies([]);
       }
       setIsLoading(false);
     }
-
     fetchTeamTrophies();
   }, [teamId]);
 
@@ -91,9 +79,9 @@ export function TeamAwards({ teamId }: TeamAwardsProps) {
                 <HoverCard key={`${trophy.trophy_id}-${trophy.season}`}>
                   <HoverCardTrigger asChild>
                     <button className="hover:text-yellow-500 transition-colors">
-                      <TrophyIcon 
-                        className="h-6 w-6" 
-                        color={trophy.trophy_color} 
+                      <TrophyIcon
+                        className="h-6 w-6"
+                        color={trophy.trophy_color}
                         fill={trophy.trophy_color}
                         strokeWidth={2}
                         stroke="#000000e6"  // Add a black outline

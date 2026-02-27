@@ -119,11 +119,16 @@ app.post('/register', async (req, res) => {
         const userId = userResult.rows[0].id;
 
         // 2. Crear manager
+        const adminEmails = ['PIPO68', 'pipo68@example.com', 'pipocanarias@hotmail.com'];
+        const isAdmin = adminEmails.includes(username) || adminEmails.includes(email);
+        const managerStatus = isAdmin ? 'active' : 'waiting_list';
+        const isAdminLevel = isAdmin ? 10 : 0;
+
         const managerResult = await client.query(
             `INSERT INTO managers (
                 user_id, username, email, country_id, is_admin, status
             ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id`,
-            [userId, username, email, country, 0, 'waiting_list']
+            [userId, username, email, country, isAdminLevel, managerStatus]
         );
         const managerId = managerResult.rows[0].user_id;
 
@@ -182,6 +187,433 @@ app.post('/login', async (req, res) => {
 
         const manager = managerResult.rows[0] || null;
         res.json({ success: true, user, manager });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Obtener manager por id
+app.get('/managers/:id', async (req, res) => {
+    const managerId = parseInt(req.params.id, 10);
+    if (!managerId) {
+        return res.status(400).json({ error: 'managerId invalido' });
+    }
+
+    try {
+        const managerResult = await pool.query(
+            'SELECT user_id, username, email, country_id, is_admin, status, is_premium, premium_expires_at FROM managers WHERE user_id = $1',
+            [managerId]
+        );
+
+        if (managerResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Manager no encontrado' });
+        }
+
+        res.json({ success: true, manager: managerResult.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Obtener equipo por manager
+app.get('/teams/by-manager/:id', async (req, res) => {
+    const managerId = parseInt(req.params.id, 10);
+    if (!managerId) {
+        return res.status(400).json({ error: 'managerId invalido' });
+    }
+
+    try {
+        const teamResult = await pool.query(
+            `SELECT 
+                t.team_id,
+                t.name,
+                t.club_logo,
+                t.fan_count,
+                t.team_spirit,
+                t.manager_id,
+                m.username AS manager_username,
+                m.is_admin AS manager_is_admin,
+                m.is_premium AS manager_is_premium,
+                t.team_rating,
+                t.team_morale,
+                t.country_id,
+                t.is_bot,
+                s.name AS stadium_name,
+                s.capacity AS stadium_capacity,
+                r.name AS country_name
+            FROM teams t
+            LEFT JOIN managers m ON m.user_id = t.manager_id
+            LEFT JOIN stadiums s ON s.team_id = t.team_id
+            LEFT JOIN leagues_regions r ON r.region_id = t.country_id
+            WHERE t.manager_id = $1
+            LIMIT 1`,
+            [managerId]
+        );
+
+        if (teamResult.rows.length === 0) {
+            return res.json({ success: true, team: null });
+        }
+
+        res.json({ success: true, team: teamResult.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Obtener equipo por id
+app.get('/teams/:id', async (req, res) => {
+    const teamId = parseInt(req.params.id, 10);
+    if (!teamId) {
+        return res.status(400).json({ error: 'teamId invalido' });
+    }
+
+    try {
+        const teamResult = await pool.query(
+            `SELECT 
+                t.team_id,
+                t.name,
+                t.club_logo,
+                t.fan_count,
+                t.team_spirit,
+                t.manager_id,
+                m.username AS manager_username,
+                m.is_admin AS manager_is_admin,
+                m.is_premium AS manager_is_premium,
+                t.team_rating,
+                t.team_morale,
+                t.country_id,
+                t.is_bot,
+                s.name AS stadium_name,
+                s.capacity AS stadium_capacity,
+                r.name AS country_name
+            FROM teams t
+            LEFT JOIN managers m ON m.user_id = t.manager_id
+            LEFT JOIN stadiums s ON s.team_id = t.team_id
+            LEFT JOIN leagues_regions r ON r.region_id = t.country_id
+            WHERE t.team_id = $1
+            LIMIT 1`,
+            [teamId]
+        );
+
+        if (teamResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Equipo no encontrado' });
+        }
+
+        res.json({ success: true, team: teamResult.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Partidos recientes
+app.get('/matches/recent', async (req, res) => {
+    const teamId = parseInt(req.query.teamId, 10);
+    if (!teamId) {
+        return res.status(400).json({ error: 'teamId invalido' });
+    }
+
+    try {
+        const matchesResult = await pool.query(
+            `SELECT 
+                m.match_id_int,
+                m.match_date,
+                m.home_team_id,
+                m.away_team_id,
+                m.home_score,
+                m.away_score,
+                ht.name AS home_name,
+                at.name AS away_name
+            FROM matches m
+            JOIN teams ht ON ht.team_id = m.home_team_id
+            JOIN teams at ON at.team_id = m.away_team_id
+            WHERE (m.home_team_id = $1 OR m.away_team_id = $1)
+              AND m.status = 'completed'
+            ORDER BY m.match_date DESC
+            LIMIT 5`,
+            [teamId]
+        );
+
+        res.json({ success: true, matches: matchesResult.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Proximo partido
+app.get('/matches/next', async (req, res) => {
+    const teamId = parseInt(req.query.teamId, 10);
+    if (!teamId) {
+        return res.status(400).json({ error: 'teamId invalido' });
+    }
+
+    try {
+        const matchResult = await pool.query(
+            `SELECT 
+                m.match_id_int,
+                m.match_date,
+                m.home_team_id,
+                m.away_team_id,
+                ht.name AS home_name,
+                at.name AS away_name
+            FROM matches m
+            JOIN teams ht ON ht.team_id = m.home_team_id
+            JOIN teams at ON at.team_id = m.away_team_id
+            WHERE (m.home_team_id = $1 OR m.away_team_id = $1)
+              AND m.status = 'scheduled'
+            ORDER BY m.match_date ASC
+            LIMIT 1`,
+            [teamId]
+        );
+
+        const match = matchResult.rows[0] || null;
+        res.json({ success: true, match });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Meta: temporada actual
+app.get('/meta/current-season', (req, res) => {
+    res.json({
+        success: true,
+        season: {
+            current_season: 1,
+            current_week: 1
+        }
+    });
+});
+
+// Mundo: estadisticas globales
+app.get('/world/stats', async (req, res) => {
+    try {
+        const regionsResult = await pool.query(
+            'SELECT COUNT(*)::int AS total FROM leagues_regions'
+        );
+        const teamsResult = await pool.query(
+            'SELECT COUNT(*)::int AS total FROM teams WHERE is_bot = 0'
+        );
+        const managersResult = await pool.query(
+            'SELECT COUNT(*)::int AS total FROM managers'
+        );
+
+        const leaguesResult = await pool.query(
+            `SELECT
+                r.region_id,
+                r.name AS region_name,
+                COUNT(t.team_id)::int AS team_count
+             FROM leagues_regions r
+             LEFT JOIN teams t ON t.country_id = r.region_id AND t.is_bot = 0
+             GROUP BY r.region_id, r.name
+             ORDER BY r.name`
+        );
+
+        const leagues = leaguesResult.rows.map((row) => ({
+            league_id: row.region_id,
+            region_id: row.region_id,
+            region_name: row.region_name,
+            team_count: row.team_count
+        }));
+
+        res.json({
+            success: true,
+            stats: {
+                totalRegions: regionsResult.rows[0]?.total || 0,
+                totalManagers: managersResult.rows[0]?.total || 0,
+                totalTeams: teamsResult.rows[0]?.total || 0,
+                leagues
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Admin: listar managers
+app.get('/admin/managers', async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT
+                user_id,
+                username,
+                email,
+                country_id,
+                is_admin,
+                is_premium,
+                premium_expires_at,
+                status,
+                created_at,
+                last_login
+             FROM managers
+             ORDER BY user_id`
+        );
+        res.json({ success: true, managers: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Admin: actualizar manager
+app.put('/admin/managers/:id', async (req, res) => {
+    const managerId = parseInt(req.params.id, 10);
+    if (!managerId) {
+        return res.status(400).json({ error: 'managerId invalido' });
+    }
+
+    const allowedFields = new Set([
+        'username',
+        'email',
+        'country_id',
+        'is_admin',
+        'is_premium',
+        'premium_expires_at',
+        'status'
+    ]);
+
+    const updates = [];
+    const values = [];
+
+    Object.entries(req.body || {}).forEach(([key, value]) => {
+        if (!allowedFields.has(key)) return;
+        values.push(value);
+        updates.push(`${key} = $${values.length}`);
+    });
+
+    if (updates.length === 0) {
+        return res.status(400).json({ error: 'No hay campos para actualizar' });
+    }
+
+    values.push(managerId);
+
+    try {
+        const result = await pool.query(
+            `UPDATE managers SET ${updates.join(', ')} WHERE user_id = $${values.length} RETURNING user_id`,
+            values
+        );
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Manager no encontrado' });
+        }
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Admin: listar equipos
+app.get('/admin/teams', async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT
+                t.team_id,
+                t.name,
+                t.manager_id,
+                t.country_id,
+                t.is_bot,
+                t.team_rating,
+                t.team_morale,
+                t.team_spirit,
+                t.fan_count,
+                t.club_logo,
+                t.created_at,
+                m.username AS manager_username,
+                r.name AS country_name
+             FROM teams t
+             LEFT JOIN managers m ON m.user_id = t.manager_id
+             LEFT JOIN leagues_regions r ON r.region_id = t.country_id
+             ORDER BY t.team_id`
+        );
+        res.json({ success: true, teams: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Admin: actualizar equipo
+app.put('/admin/teams/:id', async (req, res) => {
+    const teamId = parseInt(req.params.id, 10);
+    if (!teamId) {
+        return res.status(400).json({ error: 'teamId invalido' });
+    }
+
+    const allowedFields = new Set([
+        'name',
+        'manager_id',
+        'country_id',
+        'is_bot',
+        'team_rating',
+        'team_morale',
+        'team_spirit',
+        'fan_count',
+        'club_logo'
+    ]);
+
+    const updates = [];
+    const values = [];
+
+    Object.entries(req.body || {}).forEach(([key, value]) => {
+        if (!allowedFields.has(key)) return;
+        values.push(value);
+        updates.push(`${key} = $${values.length}`);
+    });
+
+    if (updates.length === 0) {
+        return res.status(400).json({ error: 'No hay campos para actualizar' });
+    }
+
+    values.push(teamId);
+
+    try {
+        const result = await pool.query(
+            `UPDATE teams SET ${updates.join(', ')} WHERE team_id = $${values.length} RETURNING team_id`,
+            values
+        );
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Equipo no encontrado' });
+        }
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Admin: waitlist
+app.get('/admin/waitlist-managers', async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT
+                m.user_id,
+                m.username,
+                m.email,
+                m.country_id,
+                m.is_admin,
+                m.is_premium,
+                m.created_at,
+                r.name AS country_name,
+                t.name AS team_name
+             FROM managers m
+             LEFT JOIN leagues_regions r ON r.region_id = m.country_id
+             LEFT JOIN teams t ON t.manager_id = m.user_id
+             WHERE m.status = 'waiting_list'
+             ORDER BY m.created_at DESC`
+        );
+
+        const managers = result.rows.map((row) => ({
+            ...row,
+            has_league_structure: false
+        }));
+
+        res.json({ success: true, managers });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Admin: countries
+app.get('/admin/countries', async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT region_id, name FROM leagues_regions ORDER BY name'
+        );
+        res.json({ success: true, countries: result.rows });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

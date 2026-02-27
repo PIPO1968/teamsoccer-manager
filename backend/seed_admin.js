@@ -16,6 +16,7 @@ const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'PIPO68';
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'pipocanarias@hotmail.com';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const ADMIN_COUNTRY_ID = parseInt(process.env.ADMIN_COUNTRY_ID || '2', 10);
+const ADMIN_TEAM_NAME = process.env.ADMIN_TEAM_NAME || 'Admin FC';
 
 const run = async () => {
     if (!ADMIN_PASSWORD) {
@@ -36,6 +37,20 @@ const run = async () => {
                 'UPDATE managers SET is_admin = 10, status = $1 WHERE user_id = $2',
                 ['active', existingManager.rows[0].user_id]
             );
+            const adminId = existingManager.rows[0].user_id;
+            const existingTeam = await client.query(
+                'SELECT team_id FROM teams WHERE manager_id = $1',
+                [adminId]
+            );
+            if (existingTeam.rowCount === 0) {
+                const teamResult = await client.query(
+                    'INSERT INTO teams (name, manager_id, country_id) VALUES ($1, $2, $3) RETURNING team_id',
+                    [ADMIN_TEAM_NAME, adminId, ADMIN_COUNTRY_ID]
+                );
+                const teamId = teamResult.rows[0].team_id;
+                await client.query('INSERT INTO team_finances (team_id) VALUES ($1)', [teamId]);
+                await client.query('INSERT INTO stadiums (name, team_id) VALUES ($1, $2)', [`${ADMIN_TEAM_NAME} Stadium`, teamId]);
+            }
             await client.query('COMMIT');
             console.log('Admin already exists. Elevated permissions.');
             return;
@@ -62,6 +77,21 @@ const run = async () => {
       ) VALUES ($1, $2, $3, $4, $5, $6)`,
             [userId, ADMIN_USERNAME, ADMIN_EMAIL, ADMIN_COUNTRY_ID, 10, 'active']
         );
+
+        const existingTeam = await client.query(
+            'SELECT team_id FROM teams WHERE manager_id = $1',
+            [userId]
+        );
+
+        if (existingTeam.rowCount === 0) {
+            const teamResult = await client.query(
+                'INSERT INTO teams (name, manager_id, country_id) VALUES ($1, $2, $3) RETURNING team_id',
+                [ADMIN_TEAM_NAME, userId, ADMIN_COUNTRY_ID]
+            );
+            const teamId = teamResult.rows[0].team_id;
+            await client.query('INSERT INTO team_finances (team_id) VALUES ($1)', [teamId]);
+            await client.query('INSERT INTO stadiums (name, team_id) VALUES ($1, $2)', [`${ADMIN_TEAM_NAME} Stadium`, teamId]);
+        }
 
         await client.query('COMMIT');
         console.log('Admin seeded successfully.');

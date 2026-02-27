@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+// import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { PlayerData } from "@/hooks/useTeamPlayers";
 
@@ -19,30 +19,27 @@ export const useTrainingManagement = (players: PlayerData[]) => {
   useEffect(() => {
     const loadTrainingAssignments = async () => {
       if (!players.length) return;
-
       try {
-        const { data, error } = await supabase
-          .from('player_training_assignments')
-          .select('player_id, training_type, training_intensity')
-          .in('player_id', players.map(p => p.player_id));
-
-        if (error) throw error;
-
+        const response = await fetch('/api/training/assignments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ playerIds: players.map(p => p.player_id) })
+        });
+        if (!response.ok) throw new Error('No se pudo obtener asignaciones de entrenamiento');
+        const data = await response.json();
         const trainingMap = new Map<number, PlayerTraining>();
-        data?.forEach(assignment => {
+        (data.assignments || []).forEach(assignment => {
           trainingMap.set(assignment.player_id, {
             playerId: assignment.player_id,
             trainingType: assignment.training_type,
             intensity: assignment.training_intensity
           });
         });
-
         setPlayerTrainings(trainingMap);
       } catch (error) {
         console.error('Error loading training assignments:', error);
       }
     };
-
     loadTrainingAssignments();
   }, [players]);
 

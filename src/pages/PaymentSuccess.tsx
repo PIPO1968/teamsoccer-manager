@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { CheckCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+// import { supabase } from "@/integrations/supabase/client";
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -25,23 +25,19 @@ const PaymentSuccess = () => {
         // In a production environment, you would verify the session
         // For now, we'll just simulate a successful verification
         await new Promise((resolve) => setTimeout(resolve, 1500));
-        
+
         // After successful payment, refresh the manager data to get updated premium status
         if (manager?.user_id) {
-          const { data, error } = await supabase
-            .from('managers')
-            .select('user_id, username, email, is_admin, is_premium, premium_expires_at')
-            .eq('user_id', manager.user_id)
-            .single();
-            
-          if (!error && data) {
-            console.log("Updated manager data after payment:", data);
-            // Update localStorage with the fresh data
-            const updatedManager = { ...manager, ...data };
+          const response = await fetch(`/api/managers/${manager.user_id}`);
+          if (!response.ok) throw new Error('No se pudo obtener datos del manager');
+          const data = await response.json();
+          if (data.manager) {
+            console.log("Updated manager data after payment:", data.manager);
+            const updatedManager = { ...manager, ...data.manager };
             localStorage.setItem('manager', JSON.stringify(updatedManager));
           }
         }
-        
+
         setLoading(false);
       } catch (err) {
         console.error("Error verifying payment:", err);

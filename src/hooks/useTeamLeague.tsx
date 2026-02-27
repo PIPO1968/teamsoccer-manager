@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 export type TeamLeague = {
   series_id: number;
@@ -16,67 +15,29 @@ export const useTeamLeague = (teamId: string | undefined) => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchLeague = async () => {
+    const fetchTeamLeague = async () => {
       if (!teamId) {
         setLeague(null);
         setIsLoading(false);
         return;
       }
-
-      await fetchLeagueForTeam(teamId);
-    };
-
-    const fetchLeagueForTeam = async (id: string) => {
+      setIsLoading(true);
+      setError(null);
       try {
-        console.log(`Fetching league for team ID: ${id}`);
-
-        const { data, error: fetchError } = await supabase
-          .from('series_members')
-          .select(`
-            series_id,
-            series:series!inner (
-              series_id,
-              division,
-              group_number,
-              league:leagues!inner (
-                league_id,
-                region:leagues_regions!inner (
-                  name
-                )
-              )
-            )
-          `)
-          .eq('team_id', parseInt(id))
-          .limit(1)
-          .maybeSingle();
-
-        if (fetchError) throw fetchError;
-
-        if (data) {
-          console.log("League data found:", data);
-          setLeague({
-            series_id: data.series_id,
-            league_id: data.series.league.league_id,
-            division: data.series.division,
-            group_number: data.series.group_number,
-            region_name: data.series.league.region.name,
-          });
-        } else {
-          console.log(`No league found for team ID: ${id}`);
-          setLeague(null);
-        }
+        // Llama a la API Express para obtener datos de liga del equipo
+        const response = await fetch(`/api/teams/${teamId}/league`);
+        if (!response.ok) throw new Error("No se pudo obtener datos de liga del equipo");
+        const data = await response.json();
+        setLeague(data.league || null);
       } catch (err) {
-        console.error("Error fetching team league:", err);
-        setError(err instanceof Error ? err.message : "Error fetching team league");
+        setError(err instanceof Error ? err.message : "Error al obtener datos de liga del equipo");
         setLeague(null);
       } finally {
         setIsLoading(false);
       }
     };
-
-    fetchLeague();
+    fetchTeamLeague();
   }, [teamId]);
-  // Solo lógica real: nada de demo
 
   return { league, isLoading, error };
 };

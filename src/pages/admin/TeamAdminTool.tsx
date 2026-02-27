@@ -6,7 +6,7 @@ import { PaginatedTable } from "@/components/admin/PaginatedTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 import { Building, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -43,55 +43,34 @@ const TeamAdminTool = () => {
 
   // Define which fields should be editable
   const editableFields = [
-    'name', 'manager_id', 'country_id', 'is_bot', 'team_rating', 
+    'name', 'manager_id', 'country_id', 'is_bot', 'team_rating',
     'team_morale', 'team_spirit', 'fan_count', 'club_logo'
   ];
 
   useEffect(() => {
     loadTeams();
     loadCountries();
-    loadTableStructure();
   }, []);
 
-  const loadTableStructure = async () => {
+  const loadTeams = async () => {
     try {
-      const { data, error } = await supabase
-        .from('teams')
-        .select('*')
-        .limit(1);
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
+      setLoading(true);
+      const response = await apiFetch<{ success: boolean; teams: Team[] }>(
+        "/admin/teams"
+      );
+      const data = response.teams || [];
+      setTeams(data);
+      if (data.length > 0) {
         const sampleRow = data[0];
-        const dynamicFields: FieldConfig[] = Object.keys(sampleRow).map(key => ({
+        const dynamicFields: FieldConfig[] = Object.keys(sampleRow).map((key) => ({
           name: key,
-          type: typeof sampleRow[key] === 'number' ? 'integer' : 'text',
+          type: typeof (sampleRow as Record<string, unknown>)[key] === "number" ? "integer" : "text",
           nullable: true,
           default: null,
           isEditable: editableFields.includes(key)
         }));
         setFields(dynamicFields);
       }
-    } catch (error) {
-      console.error('Error loading table structure:', error);
-    }
-  };
-
-  const loadTeams = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('teams')
-        .select(`
-          *,
-          managers!teams_manager_id_fkey (username),
-          leagues_regions!teams_country_id_fkey (name)
-        `)
-        .order('team_id');
-
-      if (error) throw error;
-      setTeams(data || []);
     } catch (error) {
       toast({
         title: "Error",
@@ -105,13 +84,10 @@ const TeamAdminTool = () => {
 
   const loadCountries = async () => {
     try {
-      const { data, error } = await supabase
-        .from('leagues_regions')
-        .select('region_id, name')
-        .order('name');
-
-      if (error) throw error;
-      setCountries(data || []);
+      const response = await apiFetch<{ success: boolean; countries: Array<{ region_id: number; name: string }> }>(
+        "/admin/countries"
+      );
+      setCountries(response.countries || []);
     } catch (error) {
       console.error('Error loading countries:', error);
     }
@@ -138,12 +114,13 @@ const TeamAdminTool = () => {
       Object.entries(allowedFields).filter(([_, value]) => value !== null && value !== undefined)
     );
 
-    const { error } = await supabase
-      .from('teams')
-      .update(updateData)
-      .eq('team_id', selectedTeam.team_id);
-
-    if (error) throw error;
+    await apiFetch<{ success: boolean }>(
+      `/admin/teams/${selectedTeam.team_id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(updateData),
+      }
+    );
 
     await loadTeams();
     setSelectedTeam(null);
@@ -156,22 +133,22 @@ const TeamAdminTool = () => {
   const teamColumns = [
     { key: 'team_id', label: 'ID', sortable: true },
     { key: 'name', label: 'Name', sortable: true },
-    { 
-      key: 'manager', 
-      label: 'Manager', 
+    {
+      key: 'manager',
+      label: 'Manager',
       sortable: true,
       render: (_: any, team: any) => team.managers?.username || 'No Manager'
     },
-    { 
-      key: 'country', 
-      label: 'Country', 
+    {
+      key: 'country',
+      label: 'Country',
       sortable: true,
       render: (_: any, team: any) => team.leagues_regions?.name || 'Unknown'
     },
     { key: 'team_rating', label: 'Rating', sortable: true },
-    { 
-      key: 'is_bot', 
-      label: 'Bot', 
+    {
+      key: 'is_bot',
+      label: 'Bot',
       sortable: true,
       render: (isBot: number) => isBot ? (
         <span className="text-orange-600">Yes</span>

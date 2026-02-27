@@ -25,9 +25,9 @@ const Shop = () => {
             .select('user_id, username, email, is_admin, is_premium, premium_expires_at')
             .eq('user_id', manager.user_id)
             .single();
-            
+
           if (error) throw error;
-          
+
           if (data) {
             console.log("Refreshed manager data:", data);
             // Update localStorage with the fresh data
@@ -41,7 +41,7 @@ const Shop = () => {
         }
       }
     };
-    
+
     fetchManagerData();
   }, [manager?.user_id]);
 
@@ -54,35 +54,30 @@ const Shop = () => {
     setIsLoading(true);
     try {
       console.log("Initiating checkout with user ID:", manager.user_id);
-      
-      // Call the Supabase Edge Function to create a checkout session
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { user: manager.user_id },
-      });
 
-      if (error) {
-        console.error("Error from create-checkout function:", error);
-        throw error;
-      }
-      
+      // Llama a la API Express para crear la sesión de checkout
+      const response = await fetch('/api/payments/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: manager.user_id })
+      });
+      if (!response.ok) throw new Error('No se pudo crear la sesión de pago');
+      const data = await response.json();
       if (!data?.url) {
         throw new Error("No checkout URL returned from the server");
       }
-      
       console.log("Checkout URL received:", data.url);
-      
-      // Redirect to Stripe Checkout
       window.location.href = data.url;
     } catch (error: any) {
       console.error("Error creating checkout session:", error);
-      
+
       // Improved error message based on error type
       if (error.type === "stripe_error") {
         toast.error(`Stripe error: ${error.message}`);
       } else {
         toast.error("Failed to initiate checkout. Please try again.");
       }
-      
+
       setErrorDetails(JSON.stringify(error, null, 2));
       setShowErrorDialog(true);
     } finally {
@@ -95,20 +90,20 @@ const Shop = () => {
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold mb-2">{GAME_NAME} Premium</h1>
         <p className="text-lg text-muted-foreground">
-          {manager?.is_premium 
-            ? "Manage your premium access" 
+          {manager?.is_premium
+            ? "Manage your premium access"
             : "Upgrade your manager experience with premium features"}
         </p>
       </div>
 
-      <ShopContent 
-        manager={manager} 
-        isLoading={isLoading} 
+      <ShopContent
+        manager={manager}
+        isLoading={isLoading}
         handlePurchasePremium={handlePurchasePremium}
       />
-      
+
       {/* Error Dialog */}
-      <ErrorDetailsDialog 
+      <ErrorDetailsDialog
         open={showErrorDialog}
         onOpenChange={setShowErrorDialog}
         errorDetails={errorDetails}

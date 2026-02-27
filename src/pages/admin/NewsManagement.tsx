@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+// import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { Newspaper, Plus, Edit, Trash2, Eye, EyeOff } from "lucide-react";
@@ -38,7 +38,7 @@ const NewsManagement = () => {
           author:managers(username)
         `)
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
       return data;
     }
@@ -56,7 +56,7 @@ const NewsManagement = () => {
         })
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -68,10 +68,10 @@ const NewsManagement = () => {
       setFormData({ title: '', content: '' });
     },
     onError: (error: any) => {
-      toast({ 
-        title: "Error creating article", 
+      toast({
+        title: "Error creating article",
         description: error.message,
-        variant: "destructive" 
+        variant: "destructive"
       });
     }
   });
@@ -85,7 +85,7 @@ const NewsManagement = () => {
         .eq('id', id)
         .select()
         .single();
-      
+
       if (error) throw error;
       return data;
     },
@@ -97,10 +97,10 @@ const NewsManagement = () => {
       setFormData({ title: '', content: '' });
     },
     onError: (error: any) => {
-      toast({ 
-        title: "Error updating article", 
+      toast({
+        title: "Error updating article",
         description: error.message,
-        variant: "destructive" 
+        variant: "destructive"
       });
     }
   });
@@ -112,7 +112,7 @@ const NewsManagement = () => {
         .from('community_news')
         .update({ is_published: !isPublished })
         .eq('id', id);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -129,7 +129,7 @@ const NewsManagement = () => {
         .from('community_news')
         .delete()
         .eq('id', id);
-      
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -142,9 +142,9 @@ const NewsManagement = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title.trim() || !formData.content.trim()) {
-      toast({ 
-        title: "Please fill in all fields", 
-        variant: "destructive" 
+      toast({
+        title: "Please fill in all fields",
+        variant: "destructive"
       });
       return;
     }
@@ -212,8 +212,8 @@ const NewsManagement = () => {
                 />
               </div>
               <div className="flex gap-2">
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={createNewsMutation.isPending || updateNewsMutation.isPending}
                 >
                   {editingId ? 'Update Article' : 'Create Article'}
@@ -253,16 +253,15 @@ const NewsManagement = () => {
                         By {article.author?.username} • {new Date(article.created_at).toLocaleDateString()}
                       </p>
                       <p className="text-gray-700 mb-3">
-                        {article.content.length > 150 
-                          ? `${article.content.substring(0, 150)}...` 
+                        {article.content.length > 150
+                          ? `${article.content.substring(0, 150)}...`
                           : article.content}
                       </p>
                       <div className="flex items-center gap-2">
-                        <span className={`px-2 py-1 text-xs rounded ${
-                          article.is_published 
-                            ? 'bg-green-100 text-green-800' 
+                        <span className={`px-2 py-1 text-xs rounded ${article.is_published
+                            ? 'bg-green-100 text-green-800'
                             : 'bg-gray-100 text-gray-800'
-                        }`}>
+                          }`}>
                           {article.is_published ? 'Published' : 'Draft'}
                         </span>
                       </div>
@@ -271,9 +270,9 @@ const NewsManagement = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => togglePublishMutation.mutate({ 
-                          id: article.id, 
-                          isPublished: article.is_published 
+                        onClick={() => togglePublishMutation.mutate({
+                          id: article.id,
+                          isPublished: article.is_published
                         })}
                       >
                         {article.is_published ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

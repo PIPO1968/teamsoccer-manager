@@ -5,19 +5,26 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { apiPost } from "@/services/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { GAME_NAME, GAME_LOGO } from "@/config/constants";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 interface AuthenticationResponse {
   success: boolean;
-  message: string;
+  user?: {
+    id: number;
+    email: string;
+    username: string;
+  };
   manager?: {
     user_id: number;
     username: string;
     email: string;
     is_admin: number;
+    status?: string;
+    is_premium?: number;
+    premium_expires_at?: string;
   };
 }
 
@@ -34,34 +41,21 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      // Autenticación real con Supabase
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      if (error || !data.user) {
+      const response = await apiPost<AuthenticationResponse, { email: string; password: string }>(
+        "/login",
+        { email, password }
+      );
+
+      if (!response.success || !response.manager) {
         toast({
           title: t('auth.signInError') || 'Login failed',
-          description: error?.message || 'Invalid credentials',
+          description: 'Manager not found',
         });
         setLoading(false);
         return;
       }
-      // Obtener datos del manager
-      const { data: managerData, error: managerError } = await supabase
-        .from('managers')
-        .select('*')
-        .eq('user_id', data.user.id)
-        .maybeSingle();
-      if (managerError || !managerData) {
-        toast({
-          title: t('auth.signInError') || 'Login failed',
-          description: managerError?.message || 'Manager not found',
-        });
-        setLoading(false);
-        return;
-      }
-      signIn(managerData);
+
+      signIn(response.manager);
       setLoading(false);
       navigate('/dashboard');
     } catch (err: any) {

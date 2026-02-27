@@ -1,7 +1,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { apiFetch } from '@/services/apiClient';
 
 interface Manager {
   user_id: number;
@@ -90,19 +90,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchManagerData = async (managerId: number): Promise<Partial<Manager> | null> => {
     try {
-      const { data, error } = await supabase
-        .from('managers')
-        .select('status, is_premium, premium_expires_at, is_admin')
-        .eq('user_id', managerId)
-        .single();
-
-      if (error) {
-        console.error('Error fetching manager data:', error);
-        return null;
-      }
-
-      console.log('Fetched manager data:', data);
-      return data;
+      const response = await apiFetch<{ success: boolean; manager: Manager }>(`/managers/${managerId}`);
+      console.log('Fetched manager data:', response.manager);
+      return response.manager;
     } catch (error) {
       console.error('Error fetching manager data:', error);
       return null;
@@ -111,13 +101,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const checkManagerTeam = async (managerId: number) => {
     try {
-      const { data } = await supabase
-        .from("teams")
-        .select("team_id")
-        .eq("manager_id", managerId)
-        .maybeSingle();
-
-      setHasTeam(!!data);
+      const response = await apiFetch<{ success: boolean; team: { team_id: number } | null }>(
+        `/teams/by-manager/${managerId}`
+      );
+      setHasTeam(!!response.team);
     } catch (error) {
       console.error('Error checking manager team:', error);
       setHasTeam(false);
@@ -154,12 +141,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-
     setManager(null);
     setHasTeam(false);
     localStorage.removeItem('manager');

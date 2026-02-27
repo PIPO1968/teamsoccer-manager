@@ -6,7 +6,7 @@ import { PaginatedTable } from "@/components/admin/PaginatedTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 import { UserCog, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -42,52 +42,34 @@ const ManagerAdminTool = () => {
 
   // Define which fields should be editable
   const editableFields = [
-    'username', 'email', 'country_id', 'is_admin', 'is_premium', 
+    'username', 'email', 'country_id', 'is_admin', 'is_premium',
     'premium_expires_at', 'status'
   ];
 
   useEffect(() => {
     loadManagers();
     loadCountries();
-    loadTableStructure();
   }, []);
 
-  const loadTableStructure = async () => {
+  const loadManagers = async () => {
     try {
-      const { data, error } = await supabase
-        .from('managers')
-        .select('*')
-        .limit(1);
-
-      if (error) throw error;
-
-      // Get table structure from the first row
-      if (data && data.length > 0) {
+      setLoading(true);
+      const response = await apiFetch<{ success: boolean; managers: Manager[] }>(
+        "/admin/managers"
+      );
+      const data = response.managers || [];
+      setManagers(data);
+      if (data.length > 0) {
         const sampleRow = data[0];
-        const dynamicFields: FieldConfig[] = Object.keys(sampleRow).map(key => ({
+        const dynamicFields: FieldConfig[] = Object.keys(sampleRow).map((key) => ({
           name: key,
-          type: typeof sampleRow[key] === 'number' ? 'integer' : 'text',
+          type: typeof (sampleRow as Record<string, unknown>)[key] === "number" ? "integer" : "text",
           nullable: true,
           default: null,
           isEditable: editableFields.includes(key)
         }));
         setFields(dynamicFields);
       }
-    } catch (error) {
-      console.error('Error loading table structure:', error);
-    }
-  };
-
-  const loadManagers = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('managers')
-        .select('*')
-        .order('user_id');
-
-      if (error) throw error;
-      setManagers(data || []);
     } catch (error) {
       toast({
         title: "Error",
@@ -101,13 +83,10 @@ const ManagerAdminTool = () => {
 
   const loadCountries = async () => {
     try {
-      const { data, error } = await supabase
-        .from('leagues_regions')
-        .select('region_id, name')
-        .order('name');
-
-      if (error) throw error;
-      setCountries(data || []);
+      const response = await apiFetch<{ success: boolean; countries: Array<{ region_id: number; name: string }> }>(
+        "/admin/countries"
+      );
+      setCountries(response.countries || []);
     } catch (error) {
       console.error('Error loading countries:', error);
     }
@@ -116,12 +95,13 @@ const ManagerAdminTool = () => {
   const handleSaveManager = async (managerData: Record<string, any>) => {
     if (!selectedManager) return;
 
-    const { error } = await supabase
-      .from('managers')
-      .update(managerData)
-      .eq('user_id', selectedManager.user_id);
-
-    if (error) throw error;
+    await apiFetch<{ success: boolean }>(
+      `/admin/managers/${selectedManager.user_id}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(managerData),
+      }
+    );
 
     await loadManagers();
     setSelectedManager(null);
@@ -136,24 +116,23 @@ const ManagerAdminTool = () => {
     { key: 'user_id', label: 'ID', sortable: true },
     { key: 'username', label: 'Username', sortable: true },
     { key: 'email', label: 'Email', sortable: true },
-    { 
-      key: 'status', 
-      label: 'Status', 
+    {
+      key: 'status',
+      label: 'Status',
       sortable: true,
       render: (status: string) => (
-        <span className={`px-2 py-1 rounded text-xs ${
-          status === 'active' ? 'bg-green-100 text-green-800' :
-          status === 'waiting_list' ? 'bg-yellow-100 text-yellow-800' :
-          'bg-red-100 text-red-800'
-        }`}>
+        <span className={`px-2 py-1 rounded text-xs ${status === 'active' ? 'bg-green-100 text-green-800' :
+            status === 'waiting_list' ? 'bg-yellow-100 text-yellow-800' :
+              'bg-red-100 text-red-800'
+          }`}>
           {status}
         </span>
       )
     },
     { key: 'is_admin', label: 'Admin Level', sortable: true },
-    { 
-      key: 'is_premium', 
-      label: 'Premium', 
+    {
+      key: 'is_premium',
+      label: 'Premium',
       sortable: true,
       render: (isPremium: number) => isPremium ? (
         <span className="text-green-600">Yes</span>
