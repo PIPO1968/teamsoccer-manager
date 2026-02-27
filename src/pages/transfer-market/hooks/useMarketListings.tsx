@@ -40,6 +40,9 @@ export const useMarketListings = () => {
       const data = await response.json();
       if (!isMounted.current) return;
       setMarketPlayers(data.listings || []);
+    } catch (error) {
+      console.error("Error al obtener transferencias:", error);
+    } finally {
       setIsLoading(false);
       fetchInProgress.current = false;
       console.log("Transfer listing fetch completed");
