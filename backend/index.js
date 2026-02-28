@@ -661,3 +661,9 @@ app.listen(PORT, () => {
 });
 
 app.options('*', cors({ origin: allowedOrigin, credentials: true }));
+
+
+// CORS test: forzar redeploy
+app.get('/test-redeploy', (req, res) => {
+    res.send('Test de redeploy');
+});
