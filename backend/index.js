@@ -1,4 +1,3 @@
-
 import express from 'express';
 import dotenv from 'dotenv';
 import { Pool } from 'pg';
@@ -10,8 +9,9 @@ dotenv.config();
 
 
 const app = express();
-// Permitir CORS desde cualquier origen en desarrollo
-app.use(cors({ origin: true, credentials: true }));
+// Permitir CORS solo desde el frontend en producción
+const allowedOrigin = 'https://teamsoccer-manager-production-f836.up.railway.app';
+app.use(cors({ origin: allowedOrigin, credentials: true }));
 app.use(express.json());
 
 console.log('Intentando conectar a Postgres en:', process.env.PGHOST, process.env.PGPORT, process.env.PGDATABASE);
@@ -659,3 +659,5 @@ const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`Servidor backend escuchando en puerto ${PORT}`);
 });
+
+app.options('*', cors({ origin: allowedOrigin, credentials: true }));
