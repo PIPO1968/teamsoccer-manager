@@ -471,6 +471,9 @@ app.get('/world/stats', async (req, res) => {
         const managersResult = await pool.query(
             'SELECT COUNT(*)::int AS total FROM managers'
         );
+        const onlineResult = await pool.query(
+            "SELECT COUNT(*)::int AS total FROM managers WHERE is_online = true"
+        );
 
         const leaguesResult = await pool.query(
             `SELECT
@@ -495,6 +498,7 @@ app.get('/world/stats', async (req, res) => {
             stats: {
                 totalRegions: regionsResult.rows[0]?.total || 0,
                 totalManagers: managersResult.rows[0]?.total || 0,
+                onlineManagers: onlineResult.rows[0]?.total || 0,
                 totalTeams: teamsResult.rows[0]?.total || 0,
                 leagues
             }
