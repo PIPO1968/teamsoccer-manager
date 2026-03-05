@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 
 interface PlayerWithTeam {
   player_id: number;
@@ -62,26 +62,10 @@ export const usePlayerData = (playerId: string | undefined) => {
 
       try {
         setIsLoading(true);
-        const { data, error } = await supabase
-          .from("players")
-          .select(`
-            *,
-            leagues_regions:nationality_id (name),
-            teams (name)
-          `)
-          .eq("player_id", parseInt(playerId))
-          .single();
-
-        if (error) throw error;
-
-        // Map the data to include nationality from the join
-        const playerWithNationality = {
-          ...data,
-          nationality: data.leagues_regions?.name || 'Unknown',
-          team: data.teams ? { name: data.teams.name } : undefined
-        };
-
-        setPlayer(playerWithNationality);
+        const data = await apiFetch<{ success: boolean; player: PlayerWithTeam }>(
+          `/players/${parseInt(playerId)}`
+        );
+        setPlayer(data.player);
         setIsLoading(false);
       } catch (err) {
         console.error("Error fetching player:", err);

@@ -616,6 +616,186 @@ app.get('/matches/next', async (req, res) => {
     }
 });
 
+// Obtener detalles de un partido por ID
+app.get('/matches/:id', async (req, res) => {
+    const matchId = parseInt(req.params.id, 10);
+    if (!matchId) return res.status(400).json({ error: 'matchId invalido' });
+    try {
+        const result = await pool.query(
+            `SELECT
+                m.match_id_int AS match_id,
+                m.home_team_id,
+                m.away_team_id,
+                ht.name AS home_team_name,
+                at.name AS away_team_name,
+                ht.club_logo AS home_team_logo,
+                at.club_logo AS away_team_logo,
+                m.home_score,
+                m.away_score,
+                m.match_date,
+                m.status,
+                m.is_friendly,
+                m.series_id,
+                s.division,
+                s.group_number,
+                r.name AS region_name,
+                st.stadium_id,
+                st.name AS stadium_name
+            FROM matches m
+            JOIN teams ht ON ht.team_id = m.home_team_id
+            JOIN teams at ON at.team_id = m.away_team_id
+            LEFT JOIN series s ON s.series_id = m.series_id
+            LEFT JOIN leagues_regions r ON r.region_id = s.region_id
+            LEFT JOIN stadiums st ON st.team_id = m.home_team_id
+            WHERE m.match_id_int = $1`,
+            [matchId]
+        );
+        if (!result.rows[0]) return res.status(404).json({ error: 'Partido no encontrado' });
+        const row = result.rows[0];
+        const match = {
+            ...row,
+            competition: row.is_friendly ? 'Friendly Match' : 'League Match',
+            stadium_name: row.stadium_name || `${row.home_team_name} Stadium`
+        };
+        res.json({ success: true, match });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Obtener eventos/highlights de un partido
+app.get('/matches/:id/highlights', async (req, res) => {
+    const matchId = parseInt(req.params.id, 10);
+    if (!matchId) return res.status(400).json({ error: 'matchId invalido' });
+    try {
+        // Intentar usar stored procedure si existe, si no devolver vacío
+        let highlights = [];
+        try {
+            const result = await pool.query(
+                'SELECT * FROM get_match_highlights($1)',
+                [matchId]
+            );
+            highlights = result.rows;
+        } catch {
+            // La función get_match_highlights puede no existir aún
+            highlights = [];
+        }
+        res.json({ success: true, highlights });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Obtener jugador por ID
+app.get('/players/:id', async (req, res) => {
+    const playerId = parseInt(req.params.id, 10);
+    if (!playerId) return res.status(400).json({ error: 'playerId invalido' });
+    try {
+        const result = await pool.query(
+            `SELECT
+                p.*,
+                r.name AS nationality,
+                t.name AS team_name
+            FROM players p
+            LEFT JOIN leagues_regions r ON r.region_id = p.nationality_id
+            LEFT JOIN teams t ON t.team_id = p.team_id
+            WHERE p.player_id = $1`,
+            [playerId]
+        );
+        if (!result.rows[0]) return res.status(404).json({ error: 'Jugador no encontrado' });
+        const row = result.rows[0];
+        const player = {
+            ...row,
+            team: row.team_name ? { name: row.team_name } : undefined
+        };
+        res.json({ success: true, player });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Obtener asignaciones de entrenamiento de un equipo
+app.get('/teams/:id/training', async (req, res) => {
+    const teamId = parseInt(req.params.id, 10);
+    if (!teamId) return res.status(400).json({ error: 'teamId invalido' });
+    try {
+        const result = await pool.query(
+            `SELECT pta.*
+             FROM player_training_assignments pta
+             JOIN players p ON p.player_id = pta.player_id
+             WHERE p.team_id = $1`,
+            [teamId]
+        );
+        res.json({ success: true, assignments: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Guardar asignación de entrenamiento de un jugador (upsert)
+app.put('/players/:id/training', async (req, res) => {
+    const playerId = parseInt(req.params.id, 10);
+    if (!playerId) return res.status(400).json({ error: 'playerId invalido' });
+    const { trainingType, intensity } = req.body;
+    try {
+        await pool.query(
+            `INSERT INTO player_training_assignments (player_id, training_type, training_intensity, updated_at)
+             VALUES ($1, $2, $3, NOW())
+             ON CONFLICT (player_id)
+             DO UPDATE SET training_type = $2, training_intensity = $3, updated_at = NOW()`,
+            [playerId, trainingType, intensity]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Obtener alineación de un partido y equipo
+app.get('/matches/:id/lineup/:teamId', async (req, res) => {
+    const matchId = parseInt(req.params.id, 10);
+    const teamId = parseInt(req.params.teamId, 10);
+    if (!matchId || !teamId) return res.status(400).json({ error: 'IDs invalidos' });
+    try {
+        const result = await pool.query(
+            'SELECT * FROM match_lineups WHERE match_id = $1 AND team_id = $2 LIMIT 1',
+            [matchId, teamId]
+        );
+        res.json({ success: true, lineup: result.rows[0] || null });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Guardar alineación (upsert)
+app.post('/matches/:id/lineup', async (req, res) => {
+    const matchId = parseInt(req.params.id, 10);
+    if (!matchId) return res.status(400).json({ error: 'matchId invalido' });
+    const { teamId, formation, playerPositions, substitutes } = req.body;
+    try {
+        const existing = await pool.query(
+            'SELECT id FROM match_lineups WHERE match_id = $1 AND team_id = $2 LIMIT 1',
+            [matchId, teamId]
+        );
+        if (existing.rows[0]) {
+            await pool.query(
+                `UPDATE match_lineups SET formation=$3, player_positions=$4, substitutes=$5
+                 WHERE match_id=$1 AND team_id=$2`,
+                [matchId, teamId, formation, JSON.stringify(playerPositions), JSON.stringify(substitutes)]
+            );
+        } else {
+            await pool.query(
+                `INSERT INTO match_lineups (match_id, team_id, formation, player_positions, substitutes)
+                 VALUES ($1, $2, $3, $4, $5)`,
+                [matchId, teamId, formation, JSON.stringify(playerPositions), JSON.stringify(substitutes)]
+            );
+        }
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Meta: temporada actual
 app.get('/meta/current-season', (req, res) => {
     res.json({
