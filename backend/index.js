@@ -147,6 +147,21 @@ const initDb = async () => {
             ('Niger'), ('Sierra Leone'), ('Liberia'), ('Mauritania'), ('Somalia')
             ON CONFLICT (name) DO NOTHING
         `);
+        // Sembrar pruebas del Carnet de Manager (idempotente)
+        await client.query(`
+            INSERT INTO manager_license_tests (test_key, title, description, reward_amount, sort_order) VALUES
+            ('visit_dashboard',       'Explora tu Panel',        'Visita la página Resumen de tu club',         50000, 1),
+            ('visit_team',            'Conoce tu Equipo',        'Visita la página de tu equipo',               50000, 2),
+            ('visit_players',         'Gestiona tus Jugadores',  'Visita la lista de jugadores',                50000, 3),
+            ('visit_transfer_market', 'Mercado de Fichajes',     'Visita el Mercado de Transferencias',         75000, 4),
+            ('visit_matches',         'Los Partidos',            'Visita la sección de Partidos',               50000, 5),
+            ('visit_finances',        'Las Finanzas',            'Revisa las finanzas de tu equipo',            50000, 6),
+            ('visit_stadium',         'Tu Estadio',              'Visita tu estadio',                           50000, 7),
+            ('visit_training',        'Entrenamiento',           'Visita la sección de Entrenamiento',          50000, 8),
+            ('visit_forums',          'Los Foros',               'Visita los Foros de la comunidad',            50000, 9),
+            ('visit_community',       'La Comunidad',            'Visita la página de Comunidad',               50000, 10)
+            ON CONFLICT (test_key) DO NOTHING
+        `);
         console.log('✅ Tablas verificadas/creadas correctamente');
     } catch (err) {
         console.error('❌ Error en initDb:', err.message);
@@ -2333,6 +2348,7 @@ app.get('/admin/waitlist-managers', async (req, res) => {
                 m.user_id,
                 m.username,
                 m.email,
+                m.status,
                 m.country_id,
                 m.is_admin,
                 m.is_premium,
@@ -2342,7 +2358,7 @@ app.get('/admin/waitlist-managers', async (req, res) => {
              FROM managers m
              LEFT JOIN leagues_regions r ON r.region_id = m.country_id
              LEFT JOIN teams t ON t.manager_id = m.user_id
-             WHERE m.status = 'waiting_list'
+             WHERE m.status IN ('waiting_list', 'carnet_pending')
              ORDER BY m.created_at DESC`
         );
 
@@ -2401,7 +2417,25 @@ app.post('/admin/activate-manager', async (req, res) => {
     }
 });
 
-// ===================== FORUMS =====================
+// Admin: aprobar manager (waiting_list → carnet_pending)
+app.post('/admin/approve-manager', async (req, res) => {
+    const { managerId } = req.body;
+    if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
+    try {
+        const result = await pool.query(
+            `UPDATE managers SET status = 'carnet_pending'
+             WHERE user_id = $1 AND status = 'waiting_list'
+             RETURNING user_id, status`,
+            [managerId]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Manager no encontrado o ya aprobado' });
+        }
+        res.json({ success: true, manager: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // GET /forums?managerId=X&isAdmin=Y — categories + forums accessible to manager
 app.get('/forums', async (req, res) => {
