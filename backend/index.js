@@ -219,7 +219,31 @@ app.post('/login', async (req, res) => {
         );
 
         const manager = managerResult.rows[0] || null;
+
+        // Marcar como online y actualizar last_login
+        if (manager) {
+            await pool.query(
+                'UPDATE managers SET is_online = true, last_login = now(), last_seen = now() WHERE user_id = $1',
+                [user.id]
+            );
+        }
+
         res.json({ success: true, user, manager });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Endpoint para logout
+app.post('/logout', async (req, res) => {
+    const { managerId } = req.body;
+    if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
+    try {
+        await pool.query(
+            'UPDATE managers SET is_online = false, last_seen = now() WHERE user_id = $1',
+            [managerId]
+        );
+        res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

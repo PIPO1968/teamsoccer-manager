@@ -141,6 +141,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
+    if (manager?.user_id) {
+      try {
+        await apiFetch('/logout', {
+          method: 'POST',
+          body: JSON.stringify({ managerId: manager.user_id }),
+        });
+      } catch {
+        // Ignorar errores de logout para no bloquear al usuario
+      }
+    }
     setManager(null);
     setHasTeam(false);
     localStorage.removeItem('manager');
