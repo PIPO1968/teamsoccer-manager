@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 import { toast } from "sonner";
 import { GAME_NAME } from "@/config/constants";
 import ShopContent from "@/components/shop/ShopContent";
@@ -14,24 +14,21 @@ const Shop = () => {
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
 
-  // Fetch the latest manager data from Supabase to make sure we have the most up-to-date premium status
+  // Fetch the latest manager data to make sure we have the most up-to-date premium status
   useEffect(() => {
     const fetchManagerData = async () => {
       if (manager?.user_id) {
         setIsRefreshing(true);
         try {
-          const { data, error } = await supabase
-            .from('managers')
-            .select('user_id, username, email, is_admin, is_premium, premium_expires_at')
-            .eq('user_id', manager.user_id)
-            .single();
-
-          if (error) throw error;
+          const data = await apiFetch<{
+            success: boolean;
+            is_premium: number;
+            premium_expires_at: string | null;
+            is_admin: number;
+          }>(`/managers/${manager.user_id}/info`);
 
           if (data) {
-            console.log("Refreshed manager data:", data);
-            // Update localStorage with the fresh data
-            const updatedManager = { ...manager, ...data };
+            const updatedManager = { ...manager, is_premium: data.is_premium, premium_expires_at: data.premium_expires_at, is_admin: data.is_admin };
             localStorage.setItem('manager', JSON.stringify(updatedManager));
           }
         } catch (error) {
