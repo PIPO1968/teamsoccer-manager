@@ -5,7 +5,7 @@
 export const specialCases: Record<string, string> = {
   // Common variations and special cases
   'England': 'gb-eng',
-  'Scotland': 'gb-sct', 
+  'Scotland': 'gb-sct',
   'Wales': 'gb-wls',
   'Northern Ireland': 'gb-nir',
   'United States': 'us',
@@ -110,20 +110,20 @@ export const specialCases: Record<string, string> = {
  */
 export function getCountryCode(countryName: string): string {
   if (!countryName) return '';
-  
+
   // Check special cases first
   const specialCase = specialCases[countryName];
   if (specialCase) {
     return specialCase;
   }
-  
+
   // For most countries, we can derive the code by:
   // 1. Converting to lowercase
   // 2. Replacing spaces with nothing or handling common patterns
   const normalized = countryName.toLowerCase()
     .replace(/\s+/g, '')
     .replace(/[^a-z]/g, '');
-  
+
   // Common country mappings that follow patterns
   const commonMappings: Record<string, string> = {
     'afghanistan': 'af',
@@ -283,6 +283,6 @@ export function getCountryCode(countryName: string): string {
     'zambia': 'zm',
     'zimbabwe': 'zw',
   };
-  
+
   return commonMappings[normalized] || '';
 }

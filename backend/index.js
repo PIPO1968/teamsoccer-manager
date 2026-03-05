@@ -117,11 +117,6 @@ const initDb = async () => {
         await client.query(`
             ALTER TABLE players ADD COLUMN IF NOT EXISTS image_url TEXT
         `);
-        // Migrar usuarios en waiting_list a carnet_pending (juego abierto a todos)
-        await client.query(`
-            UPDATE managers SET status = 'carnet_pending'
-            WHERE status = 'waiting_list' AND is_admin < 10
-        `);
         // Expandir países disponibles (idempotente - ON CONFLICT DO NOTHING)
         await client.query(`
             INSERT INTO leagues_regions (name) VALUES
@@ -311,7 +306,7 @@ app.post('/register', async (req, res) => {
         // 2. Crear manager
         const ADMIN_EMAIL = 'pipocanarias@hotmail.com';
         const isAdmin = username === ADMIN_USERNAME || email === ADMIN_EMAIL;
-        const managerStatus = isAdmin ? 'active' : 'carnet_pending';
+        const managerStatus = isAdmin ? 'active' : 'waiting_list';
         const isAdminLevel = isAdmin ? 10 : 0;
 
         const managerResult = await client.query(
@@ -339,7 +334,7 @@ app.post('/register', async (req, res) => {
             userId,
             managerId,
             teamId,
-            status: 'carnet_pending'
+            status: 'waiting_list'
         });
     } catch (err) {
         await client.query('ROLLBACK');
