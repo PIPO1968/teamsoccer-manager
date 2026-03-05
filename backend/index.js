@@ -271,6 +271,27 @@ app.put('/teams/:id/logo', async (req, res) => {
     }
 });
 
+// Obtener jugadores de un equipo
+app.get('/teams/:id/players', async (req, res) => {
+    const teamId = parseInt(req.params.id, 10);
+    if (!teamId) {
+        return res.status(400).json({ error: 'teamId invalido' });
+    }
+    try {
+        const result = await pool.query(
+            `SELECT p.*, r.name AS nationality
+             FROM players p
+             LEFT JOIN leagues_regions r ON r.region_id = p.nationality_id
+             WHERE p.team_id = $1
+             ORDER BY p.position`,
+            [teamId]
+        );
+        res.json({ success: true, players: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Obtener equipo por manager
 app.get('/teams/by-manager/:id', async (req, res) => {
     const managerId = parseInt(req.params.id, 10);
@@ -361,28 +382,6 @@ app.get('/teams/:id', async (req, res) => {
     }
 });
 
-// Actualizar logo del equipo (solo el manager propietario)
-app.put('/teams/:id/logo', async (req, res) => {
-    const teamId = parseInt(req.params.id, 10);
-    const { managerId, clubLogo } = req.body;
-    if (!teamId || !managerId || !clubLogo) {
-        return res.status(400).json({ error: 'Faltan datos' });
-    }
-    try {
-        const result = await pool.query(
-            `UPDATE teams SET club_logo = $1, updated_at = now()
-             WHERE team_id = $2 AND manager_id = $3
-             RETURNING team_id`,
-            [clubLogo, teamId, managerId]
-        );
-        if (result.rowCount === 0) {
-            return res.status(403).json({ error: 'No autorizado o equipo no encontrado' });
-        }
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
 app.get('/matches/recent', async (req, res) => {
     const teamId = parseInt(req.query.teamId, 10);
     if (!teamId) {
