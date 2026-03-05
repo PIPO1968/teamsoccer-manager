@@ -50,6 +50,9 @@ const run = async () => {
                 const teamId = teamResult.rows[0].team_id;
                 await client.query('INSERT INTO team_finances (team_id) VALUES ($1)', [teamId]);
                 await client.query('INSERT INTO stadiums (name, team_id) VALUES ($1, $2)', [`${ADMIN_TEAM_NAME} Stadium`, teamId]);
+                // Crear jugadores iniciales para el admin
+                const { createInitialPlayers } = await import('./index.js');
+                await createInitialPlayers(client, teamId, ADMIN_COUNTRY_ID);
             }
             await client.query('COMMIT');
             console.log('Admin already exists. Elevated permissions.');
@@ -91,6 +94,9 @@ const run = async () => {
             const teamId = teamResult.rows[0].team_id;
             await client.query('INSERT INTO team_finances (team_id) VALUES ($1)', [teamId]);
             await client.query('INSERT INTO stadiums (name, team_id) VALUES ($1, $2)', [`${ADMIN_TEAM_NAME} Stadium`, teamId]);
+            // Crear jugadores iniciales para el admin
+            const { createInitialPlayers } = await import('./index.js');
+            await createInitialPlayers(client, teamId, ADMIN_COUNTRY_ID);
         }
 
         await client.query('COMMIT');

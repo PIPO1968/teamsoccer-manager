@@ -39,6 +39,7 @@ const createInitialPlayers = async (client, teamId, countryId) => {
     const firstNames = ['Alex', 'Brian', 'Carlos', 'David', 'Eric', 'Frank', 'George', 'Henry', 'Ivan', 'Jack', 'Kevin', 'Luis', 'Mario', 'Nico', 'Oscar', 'Paul', 'Quinn', 'Rafa'];
     const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Miller', 'Davis', 'Garcia', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Martin'];
 
+    const numericCountryId = countryId !== null && countryId !== undefined ? Number(countryId) : null;
     for (let i = 0; i < positions.length; i += 1) {
         await client.query(
             `INSERT INTO players (
@@ -59,7 +60,7 @@ const createInitialPlayers = async (client, teamId, countryId) => {
                 lastNames[i],
                 positions[i],
                 randBetween(18, 28),
-                countryId || null,
+                numericCountryId,
                 teamId,
                 randBetween(800000, 4500000),
                 randBetween(1500, 12000),
@@ -154,7 +155,7 @@ app.post('/register', async (req, res) => {
 
         await client.query('INSERT INTO team_finances (team_id) VALUES ($1)', [teamId]);
         await client.query('INSERT INTO stadiums (name, team_id) VALUES ($1, $2)', [`${teamName} Stadium`, teamId]);
-        await createInitialPlayers(client, teamId, country);
+        await createInitialPlayers(client, teamId, countryId);
 
         await client.query('COMMIT');
         res.json({
