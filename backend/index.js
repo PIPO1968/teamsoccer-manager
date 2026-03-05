@@ -107,14 +107,21 @@ app.post('/register', async (req, res) => {
     if (!email || !password || !username || !country || !teamName) {
         return res.status(400).json({ error: 'Faltan datos' });
     }
-    // Obtener el ID del país a partir del nombre
+    // Obtener el ID del país: acepta tanto nombre (string) como region_id (número)
     let countryId = null;
     try {
-        const countryRes = await pool.query('SELECT region_id FROM leagues_regions WHERE name = $1', [country]);
-        if (countryRes.rows.length > 0) {
-            countryId = countryRes.rows[0].region_id;
+        const numericCountry = Number(country);
+        if (!isNaN(numericCountry) && numericCountry > 0) {
+            // El frontend envió un region_id numérico directamente
+            countryId = numericCountry;
         } else {
-            return res.status(400).json({ error: 'País no válido' });
+            // El frontend envió el nombre del país como string
+            const countryRes = await pool.query('SELECT region_id FROM leagues_regions WHERE name = $1', [country]);
+            if (countryRes.rows.length > 0) {
+                countryId = countryRes.rows[0].region_id;
+            } else {
+                return res.status(400).json({ error: 'País no válido' });
+            }
         }
     } catch (err) {
         return res.status(500).json({ error: 'Error buscando el país: ' + err.message });

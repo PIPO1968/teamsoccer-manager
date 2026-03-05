@@ -2,6 +2,7 @@
 // import { supabase } from "@/integrations/supabase/client";
 import { getCountryCode, specialCases } from "@/utils/countries/codes";
 import { getCountriesByContinent } from "@/utils/countries/continents";
+import { apiFetch } from "@/services/apiClient";
 
 export type CountryData = {
   region_id: number;
@@ -14,9 +15,7 @@ export { getCountryCode };
 // Fetch all countries from the database
 export async function fetchAllCountries(): Promise<CountryData[]> {
   try {
-    const response = await fetch('/api/countries');
-    if (!response.ok) throw new Error('No se pudo obtener países');
-    const data = await response.json();
+    const data = await apiFetch<{ success: boolean; countries: CountryData[] }>('/admin/countries');
     return data.countries || [];
   } catch (error) {
     console.error('Error fetching countries:', error);
@@ -28,10 +27,9 @@ export async function fetchAllCountries(): Promise<CountryData[]> {
 export async function getCountryNameById(id: number): Promise<string> {
   if (!id) return '';
   try {
-    const response = await fetch(`/api/countries/${id}`);
-    if (!response.ok) throw new Error('No se pudo obtener el nombre del país');
-    const data = await response.json();
-    return data.name || '';
+    const data = await apiFetch<{ success: boolean; countries: CountryData[] }>('/admin/countries');
+    const country = (data.countries || []).find(c => c.region_id === id);
+    return country?.name || '';
   } catch (error) {
     console.error('Error fetching country name:', error);
     return '';
