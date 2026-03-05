@@ -4,14 +4,15 @@ import { Pool } from 'pg';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
 
-dotenv.config();
-
-
+dotenv.config({ path: './.env' });
 
 const app = express();
-// Permitir CORS solo desde el frontend en producción
-const allowedOrigin = 'https://teamsoccer-manager-production-f836.up.railway.app';
-app.use(cors({ origin: allowedOrigin, credentials: true }));
+// Permitir CORS desde frontend local y Railway
+const allowedOrigins = [
+    'http://localhost:8080',
+    'https://teamsoccer-manager-production-f836.up.railway.app'
+];
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json());
 
 console.log('Intentando conectar a Postgres en:', process.env.PGHOST, process.env.PGPORT, process.env.PGDATABASE);
@@ -93,6 +94,18 @@ app.post('/register', async (req, res) => {
     if (!email || !password || !username || !country || !teamName) {
         return res.status(400).json({ error: 'Faltan datos' });
     }
+    // Obtener el ID del país a partir del nombre
+    let countryId = null;
+    try {
+        const countryRes = await pool.query('SELECT region_id FROM leagues_regions WHERE name = $1', [country]);
+        if (countryRes.rows.length > 0) {
+            countryId = countryRes.rows[0].region_id;
+        } else {
+            return res.status(400).json({ error: 'País no válido' });
+        }
+    } catch (err) {
+        return res.status(500).json({ error: 'Error buscando el país: ' + err.message });
+    }
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
@@ -128,14 +141,14 @@ app.post('/register', async (req, res) => {
             `INSERT INTO managers (
                 user_id, username, email, country_id, is_admin, status
             ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id`,
-            [userId, username, email, country, isAdminLevel, managerStatus]
+            [userId, username, email, countryId, isAdminLevel, managerStatus]
         );
         const managerId = managerResult.rows[0].user_id;
 
         // 3. Crear equipo
         const teamResult = await client.query(
             'INSERT INTO teams (name, manager_id, country_id) VALUES ($1, $2, $3) RETURNING team_id',
-            [teamName, managerId, country]
+            [teamName, managerId, countryId]
         );
         const teamId = teamResult.rows[0].team_id;
 
@@ -660,7 +673,7 @@ app.listen(PORT, () => {
     console.log(`Servidor backend escuchando en puerto ${PORT}`);
 });
 
-app.options('*', cors({ origin: allowedOrigin, credentials: true }));
+app.options('*', cors({ origin: allowedOrigins, credentials: true }));
 
 
 // CORS test: forzar redeploy
@@ -669,7 +682,7 @@ app.get('/test-redeploy', (req, res) => {
 });
 
 app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', allowedOrigin);
+    res.header('Access-Control-Allow-Origin', allowedOrigins);
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
