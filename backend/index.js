@@ -113,6 +113,10 @@ const initDb = async () => {
         await client.query(`
             ALTER TABLE players ADD COLUMN IF NOT EXISTS goalkeeper INTEGER DEFAULT 30
         `);
+        // Añadir columna image_url si no existe
+        await client.query(`
+            ALTER TABLE players ADD COLUMN IF NOT EXISTS image_url TEXT
+        `);
         // Expandir países disponibles (idempotente - ON CONFLICT DO NOTHING)
         await client.query(`
             INSERT INTO leagues_regions (name) VALUES
