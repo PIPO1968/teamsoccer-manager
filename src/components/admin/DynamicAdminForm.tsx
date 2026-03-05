@@ -162,7 +162,7 @@ export const DynamicAdminForm = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="waiting_list">Waiting List</SelectItem>
+              <SelectItem value="carnet_pending">Carnet de Manager</SelectItem>
               <SelectItem value="suspended">Suspended</SelectItem>
             </SelectContent>
           </Select>
