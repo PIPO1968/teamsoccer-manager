@@ -1,7 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
@@ -79,16 +79,10 @@ export const GroupLogoUpload = ({ group }: GroupLogoUploadProps) => {
       setIsUploading(true);
       const resizedImage = await resizeImage(selectedFile);
 
-      const { error } = await supabase
-        .from('groups')
-        .update({ 
-          club_logo: resizedImage,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', group.id)
-        .eq('owner_id', manager.user_id);
-
-      if (error) throw error;
+      await apiFetch(`/groups/${group.id}/logo`, {
+        method: 'PUT',
+        body: JSON.stringify({ clubLogo: resizedImage, managerId: manager.user_id }),
+      });
 
       toast({
         title: "Logo Updated",
@@ -99,7 +93,7 @@ export const GroupLogoUpload = ({ group }: GroupLogoUploadProps) => {
         fileInputRef.current.value = '';
       }
       setSelectedFile(null);
-      
+
       // Reload the page to show the new logo
       setTimeout(() => {
         window.location.reload();
@@ -119,15 +113,15 @@ export const GroupLogoUpload = ({ group }: GroupLogoUploadProps) => {
 
   return (
     <div className="flex flex-col space-y-2">
-      <Input 
-        type="file" 
+      <Input
+        type="file"
         accept=".jpg,.jpeg,.png"
         ref={fileInputRef}
         onChange={handleFileChange}
         className="mb-2"
       />
-      <Button 
-        onClick={handleUpload} 
+      <Button
+        onClick={handleUpload}
         disabled={!selectedFile || isUploading}
         className="w-full"
       >

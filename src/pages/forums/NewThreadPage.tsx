@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-// import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { useManagerId } from "@/hooks/useManagerId";
 import MarkdownEditorButtons from "@/components/forums/MarkdownEditorButtons";
@@ -54,20 +54,13 @@ export default function NewThreadPage() {
 
     setIsSubmitting(true);
     try {
-      // Crear el hilo usando la API Express
-      const response = await fetch('/api/forums/threads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          content,
-          forum_id: forumId,
-          author_id: managerId,
-          created_at: new Date().toISOString(),
-        })
-      });
-      if (!response.ok) throw new Error('No se pudo crear el hilo');
-      const data = await response.json();
+      const data = await apiFetch<{ success: boolean; thread: any }>(
+        `/forums/${forumId}/threads`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ title, content, author_id: managerId }),
+        }
+      );
       if (data.thread) {
         toast({
           title: "Thread created",

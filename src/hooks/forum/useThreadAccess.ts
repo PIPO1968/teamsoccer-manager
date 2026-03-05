@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function useThreadAccess(threadId: string | undefined) {
@@ -11,40 +11,25 @@ export function useThreadAccess(threadId: string | undefined) {
   useEffect(() => {
     const checkThreadAccess = async () => {
       if (!threadId) return;
-      
+
       setIsCheckingAccess(true);
-      
+
       try {
-        // Get the thread to find its forum
-        const { data: threadData, error: threadError } = await supabase
-          .from('forum_threads')
-          .select('forum_id')
-          .eq('id', Number(threadId))
-          .single();
-        
-        if (threadError) throw threadError;
-        
-        // Now get the forum to check its category
-        const { data: forumData, error: forumError } = await supabase
-          .from('forums')
-          .select('category_id')
-          .eq('id', threadData.forum_id)
-          .single();
-        
-        if (forumError) throw forumError;
-        
+        const data = await apiFetch<{ success: boolean; thread: { forum_category_id?: number } }>(
+          `/threads/${Number(threadId)}?page=1&perPage=1`
+        );
+
         // If this is a staff forum (category_id = 4), check if user is admin
-        if (forumData.category_id === 4) {
+        if (data.thread?.forum_category_id === 4) {
           setHasAccess(!!manager && manager.is_admin > 0);
         }
-        
-        setIsCheckingAccess(false);
       } catch (error) {
         console.error("Error checking thread access:", error);
+      } finally {
         setIsCheckingAccess(false);
       }
     };
-    
+
     checkThreadAccess();
   }, [threadId, manager]);
 

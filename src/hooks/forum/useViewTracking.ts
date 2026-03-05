@@ -1,23 +1,12 @@
 
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 export function useViewTracking(threadId: number | undefined, viewCount: number | undefined) {
-  const [viewTracked, setViewTracked] = useState(false);
+  // View tracking is handled automatically by the backend when fetching thread data
+  const [viewTracked] = useState(true);
 
   const trackView = async () => {
-    if (!threadId || viewTracked) return;
-    
-    try {
-      await supabase
-        .from('forum_threads')
-        .update({ view_count: viewCount ? viewCount + 1 : 1 })
-        .eq('id', threadId);
-      
-      setViewTracked(true);
-    } catch (error) {
-      console.error("Error tracking view:", error);
-    }
+    // No-op: the backend increments view_count on GET /threads/:id
   };
 
   return { viewTracked, trackView };

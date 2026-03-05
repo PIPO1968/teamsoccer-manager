@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -13,20 +13,15 @@ export function useThreadStick() {
       if (!manager?.is_admin || manager.is_admin <= 0) {
         throw new Error("Only administrators can stick/unstick threads");
       }
-
-      const { data, error } = await supabase
-        .from('forum_threads')
-        .update({ is_sticky: isSticky })
-        .eq('id', threadId)
-        .select();
-
-      if (error) throw error;
-      return data[0];
+      const data = await apiFetch<{ success: boolean; thread: { is_sticky: boolean } }>(
+        `/threads/${threadId}/sticky`,
+        { method: 'PUT', body: JSON.stringify({ isSticky }) }
+      );
+      return data.thread;
     },
     onSuccess: (updatedThread, { threadId }) => {
       queryClient.invalidateQueries({ queryKey: ['thread', threadId] });
       queryClient.invalidateQueries({ queryKey: ['forum-threads'] });
-      
       toast({
         title: "Success",
         description: `Thread ${updatedThread.is_sticky ? 'stuck' : 'unstuck'} successfully`
@@ -34,11 +29,7 @@ export function useThreadStick() {
     },
     onError: (error) => {
       console.error("Error toggling thread sticky status:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update thread sticky status",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: "Failed to update thread sticky status", variant: "destructive" });
     }
   });
 

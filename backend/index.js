@@ -1410,7 +1410,176 @@ app.get('/managers/:id/groups', async (req, res) => {
     }
 });
 
-// Top posters del foro
+// Todos los grupos con conteo de miembros
+app.get('/groups', async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT g.*, COALESCE(cm.cnt, 0)::int AS member_count
+             FROM groups g
+             LEFT JOIN (SELECT group_id, COUNT(*)::int AS cnt FROM group_members WHERE is_active=true GROUP BY group_id) cm ON cm.group_id = g.id
+             ORDER BY g.created_at DESC`
+        );
+        res.json({ success: true, groups: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Crear grupo
+app.post('/groups', async (req, res) => {
+    const { ownerId, name, description } = req.body;
+    if (!ownerId || !name) return res.status(400).json({ error: 'Faltan datos' });
+    try {
+        const result = await pool.query(
+            'INSERT INTO groups (owner_id, name, description) VALUES ($1, $2, $3) RETURNING *',
+            [ownerId, name, description || null]
+        );
+        res.json({ success: true, group: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Eliminar grupo (con cascada)
+app.delete('/groups/:id', async (req, res) => {
+    const groupId = parseInt(req.params.id, 10);
+    const { managerId } = req.body;
+    if (!groupId) return res.status(400).json({ error: 'groupId invalido' });
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const groupRes = await client.query('SELECT * FROM groups WHERE id=$1 AND owner_id=$2', [groupId, managerId]);
+        if (!groupRes.rows[0]) {
+            await client.query('ROLLBACK');
+            return res.status(403).json({ error: 'Group not found or insufficient permissions' });
+        }
+        const forumId = groupRes.rows[0].forum_id;
+        await client.query('DELETE FROM group_applications WHERE group_id=$1', [groupId]);
+        await client.query('DELETE FROM group_members WHERE group_id=$1', [groupId]);
+        await client.query('DELETE FROM groups WHERE id=$1', [groupId]);
+        if (forumId) {
+            const threadsRes = await client.query('SELECT id FROM forum_threads WHERE forum_id=$1', [forumId]);
+            const threadIds = threadsRes.rows.map(r => r.id);
+            if (threadIds.length > 0) {
+                await client.query('DELETE FROM forum_posts WHERE thread_id = ANY($1)', [threadIds]);
+                await client.query('DELETE FROM forum_threads WHERE forum_id=$1', [forumId]);
+            }
+            await client.query('DELETE FROM forums WHERE id=$1', [forumId]);
+        }
+        await client.query('COMMIT');
+        res.json({ success: true });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
+// Miembros del grupo
+app.get('/groups/:id/members', async (req, res) => {
+    const groupId = parseInt(req.params.id, 10);
+    if (!groupId) return res.status(400).json({ error: 'groupId invalido' });
+    try {
+        const result = await pool.query(
+            `SELECT gm.*, m.username AS manager_username
+             FROM group_members gm JOIN managers m ON m.user_id = gm.manager_id
+             WHERE gm.group_id=$1 AND gm.is_active=true`,
+            [groupId]
+        );
+        const members = result.rows.map(r => ({ ...r, manager: { username: r.manager_username } }));
+        res.json({ success: true, members });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Solicitudes pendientes del grupo
+app.get('/groups/:id/applications', async (req, res) => {
+    const groupId = parseInt(req.params.id, 10);
+    if (!groupId) return res.status(400).json({ error: 'groupId invalido' });
+    try {
+        const result = await pool.query(
+            `SELECT ga.*, m.username AS applicant_username
+             FROM group_applications ga JOIN managers m ON m.user_id = ga.applicant_id
+             WHERE ga.group_id=$1 AND ga.status='pending'`,
+            [groupId]
+        );
+        const applications = result.rows.map(r => ({ ...r, applicant: { username: r.applicant_username } }));
+        res.json({ success: true, applications });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Solicitud del usuario para un grupo
+app.get('/groups/:id/applications/user/:managerId', async (req, res) => {
+    const groupId = parseInt(req.params.id, 10);
+    const managerId = parseInt(req.params.managerId, 10);
+    if (!groupId || !managerId) return res.status(400).json({ error: 'Datos invalidos' });
+    try {
+        const result = await pool.query(
+            `SELECT * FROM group_applications WHERE group_id=$1 AND applicant_id=$2 AND status='pending' LIMIT 1`,
+            [groupId, managerId]
+        );
+        res.json({ success: true, application: result.rows[0] || null });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Solicitar unirse a un grupo
+app.post('/groups/:id/apply', async (req, res) => {
+    const groupId = parseInt(req.params.id, 10);
+    const { managerId, message } = req.body;
+    if (!groupId || !managerId) return res.status(400).json({ error: 'Faltan datos' });
+    try {
+        const existing = await pool.query(
+            `SELECT id FROM group_applications WHERE group_id=$1 AND applicant_id=$2 AND status='pending'`,
+            [groupId, managerId]
+        );
+        if (existing.rows.length > 0) return res.status(400).json({ error: 'You have already applied to this group' });
+        const result = await pool.query(
+            'INSERT INTO group_applications (group_id, applicant_id, message) VALUES ($1, $2, $3) RETURNING *',
+            [groupId, managerId, message || null]
+        );
+        res.json({ success: true, application: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Responder a una solicitud (aprobar/rechazar)
+app.put('/groups/:id/applications/:appId/respond', async (req, res) => {
+    const groupId = parseInt(req.params.id, 10);
+    const appId = parseInt(req.params.appId, 10);
+    const { status } = req.body; // 'approved' or 'rejected'
+    if (!groupId || !appId || !status) return res.status(400).json({ error: 'Faltan datos' });
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        if (status === 'approved') {
+            const appRes = await client.query('SELECT applicant_id FROM group_applications WHERE id=$1', [appId]);
+            if (appRes.rows[0]) {
+                await client.query(
+                    'INSERT INTO group_members (group_id, manager_id, role) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
+                    [groupId, appRes.rows[0].applicant_id, 'member']
+                );
+            }
+        }
+        const result = await client.query(
+            `UPDATE group_applications SET status=$1, responded_at=NOW() WHERE id=$2 RETURNING *`,
+            [status, appId]
+        );
+        await client.query('COMMIT');
+        res.json({ success: true, application: result.rows[0] });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
 app.get('/community/top-posters', async (req, res) => {
     try {
         const result = await pool.query(
@@ -1538,7 +1707,11 @@ app.get('/threads/:id', async (req, res) => {
     const offset = (page - 1) * perPage;
     if (!threadId) return res.status(400).json({ error: 'threadId invalido' });
     try {
-        const threadResult = await pool.query('SELECT * FROM forum_threads WHERE id = $1', [threadId]);
+        const threadResult = await pool.query(
+            `SELECT ft.*, f.category_id AS forum_category_id
+             FROM forum_threads ft LEFT JOIN forums f ON f.id = ft.forum_id
+             WHERE ft.id = $1`, [threadId]
+        );
         if (!threadResult.rows[0]) return res.status(404).json({ error: 'Hilo no encontrado' });
         const countResult = await pool.query(
             'SELECT COUNT(*)::int AS total FROM forum_posts WHERE thread_id = $1', [threadId]
@@ -1604,6 +1777,40 @@ app.delete('/posts/:id', async (req, res) => {
     try {
         await pool.query('DELETE FROM forum_posts WHERE id = $1', [postId]);
         res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Bloquear/desbloquear hilo (solo admin)
+app.put('/threads/:id/lock', async (req, res) => {
+    const threadId = parseInt(req.params.id, 10);
+    const { isLocked } = req.body;
+    if (!threadId || isLocked === undefined) return res.status(400).json({ error: 'Faltan datos' });
+    try {
+        const result = await pool.query(
+            'UPDATE forum_threads SET is_locked=$1 WHERE id=$2 RETURNING *',
+            [isLocked, threadId]
+        );
+        if (!result.rows[0]) return res.status(404).json({ error: 'Hilo no encontrado' });
+        res.json({ success: true, thread: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Fijar/desfijar hilo (solo admin)
+app.put('/threads/:id/sticky', async (req, res) => {
+    const threadId = parseInt(req.params.id, 10);
+    const { isSticky } = req.body;
+    if (!threadId || isSticky === undefined) return res.status(400).json({ error: 'Faltan datos' });
+    try {
+        const result = await pool.query(
+            'UPDATE forum_threads SET is_sticky=$1 WHERE id=$2 RETURNING *',
+            [isSticky, threadId]
+        );
+        if (!result.rows[0]) return res.status(404).json({ error: 'Hilo no encontrado' });
+        res.json({ success: true, thread: result.rows[0] });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -2034,6 +2241,507 @@ app.post('/admin/activate-manager', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+// ===================== FORUMS =====================
+
+// GET /forums?managerId=X&isAdmin=Y — categories + forums accessible to manager
+app.get('/forums', async (req, res) => {
+    const { managerId, isAdmin } = req.query;
+    const admin = isAdmin === 'true' || isAdmin === '1';
+    try {
+        // Categories
+        const catResult = await pool.query(
+            'SELECT * FROM forum_categories ORDER BY order_number'
+        );
+        const categories = admin
+            ? catResult.rows
+            : catResult.rows.filter(c => c.id !== 4);
+
+        // Forums with thread/post counts, filtered by access
+        const forumsResult = await pool.query(`
+            SELECT DISTINCT f.*,
+                g.id AS group_id,
+                (SELECT COUNT(*) FROM forum_threads ft WHERE ft.forum_id = f.id)::int AS thread_count,
+                (SELECT COUNT(*) FROM forum_posts fp
+                 JOIN forum_threads ft ON ft.id = fp.thread_id
+                 WHERE ft.forum_id = f.id)::int AS post_count
+            FROM forums f
+            LEFT JOIN groups g ON g.forum_id = f.id
+            WHERE (
+                g.id IS NULL
+                OR EXISTS (
+                    SELECT 1 FROM group_members gm
+                    WHERE gm.group_id = g.id AND gm.manager_id = $1 AND gm.is_active = true
+                )
+            )
+            AND ($2::boolean OR f.category_id != 4)
+            ORDER BY f.category_id, f.id
+        `, [managerId || null, admin]);
+        res.json({ success: true, categories, forums: forumsResult.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /forums/:id/threads?page=X&limit=Y
+app.get('/forums/:id/threads', async (req, res) => {
+    const forumId = parseInt(req.params.id);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    try {
+        const result = await pool.query(`
+            SELECT ft.*,
+                (SELECT COUNT(*) FROM forum_posts fp WHERE fp.thread_id = ft.id)::int AS reply_count,
+                (SELECT m.username FROM managers m WHERE m.user_id = ft.last_post_user_id) AS last_post_manager_username
+            FROM forum_threads ft
+            WHERE ft.forum_id = $1
+            ORDER BY ft.is_sticky DESC, ft.last_post_at DESC NULLS LAST, ft.created_at DESC
+        `, [forumId]);
+
+        const stickyThreads = result.rows.filter(t => t.is_sticky);
+        const normalThreads = result.rows.filter(t => !t.is_sticky);
+        const offset = (page - 1) * limit;
+        const paginatedNormal = normalThreads.slice(offset, offset + limit);
+
+        res.json({
+            success: true,
+            stickyThreads,
+            normalThreads: paginatedNormal,
+            totalCount: normalThreads.length,
+            totalPages: Math.ceil(normalThreads.length / limit),
+            currentPage: page
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /forums/:forumId/threads — create new thread + first post
+app.post('/forums/:forumId/threads', async (req, res) => {
+    const forumId = parseInt(req.params.forumId);
+    const { title, content, author_id } = req.body;
+    if (!title || !content || !author_id) return res.status(400).json({ error: 'Faltan datos' });
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const threadResult = await client.query(
+            `INSERT INTO forum_threads (forum_id, title, user_id, is_locked, is_sticky, view_count, created_at, last_post_at, last_post_user_id)
+             VALUES ($1, $2, $3, false, false, 0, NOW(), NOW(), $3) RETURNING *`,
+            [forumId, title, author_id]
+        );
+        const thread = threadResult.rows[0];
+        await client.query(
+            `INSERT INTO forum_posts (thread_id, content, user_id, created_at) VALUES ($1, $2, $3, NOW())`,
+            [thread.id, content, author_id]
+        );
+        await client.query('COMMIT');
+        res.json({ success: true, thread });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
+// GET /threads/:id?page=X&perPage=Y — thread data with paginated posts + forum_category_id
+app.get('/threads/:id', async (req, res) => {
+    const threadId = parseInt(req.params.id);
+    const page = parseInt(req.query.page) || 1;
+    const postsPerPage = parseInt(req.query.perPage) || parseInt(req.query.postsPerPage) || 10;
+    const offset = (page - 1) * postsPerPage;
+    try {
+        const threadResult = await pool.query(`
+            SELECT ft.*, f.category_id AS forum_category_id
+            FROM forum_threads ft
+            LEFT JOIN forums f ON f.id = ft.forum_id
+            WHERE ft.id = $1
+        `, [threadId]);
+        if (!threadResult.rows.length) return res.status(404).json({ error: 'Thread no encontrado' });
+
+        const countResult = await pool.query(
+            'SELECT COUNT(*)::int AS total FROM forum_posts WHERE thread_id = $1', [threadId]
+        );
+        const totalPosts = countResult.rows[0].total;
+
+        const postsResult = await pool.query(`
+            SELECT fp.*, m.username AS author_username
+            FROM forum_posts fp
+            LEFT JOIN managers m ON m.user_id = fp.user_id
+            WHERE fp.thread_id = $1
+            ORDER BY fp.created_at ASC
+            LIMIT $2 OFFSET $3
+        `, [threadId, postsPerPage, offset]);
+
+        res.json({
+            success: true,
+            thread: threadResult.rows[0],
+            posts: postsResult.rows,
+            totalPosts,
+            totalPages: Math.ceil(totalPosts / postsPerPage),
+            currentPage: page
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /threads/:id/access?managerId=X
+app.get('/threads/:id/access', async (req, res) => {
+    const threadId = parseInt(req.params.id);
+    const { managerId } = req.query;
+    try {
+        const result = await pool.query(`
+            SELECT f.category_id FROM forum_threads ft
+            JOIN forums f ON f.id = ft.forum_id
+            WHERE ft.id = $1
+        `, [threadId]);
+        if (!result.rows.length) return res.json({ success: true, hasAccess: false });
+
+        const { category_id } = result.rows[0];
+        if (category_id === 4) {
+            if (!managerId) return res.json({ success: true, hasAccess: false });
+            const adminResult = await pool.query(
+                'SELECT is_admin FROM managers WHERE user_id = $1', [managerId]
+            );
+            const isAdmin = adminResult.rows[0]?.is_admin > 0;
+            return res.json({ success: true, hasAccess: isAdmin });
+        }
+        res.json({ success: true, hasAccess: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /threads/:id/view — increment view count
+app.post('/threads/:id/view', async (req, res) => {
+    const threadId = parseInt(req.params.id);
+    try {
+        await pool.query(
+            'UPDATE forum_threads SET view_count = COALESCE(view_count, 0) + 1 WHERE id = $1',
+            [threadId]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PUT /threads/:id/lock — toggle is_locked
+app.put('/threads/:id/lock', async (req, res) => {
+    const threadId = parseInt(req.params.id);
+    const { isLocked } = req.body;
+    try {
+        const result = await pool.query(
+            'UPDATE forum_threads SET is_locked = $1 WHERE id = $2 RETURNING *',
+            [isLocked, threadId]
+        );
+        res.json({ success: true, thread: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PUT /threads/:id/sticky — toggle is_sticky (also handles /stick for compat)
+app.put('/threads/:id/sticky', async (req, res) => {
+    const threadId = parseInt(req.params.id);
+    const { isSticky } = req.body;
+    try {
+        const result = await pool.query(
+            'UPDATE forum_threads SET is_sticky = $1 WHERE id = $2 RETURNING *',
+            [isSticky, threadId]
+        );
+        res.json({ success: true, thread: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /threads/:id/posts — create post
+app.post('/threads/:id/posts', async (req, res) => {
+    const threadId = parseInt(req.params.id);
+    const { content, userId } = req.body;
+    if (!content || !userId) return res.status(400).json({ error: 'Faltan datos' });
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const postResult = await client.query(
+            `INSERT INTO forum_posts (thread_id, content, user_id, created_at) VALUES ($1, $2, $3, NOW()) RETURNING *`,
+            [threadId, content, userId]
+        );
+        await client.query(
+            `UPDATE forum_threads SET last_post_user_id = $1, last_post_at = NOW() WHERE id = $2`,
+            [userId, threadId]
+        );
+        await client.query('COMMIT');
+        res.json({ success: true, post: postResult.rows[0] });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
+// PUT /forum-posts/:id — edit post
+app.put('/forum-posts/:id', async (req, res) => {
+    const postId = parseInt(req.params.id);
+    const { content } = req.body;
+    if (!content) return res.status(400).json({ error: 'Falta content' });
+    try {
+        const result = await pool.query(
+            `UPDATE forum_posts SET content = $1, is_edited = true, edited_at = NOW() WHERE id = $2 RETURNING *`,
+            [content, postId]
+        );
+        res.json({ success: true, post: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// DELETE /forum-posts/:id — delete post
+app.delete('/forum-posts/:id', async (req, res) => {
+    const postId = parseInt(req.params.id);
+    try {
+        await pool.query('DELETE FROM forum_posts WHERE id = $1', [postId]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Aliases used by frontend: /posts/:id
+app.put('/posts/:id', async (req, res) => {
+    const postId = parseInt(req.params.id);
+    const { content } = req.body;
+    if (!content) return res.status(400).json({ error: 'Falta content' });
+    try {
+        const result = await pool.query(
+            `UPDATE forum_posts SET content = $1, is_edited = true, edited_at = NOW() WHERE id = $2 RETURNING *`,
+            [content, postId]
+        );
+        res.json({ success: true, post: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/posts/:id', async (req, res) => {
+    const postId = parseInt(req.params.id);
+    try {
+        await pool.query('DELETE FROM forum_posts WHERE id = $1', [postId]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ===================== GROUPS =====================
+
+// GET /groups — all groups with member count
+app.get('/groups', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT g.*,
+                (SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id AND gm.is_active = true)::int AS accurate_member_count
+            FROM groups g
+            ORDER BY g.created_at DESC
+        `);
+        res.json({ success: true, groups: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /groups — create group
+app.post('/groups', async (req, res) => {
+    const { name, description, ownerId } = req.body;
+    if (!name || !ownerId) return res.status(400).json({ error: 'Faltan datos' });
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const groupResult = await client.query(
+            `INSERT INTO groups (name, description, owner_id, is_active) VALUES ($1, $2, $3, true) RETURNING *`,
+            [name, description || null, ownerId]
+        );
+        const group = groupResult.rows[0];
+        await client.query(
+            `INSERT INTO group_members (group_id, manager_id, role, is_active) VALUES ($1, $2, 'owner', true)`,
+            [group.id, ownerId]
+        );
+        await client.query('COMMIT');
+        res.json({ success: true, group });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
+// POST /groups/:id/apply — apply to group
+app.post('/groups/:id/apply', async (req, res) => {
+    const groupId = parseInt(req.params.id);
+    const { applicantId, message } = req.body;
+    if (!applicantId) return res.status(400).json({ error: 'Falta applicantId' });
+    try {
+        const existing = await pool.query(
+            `SELECT id FROM group_applications WHERE group_id = $1 AND applicant_id = $2 AND status = 'pending'`,
+            [groupId, applicantId]
+        );
+        if (existing.rows.length > 0) {
+            return res.status(400).json({ error: 'Ya tienes una solicitud pendiente para este grupo' });
+        }
+        const result = await pool.query(
+            `INSERT INTO group_applications (group_id, applicant_id, message, status) VALUES ($1, $2, $3, 'pending') RETURNING *`,
+            [groupId, applicantId, message || null]
+        );
+        res.json({ success: true, application: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// DELETE /groups/:id — delete group (owner only, cascade)
+app.delete('/groups/:id', async (req, res) => {
+    const groupId = parseInt(req.params.id);
+    const { managerId } = req.body;
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const groupResult = await client.query(
+            'SELECT * FROM groups WHERE id = $1 AND owner_id = $2', [groupId, managerId]
+        );
+        if (!groupResult.rows.length) {
+            await client.query('ROLLBACK');
+            return res.status(403).json({ error: 'Grupo no encontrado o sin permiso' });
+        }
+        const forumId = groupResult.rows[0].forum_id;
+
+        await client.query('DELETE FROM group_applications WHERE group_id = $1', [groupId]);
+        await client.query('DELETE FROM group_members WHERE group_id = $1', [groupId]);
+        await client.query('DELETE FROM groups WHERE id = $1', [groupId]);
+
+        if (forumId) {
+            const threads = await client.query('SELECT id FROM forum_threads WHERE forum_id = $1', [forumId]);
+            if (threads.rows.length > 0) {
+                const threadIds = threads.rows.map(t => t.id);
+                await client.query('DELETE FROM forum_posts WHERE thread_id = ANY($1)', [threadIds]);
+                await client.query('DELETE FROM forum_threads WHERE forum_id = $1', [forumId]);
+            }
+            await client.query('DELETE FROM forums WHERE id = $1', [forumId]);
+        }
+        await client.query('COMMIT');
+        res.json({ success: true });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
+// GET /groups/:id/members
+app.get('/groups/:id/members', async (req, res) => {
+    const groupId = parseInt(req.params.id);
+    try {
+        const result = await pool.query(`
+            SELECT gm.*, m.username AS manager_username
+            FROM group_members gm
+            JOIN managers m ON m.user_id = gm.manager_id
+            WHERE gm.group_id = $1 AND gm.is_active = true
+        `, [groupId]);
+        res.json({ success: true, members: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /groups/:id/applications — pending applications
+app.get('/groups/:id/applications', async (req, res) => {
+    const groupId = parseInt(req.params.id);
+    try {
+        const result = await pool.query(`
+            SELECT ga.*, m.username AS applicant_username
+            FROM group_applications ga
+            JOIN managers m ON m.user_id = ga.applicant_id
+            WHERE ga.group_id = $1 AND ga.status = 'pending'
+        `, [groupId]);
+        res.json({ success: true, applications: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /groups/:id/user-application?managerId=X
+app.get('/groups/:id/user-application', async (req, res) => {
+    const groupId = parseInt(req.params.id);
+    const { managerId } = req.query;
+    if (!managerId) return res.json({ success: true, application: null });
+    try {
+        const result = await pool.query(
+            `SELECT * FROM group_applications WHERE group_id = $1 AND applicant_id = $2 AND status = 'pending'`,
+            [groupId, managerId]
+        );
+        res.json({ success: true, application: result.rows[0] || null });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PUT /group-applications/:id — handle application
+app.put('/group-applications/:id', async (req, res) => {
+    const applicationId = parseInt(req.params.id);
+    const { status } = req.body; // 'approved' | 'rejected'
+    if (!status) return res.status(400).json({ error: 'Falta status' });
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        if (status === 'approved') {
+            const appResult = await client.query(
+                'SELECT applicant_id, group_id FROM group_applications WHERE id = $1', [applicationId]
+            );
+            if (appResult.rows.length) {
+                const { applicant_id, group_id } = appResult.rows[0];
+                await client.query(
+                    `INSERT INTO group_members (group_id, manager_id, role, is_active) VALUES ($1, $2, 'member', true)`,
+                    [group_id, applicant_id]
+                );
+            }
+        }
+        const result = await client.query(
+            `UPDATE group_applications SET status = $1, responded_at = NOW() WHERE id = $2 RETURNING *`,
+            [status, applicationId]
+        );
+        await client.query('COMMIT');
+        res.json({ success: true, application: result.rows[0] });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
+// PUT /groups/:id/logo — update group logo (base64)
+app.put('/groups/:id/logo', async (req, res) => {
+    const groupId = parseInt(req.params.id);
+    const { clubLogo, managerId } = req.body;
+    if (!clubLogo || !managerId) return res.status(400).json({ error: 'Faltan datos' });
+    try {
+        const result = await pool.query(
+            `UPDATE groups SET club_logo = $1, updated_at = NOW() WHERE id = $2 AND owner_id = $3 RETURNING id`,
+            [clubLogo, groupId, managerId]
+        );
+        if (!result.rows.length) return res.status(403).json({ error: 'Sin permiso o grupo no encontrado' });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ===================== END FORUMS/GROUPS =====================
 
 // ===================== TRANSFER MARKET =====================
 

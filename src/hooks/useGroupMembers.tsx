@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -32,22 +32,10 @@ export function useGroupMembers(groupId: number) {
   const { data: members, isLoading } = useQuery({
     queryKey: ['group-members', groupId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('group_members')
-        .select(`
-          *,
-          manager:managers(username)
-        `)
-        .eq('group_id', groupId)
-        .eq('is_active', true);
-
-      if (error) throw error;
-      
-      // Ensure the role field is correctly typed
-      return data?.map(member => ({
-        ...member,
-        role: member.role as 'owner' | 'member'
-      })) || [];
+      const data = await apiFetch<{ success: boolean; members: GroupMember[] }>(
+        `/groups/${groupId}/members`
+      );
+      return data.members || [];
     },
     enabled: !!groupId
   });
@@ -55,17 +43,10 @@ export function useGroupMembers(groupId: number) {
   const { data: applications, isLoading: applicationsLoading } = useQuery({
     queryKey: ['group-applications', groupId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('group_applications')
-        .select(`
-          *,
-          applicant:managers(username)
-        `)
-        .eq('group_id', groupId)
-        .eq('status', 'pending');
-
-      if (error) throw error;
-      return data;
+      const data = await apiFetch<{ success: boolean; applications: (GroupApplication & { applicant: { username: string } })[] }>(
+        `/groups/${groupId}/applications`
+      );
+      return data.applications || [];
     },
     enabled: !!groupId
   });
@@ -74,82 +55,32 @@ export function useGroupMembers(groupId: number) {
     queryKey: ['user-application', groupId, manager?.user_id],
     queryFn: async () => {
       if (!manager?.user_id) return null;
-      
-      const { data, error } = await supabase
-        .from('group_applications')
-        .select('*')
-        .eq('group_id', groupId)
-        .eq('applicant_id', manager.user_id)
-        .eq('status', 'pending')
-        .single();
-
-      if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned" error
-        throw error;
-      }
-      return data;
+      const data = await apiFetch<{ success: boolean; application: GroupApplication | null }>(
+        `/groups/${groupId}/applications/user/${manager.user_id}`
+      );
+      return data.application || null;
     },
     enabled: !!groupId && !!manager?.user_id
   });
 
   const handleApplication = useMutation({
     mutationFn: async ({ applicationId, status }: { applicationId: number; status: 'approved' | 'rejected' }) => {
-      if (status === 'approved') {
-        const { data: application, error: appError } = await supabase
-          .from('group_applications')
-          .select('applicant_id')
-          .eq('id', applicationId)
-          .single();
-        
-        if (appError) throw appError;
-        
-        const { error: memberError } = await supabase
-          .from('group_members')
-          .insert({
-            group_id: groupId,
-            manager_id: application.applicant_id,
-            role: 'member'
-          });
-        
-        if (memberError) throw memberError;
-      }
-      
-      const { data, error } = await supabase
-        .from('group_applications')
-        .update({ 
-          status, 
-          responded_at: new Date().toISOString() 
-        })
-        .eq('id', applicationId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      const data = await apiFetch<{ success: boolean; application: GroupApplication }>(
+        `/groups/${groupId}/applications/${applicationId}/respond`,
+        { method: 'PUT', body: JSON.stringify({ status }) }
+      );
+      return data.application;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['group-applications', groupId] });
       queryClient.invalidateQueries({ queryKey: ['group-members', groupId] });
-      queryClient.invalidateQueries({ queryKey: ['groups'] }); // Refresh group list to update member count
-      toast({
-        title: "Success",
-        description: "Application processed successfully",
-      });
+      queryClient.invalidateQueries({ queryKey: ['groups'] });
+      toast({ title: "Success", description: "Application processed successfully" });
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message, variant: "destructive" });
     }
   });
 
-  return {
-    members,
-    isLoading,
-    applications,
-    applicationsLoading,
-    userApplication,
-    handleApplication
-  };
+  return { members, isLoading, applications, applicationsLoading, userApplication, handleApplication };
 }

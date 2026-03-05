@@ -2,7 +2,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 import { useTeamLeague } from "@/hooks/useTeamLeague";
 import { Link } from "react-router-dom";
 import { ManagerStatusIndicators } from "@/components/manager/ManagerStatusIndicators";
@@ -30,11 +30,11 @@ export default function PostUserInfo({ userId, createdAt }: PostUserInfoProps) {
     is_premium: 0
   });
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const { league } = useTeamLeague(managerInfo.team_id?.toString());
   const { is_online, last_seen } = useManagerStatus(userId);
   const { avatarConfig } = useAvatarConfig(userId);
-  
+
   const formattedDate = createdAt ? format(new Date(createdAt), "PPp") : "";
 
   useEffect(() => {
@@ -43,30 +43,19 @@ export default function PostUserInfo({ userId, createdAt }: PostUserInfoProps) {
         setIsLoading(false);
         return;
       }
-      
+
       try {
-        const { data: managerData, error: managerError } = await supabase
-          .from('managers')
-          .select('username, is_admin, is_premium')
-          .eq('user_id', userId)
-          .maybeSingle();
-          
-        if (managerError) throw managerError;
-        
-        const { data: teamData, error: teamError } = await supabase
-          .from('teams')
-          .select('name, team_id')
-          .eq('manager_id', userId)
-          .maybeSingle();
-          
-        if (teamError) throw teamError;
-        
+        const data = await apiFetch<{ success: boolean; manager: any }>(
+          `/managers/${userId}/profile`
+        );
+        const m = data.manager;
+        const team = m?.teams?.[0];
         setManagerInfo({
-          manager_name: managerData?.username || "Unknown Manager",
-          team_name: teamData?.name || "No Team",
-          team_id: teamData?.team_id || null,
-          is_admin: managerData?.is_admin || 0,
-          is_premium: managerData?.is_premium || 0
+          manager_name: m?.username || "Unknown Manager",
+          team_name: team?.name || "No Team",
+          team_id: team?.team_id || null,
+          is_admin: m?.is_admin || 0,
+          is_premium: m?.is_premium || 0
         });
       } catch (error) {
         console.error("Error fetching user team info:", error);
@@ -74,7 +63,7 @@ export default function PostUserInfo({ userId, createdAt }: PostUserInfoProps) {
         setIsLoading(false);
       }
     };
-    
+
     fetchUserTeamInfo();
   }, [userId]);
 
@@ -98,8 +87,8 @@ export default function PostUserInfo({ userId, createdAt }: PostUserInfoProps) {
         <div className="flex items-center space-x-3">
           <div className="text-right flex flex-col space-y-1">
             <div className="flex items-center gap-2 justify-end">
-              <Link 
-                to={`/manager/${userId}`} 
+              <Link
+                to={`/manager/${userId}`}
                 className="hover:underline font-medium"
               >
                 {displayName}
@@ -111,15 +100,15 @@ export default function PostUserInfo({ userId, createdAt }: PostUserInfoProps) {
               />
             </div>
             {managerInfo.team_id && (
-              <Link 
-                to={`/team/${managerInfo.team_id}`} 
+              <Link
+                to={`/team/${managerInfo.team_id}`}
                 className="text-sm hover:underline text-muted-foreground"
               >
                 {managerInfo.team_name}
               </Link>
             )}
             {league ? (
-              <Link 
+              <Link
                 to={`/series/${league.series_id}`}
                 className="text-xs hover:underline text-muted-foreground"
               >
@@ -142,9 +131,9 @@ export default function PostUserInfo({ userId, createdAt }: PostUserInfoProps) {
           </div>
           <div className="relative">
             <div className="h-16 w-16 rounded-full overflow-hidden border-2 border-gray-200">
-              <AvatarDisplay 
-                config={avatarConfig} 
-                size="sm" 
+              <AvatarDisplay
+                config={avatarConfig}
+                size="sm"
                 className="h-full w-full"
               />
             </div>
