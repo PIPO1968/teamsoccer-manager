@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 
 export type StadiumData = {
   stadium_id: number;
@@ -26,45 +26,10 @@ export const useStadiumData = (stadiumId: string | undefined) => {
       }
 
       try {
-        // Query stadiums table with join to teams and leagues_regions using stadium_id
-        const { data, error: fetchError } = await supabase
-          .from("stadiums")
-          .select(`
-            stadium_id,
-            name,
-            capacity,
-            build_date,
-            team_id,
-            teams (
-              name,
-              club_logo,
-              country_id,
-              leagues_regions (
-                name
-              )
-            )
-          `)
-          .eq("stadium_id", parseInt(stadiumId))
-          .maybeSingle();
-
-        if (fetchError) throw fetchError;
-        
-        if (data) {
-          // Format the data to match our StadiumData interface
-          const stadiumData: StadiumData = {
-            stadium_id: data.stadium_id,
-            stadium_name: data.name,
-            stadium_capacity: data.capacity,
-            build_date: data.build_date,
-            team_id: data.team_id,
-            team_name: data.teams.name,
-            team_logo: data.teams.club_logo,
-            country: data.teams.leagues_regions?.name || undefined
-          };
-          
-          setStadium(stadiumData);
-        }
-
+        const data = await apiFetch<{ success: boolean; stadium: StadiumData }>(
+          `/stadiums/${parseInt(stadiumId)}`
+        );
+        setStadium(data.stadium);
         setIsLoading(false);
       } catch (err) {
         console.error("Error fetching stadium:", err);

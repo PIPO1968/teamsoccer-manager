@@ -334,6 +334,132 @@ app.get('/teams/:id/finances', async (req, res) => {
     }
 });
 
+// Obtener partidos de un equipo
+app.get('/teams/:id/matches', async (req, res) => {
+    const teamId = parseInt(req.params.id, 10);
+    if (!teamId) return res.status(400).json({ error: 'teamId invalido' });
+    try {
+        const result = await pool.query(
+            `SELECT
+                m.match_id_int AS match_id,
+                m.home_team_id,
+                m.away_team_id,
+                ht.name AS home_team_name,
+                at.name AS away_team_name,
+                m.home_score,
+                m.away_score,
+                m.match_date,
+                m.status,
+                m.is_friendly,
+                CASE WHEN m.home_team_id = $1 THEN true ELSE false END AS is_home
+            FROM matches m
+            JOIN teams ht ON ht.team_id = m.home_team_id
+            JOIN teams at ON at.team_id = m.away_team_id
+            WHERE m.home_team_id = $1 OR m.away_team_id = $1
+            ORDER BY m.match_date DESC`,
+            [teamId]
+        );
+        const matches = result.rows.map(row => ({
+            ...row,
+            competition: row.is_friendly ? 'Friendly Match' : 'League Match',
+            result: row.status === 'completed'
+                ? (row.is_home
+                    ? (row.home_score > row.away_score ? 'Win' : row.home_score < row.away_score ? 'Loss' : 'Draw')
+                    : (row.away_score > row.home_score ? 'Win' : row.away_score < row.home_score ? 'Loss' : 'Draw'))
+                : null
+        }));
+        res.json({ success: true, matches });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Obtener stadium_id por team_id  (debe ir ANTES de /stadiums/:id)
+app.get('/stadiums/by-team/:id', async (req, res) => {
+    const teamId = parseInt(req.params.id, 10);
+    if (!teamId) return res.status(400).json({ error: 'teamId invalido' });
+    try {
+        const result = await pool.query(
+            'SELECT stadium_id FROM stadiums WHERE team_id = $1 LIMIT 1',
+            [teamId]
+        );
+        const stadiumId = result.rows[0]?.stadium_id || null;
+        res.json({ success: true, stadiumId });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Obtener estadio por ID
+app.get('/stadiums/:id', async (req, res) => {
+    const stadiumId = parseInt(req.params.id, 10);
+    if (!stadiumId) return res.status(400).json({ error: 'stadiumId invalido' });
+    try {
+        const result = await pool.query(
+            `SELECT
+                s.stadium_id,
+                s.name AS stadium_name,
+                s.capacity AS stadium_capacity,
+                s.build_date,
+                s.team_id,
+                t.name AS team_name,
+                t.club_logo AS team_logo,
+                r.name AS country
+            FROM stadiums s
+            JOIN teams t ON t.team_id = s.team_id
+            LEFT JOIN leagues_regions r ON r.region_id = t.country_id
+            WHERE s.stadium_id = $1`,
+            [stadiumId]
+        );
+        res.json({ success: true, stadium: result.rows[0] || null });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Obtener partidos de un estadio (partidos del equipo local)
+app.get('/stadiums/:id/matches', async (req, res) => {
+    const stadiumId = parseInt(req.params.id, 10);
+    if (!stadiumId) return res.status(400).json({ error: 'stadiumId invalido' });
+    try {
+        const stadRes = await pool.query(
+            'SELECT team_id FROM stadiums WHERE stadium_id = $1 LIMIT 1',
+            [stadiumId]
+        );
+        if (!stadRes.rows[0]) return res.json({ success: true, matches: [] });
+        const homeTeamId = stadRes.rows[0].team_id;
+        const result = await pool.query(
+            `SELECT
+                m.match_id_int AS match_id,
+                m.home_team_id,
+                m.away_team_id,
+                ht.name AS home_team_name,
+                at.name AS away_team_name,
+                m.home_score,
+                m.away_score,
+                m.match_date,
+                m.status,
+                m.is_friendly
+            FROM matches m
+            JOIN teams ht ON ht.team_id = m.home_team_id
+            JOIN teams at ON at.team_id = m.away_team_id
+            WHERE m.home_team_id = $1
+            ORDER BY m.match_date DESC`,
+            [homeTeamId]
+        );
+        const matches = result.rows.map(row => ({
+            ...row,
+            competition: row.is_friendly ? 'Friendly Match' : 'League Match',
+            result: row.status === 'completed'
+                ? (row.home_score > row.away_score ? 'Win' : row.home_score < row.away_score ? 'Loss' : 'Draw')
+                : null
+        }));
+        res.json({ success: true, matches });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Obtener equipo por manager
 app.get('/teams/by-manager/:id', async (req, res) => {
     const managerId = parseInt(req.params.id, 10);
