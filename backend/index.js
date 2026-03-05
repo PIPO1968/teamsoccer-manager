@@ -315,7 +315,7 @@ app.get('/managers/:id/status', async (req, res) => {
 
 // Obtener mensajes de un manager
 app.get('/messages', async (req, res) => {
-    const managerId = parseInt(req.query.managerId as string, 10);
+    const managerId = parseInt(req.query.managerId, 10);
     if (!managerId) return res.status(400).json({ error: 'managerId requerido' });
     try {
         const result = await pool.query(
@@ -371,7 +371,7 @@ app.put('/messages/:id/read', async (req, res) => {
 // Eliminar mensaje
 app.delete('/messages/:id', async (req, res) => {
     const messageId = parseInt(req.params.id, 10);
-    const managerId = parseInt(req.query.managerId as string, 10);
+    const managerId = parseInt(req.query.managerId, 10);
     if (!messageId || !managerId) return res.status(400).json({ error: 'Faltan datos' });
     try {
         await pool.query(
@@ -982,7 +982,7 @@ app.get('/teams/:id/followers', async (req, res) => {
 // Si un manager sigue a un equipo
 app.get('/teams/:id/follow-status', async (req, res) => {
     const teamId = parseInt(req.params.id, 10);
-    const managerId = parseInt(req.query.managerId as string, 10);
+    const managerId = parseInt(req.query.managerId, 10);
     if (!teamId || !managerId) return res.status(400).json({ error: 'Faltan datos' });
     try {
         const result = await pool.query(
@@ -1026,7 +1026,7 @@ app.post('/teams/:id/toggle-follow', async (req, res) => {
 // Libro de visitas de un equipo
 app.get('/teams/:id/guestbook', async (req, res) => {
     const teamId = parseInt(req.params.id, 10);
-    const limit = parseInt(req.query.limit as string || '50', 10);
+    const limit = parseInt(req.query.limit || '50', 10);
     if (!teamId) return res.status(400).json({ error: 'teamId invalido' });
     try {
         const result = await pool.query(
@@ -1232,6 +1232,223 @@ app.put('/challenges/:id/respond', async (req, res) => {
             }
         }
         res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Guardar entrenamientos en batch
+app.post('/players/training/batch', async (req, res) => {
+    const { assignments } = req.body;
+    if (!assignments || !Array.isArray(assignments)) return res.status(400).json({ error: 'assignments requeridos' });
+    try {
+        for (const a of assignments) {
+            await pool.query(
+                `INSERT INTO player_training_assignments (player_id, training_type, training_intensity, updated_at)
+                 VALUES ($1, $2, $3, NOW())
+                 ON CONFLICT (player_id)
+                 DO UPDATE SET training_type = $2, training_intensity = $3, updated_at = NOW()`,
+                [a.player_id, a.training_type, a.training_intensity]
+            );
+        }
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Obtener config de avatar de un manager
+app.get('/managers/:id/avatar', async (req, res) => {
+    const managerId = parseInt(req.params.id, 10);
+    if (!managerId) return res.status(400).json({ error: 'managerId invalido' });
+    try {
+        const result = await pool.query(
+            'SELECT * FROM avatar_configs WHERE manager_id = $1 LIMIT 1',
+            [managerId]
+        );
+        res.json({ success: true, avatar: result.rows[0] || null });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Guardar config de avatar (upsert)
+app.put('/managers/:id/avatar', async (req, res) => {
+    const managerId = parseInt(req.params.id, 10);
+    if (!managerId) return res.status(400).json({ error: 'managerId invalido' });
+    const d = req.body;
+    try {
+        await pool.query(
+            `INSERT INTO avatar_configs (
+                manager_id, gender, face_type, body_type, body_variation, face_tone,
+                eye_type, eye_color, eye_mood, eyebrows, mouth_type, mouth_mood,
+                nose_type, facial_hair, hair_type, hair_color, shirt_color,
+                background_color, show_anniversary_badge, updated_at
+            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,NOW())
+            ON CONFLICT (manager_id) DO UPDATE SET
+                gender=$2, face_type=$3, body_type=$4, body_variation=$5, face_tone=$6,
+                eye_type=$7, eye_color=$8, eye_mood=$9, eyebrows=$10, mouth_type=$11,
+                mouth_mood=$12, nose_type=$13, facial_hair=$14, hair_type=$15,
+                hair_color=$16, shirt_color=$17, background_color=$18,
+                show_anniversary_badge=$19, updated_at=NOW()`,
+            [
+                managerId, d.gender, d.face_type, d.body_type, d.body_variation, d.face_tone,
+                d.eye_type, d.eye_color, d.eye_mood, d.eyebrows, d.mouth_type, d.mouth_mood,
+                d.nose_type, d.facial_hair, d.hair_type, d.hair_color, d.shirt_color,
+                d.background_color, d.show_anniversary_badge
+            ]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Reset avatar de un manager
+app.delete('/managers/:id/avatar', async (req, res) => {
+    const managerId = parseInt(req.params.id, 10);
+    if (!managerId) return res.status(400).json({ error: 'managerId invalido' });
+    try {
+        await pool.query('DELETE FROM avatar_configs WHERE manager_id = $1', [managerId]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Colección de banderas de un equipo (oponentes + seguidores)
+app.get('/teams/:id/flag-collection', async (req, res) => {
+    const teamId = parseInt(req.params.id, 10);
+    if (!teamId) return res.status(400).json({ error: 'teamId invalido' });
+    try {
+        // Países de equipos rivales (partidos jugados)
+        const opponentResult = await pool.query(
+            `SELECT DISTINCT r.region_id, r.name
+             FROM matches m
+             JOIN teams t ON (t.team_id = CASE WHEN m.home_team_id = $1 THEN m.away_team_id ELSE m.home_team_id END)
+             JOIN leagues_regions r ON r.region_id = t.country_id
+             WHERE (m.home_team_id = $1 OR m.away_team_id = $1) AND m.status != 'scheduled'`,
+            [teamId]
+        );
+        // Países de seguidores
+        const followerResult = await pool.query(
+            `SELECT DISTINCT r.region_id, r.name
+             FROM team_followers tf
+             JOIN managers m ON m.user_id = tf.follower_id
+             JOIN leagues_regions r ON r.region_id = m.country_id
+             WHERE tf.team_id = $1`,
+            [teamId]
+        );
+        res.json({
+            success: true,
+            opponentCountries: opponentResult.rows,
+            followerCountries: followerResult.rows
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Chat de un partido
+app.get('/matches/:id/chat', async (req, res) => {
+    const matchId = parseInt(req.params.id, 10);
+    if (!matchId) return res.status(400).json({ error: 'matchId invalido' });
+    try {
+        const result = await pool.query(
+            `SELECT mc.id, mc.match_id, mc.user_id, m.username, mc.message, mc.created_at
+             FROM match_chat_messages mc
+             JOIN managers m ON m.user_id = mc.user_id
+             WHERE mc.match_id = $1
+             ORDER BY mc.created_at ASC`,
+            [matchId]
+        );
+        res.json({ success: true, messages: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Enviar mensaje de chat de partido
+app.post('/matches/:id/chat', async (req, res) => {
+    const matchId = parseInt(req.params.id, 10);
+    const { userId, message } = req.body;
+    if (!matchId || !userId || !message) return res.status(400).json({ error: 'Faltan datos' });
+    try {
+        await pool.query(
+            'INSERT INTO match_chat_messages (match_id, user_id, message) VALUES ($1, $2, $3)',
+            [matchId, userId, message.trim()]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Grupos de un manager
+app.get('/managers/:id/groups', async (req, res) => {
+    const managerId = parseInt(req.params.id, 10);
+    if (!managerId) return res.status(400).json({ error: 'managerId invalido' });
+    try {
+        const ownedResult = await pool.query(
+            `SELECT g.*, COALESCE(cm.cnt, 0)::int AS member_count
+             FROM groups g
+             LEFT JOIN (SELECT group_id, COUNT(*)::int AS cnt FROM group_members WHERE is_active=true GROUP BY group_id) cm ON cm.group_id = g.id
+             WHERE g.owner_id = $1`,
+            [managerId]
+        );
+        const memberResult = await pool.query(
+            `SELECT g.*, COALESCE(cm.cnt, 0)::int AS member_count
+             FROM group_members gm
+             JOIN groups g ON g.id = gm.group_id
+             LEFT JOIN (SELECT group_id, COUNT(*)::int AS cnt FROM group_members WHERE is_active=true GROUP BY group_id) cm ON cm.group_id = g.id
+             WHERE gm.manager_id = $1 AND gm.is_active = true AND gm.role != 'owner'`,
+            [managerId]
+        );
+        res.json({ success: true, owned: ownedResult.rows, member: memberResult.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Top posters del foro
+app.get('/community/top-posters', async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT fp.author_id AS user_id, m.username, COUNT(*)::int AS post_count,
+                    m.country_id, r.name AS country_name
+             FROM forum_posts fp
+             JOIN managers m ON m.user_id = fp.author_id
+             LEFT JOIN leagues_regions r ON r.region_id = m.country_id
+             GROUP BY fp.author_id, m.username, m.country_id, r.name
+             ORDER BY post_count DESC
+             LIMIT 10`
+        );
+        const posters = result.rows.map(row => ({
+            user_id: row.user_id,
+            username: row.username,
+            post_count: row.post_count,
+            manager: row.country_id ? { country_id: row.country_id, country: { name: row.country_name } } : undefined
+        }));
+        res.json({ success: true, posters });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Hilos recientes del foro
+app.get('/forums/recent-threads', async (req, res) => {
+    const limit = parseInt(req.query.limit || '5', 10);
+    try {
+        const result = await pool.query(
+            `SELECT ft.*, f.name AS forum_name, f.category_id
+             FROM forum_threads ft
+             JOIN forums f ON f.id = ft.forum_id
+             WHERE f.category_id IN (2, 5)
+             ORDER BY ft.last_post_at DESC NULLS LAST
+             LIMIT $1`,
+            [limit]
+        );
+        res.json({ success: true, threads: result.rows });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
