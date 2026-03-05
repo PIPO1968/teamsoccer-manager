@@ -1454,6 +1454,304 @@ app.get('/forums/recent-threads', async (req, res) => {
     }
 });
 
+// Categorías y foros con conteo de hilos/posts
+app.get('/forums', async (req, res) => {
+    const isAdmin = parseInt(req.query.isAdmin || '0', 10) > 0;
+    try {
+        const catResult = await pool.query('SELECT * FROM forum_categories ORDER BY order_number');
+        let categories = catResult.rows;
+        if (!isAdmin) categories = categories.filter(c => c.id !== 4);
+        const forumsResult = await pool.query(
+            `SELECT f.*,
+                (SELECT COUNT(*)::int FROM forum_threads ft WHERE ft.forum_id = f.id) AS thread_count,
+                (SELECT COUNT(*)::int FROM forum_posts fp JOIN forum_threads ft2 ON ft2.id = fp.thread_id WHERE ft2.forum_id = f.id) AS post_count
+             FROM forums f ORDER BY f.category_id, f.id`
+        );
+        let forums = forumsResult.rows;
+        if (!isAdmin) forums = forums.filter(f => f.category_id !== 4);
+        res.json({ success: true, categories, forums });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Hilos de un foro con conteo paginado
+app.get('/forums/:id/threads', async (req, res) => {
+    const forumId = parseInt(req.params.id, 10);
+    const page = parseInt(req.query.page || '1', 10);
+    const limit = parseInt(req.query.limit || '10', 10);
+    const offset = (page - 1) * limit;
+    if (!forumId) return res.status(400).json({ error: 'forumId invalido' });
+    try {
+        const result = await pool.query(
+            `SELECT ft.*,
+                (SELECT COUNT(*)::int FROM forum_posts fp WHERE fp.thread_id = ft.id) AS reply_count,
+                (SELECT m.username FROM managers m WHERE m.user_id = ft.last_post_user_id) AS last_post_manager_username
+             FROM forum_threads ft WHERE ft.forum_id = $1
+             ORDER BY ft.is_sticky DESC, ft.last_post_at DESC NULLS LAST`,
+            [forumId]
+        );
+        const sticky = result.rows.filter(t => t.is_sticky);
+        const normal = result.rows.filter(t => !t.is_sticky);
+        res.json({
+            success: true, stickyThreads: sticky,
+            normalThreads: normal.slice(offset, offset + limit),
+            totalCount: normal.length,
+            totalPages: Math.ceil(normal.length / limit), currentPage: page
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Crear hilo en un foro
+app.post('/forums/:id/threads', async (req, res) => {
+    const forumId = parseInt(req.params.id, 10);
+    const { userId, title, content } = req.body;
+    if (!forumId || !userId || !title || !content) return res.status(400).json({ error: 'Faltan datos' });
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const threadRes = await client.query(
+            `INSERT INTO forum_threads (forum_id, user_id, title, last_post_at, last_post_user_id)
+             VALUES ($1, $2, $3, NOW(), $2) RETURNING *`,
+            [forumId, userId, title]
+        );
+        const thread = threadRes.rows[0];
+        await client.query(
+            'INSERT INTO forum_posts (thread_id, user_id, content) VALUES ($1, $2, $3)',
+            [thread.id, userId, content]
+        );
+        await client.query('COMMIT');
+        res.json({ success: true, thread });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally { client.release(); }
+});
+
+// Obtener hilo con posts paginados
+app.get('/threads/:id', async (req, res) => {
+    const threadId = parseInt(req.params.id, 10);
+    const page = parseInt(req.query.page || '1', 10);
+    const perPage = parseInt(req.query.perPage || '10', 10);
+    const offset = (page - 1) * perPage;
+    if (!threadId) return res.status(400).json({ error: 'threadId invalido' });
+    try {
+        const threadResult = await pool.query('SELECT * FROM forum_threads WHERE id = $1', [threadId]);
+        if (!threadResult.rows[0]) return res.status(404).json({ error: 'Hilo no encontrado' });
+        const countResult = await pool.query(
+            'SELECT COUNT(*)::int AS total FROM forum_posts WHERE thread_id = $1', [threadId]
+        );
+        const postsResult = await pool.query(
+            `SELECT fp.*, m.username AS author_username
+             FROM forum_posts fp LEFT JOIN managers m ON m.user_id = fp.user_id
+             WHERE fp.thread_id = $1 ORDER BY fp.created_at LIMIT $2 OFFSET $3`,
+            [threadId, perPage, offset]
+        );
+        pool.query('UPDATE forum_threads SET view_count = COALESCE(view_count,0)+1 WHERE id=$1', [threadId]).catch(()=>{});
+        const total = countResult.rows[0].total;
+        res.json({
+            success: true, thread: threadResult.rows[0], posts: postsResult.rows,
+            totalPosts: total, totalPages: Math.ceil(total / perPage), currentPage: page
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Crear post en un hilo
+app.post('/threads/:id/posts', async (req, res) => {
+    const threadId = parseInt(req.params.id, 10);
+    const { userId, content } = req.body;
+    if (!threadId || !userId || !content) return res.status(400).json({ error: 'Faltan datos' });
+    try {
+        const postResult = await pool.query(
+            'INSERT INTO forum_posts (thread_id, user_id, content) VALUES ($1, $2, $3) RETURNING *',
+            [threadId, userId, content]
+        );
+        await pool.query(
+            'UPDATE forum_threads SET last_post_at = NOW(), last_post_user_id = $1 WHERE id = $2',
+            [userId, threadId]
+        );
+        res.json({ success: true, post: postResult.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Editar post
+app.put('/posts/:id', async (req, res) => {
+    const postId = parseInt(req.params.id, 10);
+    const { content } = req.body;
+    if (!postId || !content) return res.status(400).json({ error: 'Faltan datos' });
+    try {
+        const result = await pool.query(
+            `UPDATE forum_posts SET content=$1, is_edited=true, edited_at=NOW() WHERE id=$2 RETURNING *`,
+            [content, postId]
+        );
+        if (!result.rows[0]) return res.status(404).json({ error: 'Post no encontrado' });
+        res.json({ success: true, post: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Eliminar post
+app.delete('/posts/:id', async (req, res) => {
+    const postId = parseInt(req.params.id, 10);
+    if (!postId) return res.status(400).json({ error: 'postId invalido' });
+    try {
+        await pool.query('DELETE FROM forum_posts WHERE id = $1', [postId]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Transferencias activas
+app.get('/transfer-listings', async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT tl.id, tl.player_id, tl.team_id, tl.asking_price, tl.is_active, tl.created_at,
+                    p.first_name, p.last_name, p.position, p.age,
+                    p.finishing, p.pace, p.passing, p.defense, p.dribbling, p.heading, p.stamina,
+                    p.value, p.wage, p.fitness, p.rating,
+                    t.name AS team_name, t.club_logo AS team_logo,
+                    r.name AS nationality
+             FROM transfer_listings tl
+             JOIN players p ON p.player_id = tl.player_id
+             LEFT JOIN teams t ON t.team_id = tl.team_id
+             LEFT JOIN leagues_regions r ON r.region_id = p.nationality_id
+             WHERE tl.is_active = true ORDER BY tl.created_at DESC`
+        );
+        res.json({ success: true, listings: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Crear ficha de transferencia
+app.post('/transfer-listings', async (req, res) => {
+    const { playerId, teamId, askingPrice } = req.body;
+    if (!playerId || !askingPrice) return res.status(400).json({ error: 'Faltan datos' });
+    try {
+        const result = await pool.query(
+            `INSERT INTO transfer_listings (player_id, team_id, asking_price, is_active) VALUES ($1, $2, $3, true) RETURNING *`,
+            [playerId, teamId, askingPrice]
+        );
+        res.json({ success: true, listing: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Desactivar ficha
+app.put('/transfer-listings/:id/deactivate', async (req, res) => {
+    const listingId = parseInt(req.params.id, 10);
+    if (!listingId) return res.status(400).json({ error: 'listingId invalido' });
+    try {
+        await pool.query('UPDATE transfer_listings SET is_active = false WHERE id = $1', [listingId]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Pujas de una ficha
+app.get('/transfer-listings/:id/bids', async (req, res) => {
+    const listingId = parseInt(req.params.id, 10);
+    if (!listingId) return res.status(400).json({ error: 'listingId invalido' });
+    try {
+        const result = await pool.query(
+            `SELECT tb.*, t.name AS team_name FROM transfer_bids tb
+             JOIN teams t ON t.team_id = tb.team_id WHERE tb.listing_id = $1 ORDER BY tb.amount DESC`,
+            [listingId]
+        );
+        res.json({ success: true, bids: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Puja más alta de una ficha
+app.get('/transfer-listings/:id/highest-bid', async (req, res) => {
+    const listingId = parseInt(req.params.id, 10);
+    if (!listingId) return res.status(400).json({ error: 'listingId invalido' });
+    try {
+        const result = await pool.query(
+            `SELECT tb.*, t.name AS team_name FROM transfer_bids tb
+             JOIN teams t ON t.team_id = tb.team_id WHERE tb.listing_id = $1 ORDER BY tb.amount DESC LIMIT 1`,
+            [listingId]
+        );
+        res.json({ success: true, bid: result.rows[0] || null });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Realizar puja
+app.post('/transfer-listings/:id/bids', async (req, res) => {
+    const listingId = parseInt(req.params.id, 10);
+    const { teamId, amount } = req.body;
+    if (!listingId || !teamId || !amount) return res.status(400).json({ error: 'Faltan datos' });
+    try {
+        const result = await pool.query(
+            `INSERT INTO transfer_bids (listing_id, team_id, amount)
+             VALUES ($1, $2, $3)
+             ON CONFLICT (listing_id, team_id) DO UPDATE SET amount = $3, updated_at = NOW()
+             RETURNING *`,
+            [listingId, teamId, amount]
+        );
+        res.json({ success: true, bid: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Pujas de un manager
+app.get('/managers/:id/bids', async (req, res) => {
+    const managerId = parseInt(req.params.id, 10);
+    if (!managerId) return res.status(400).json({ error: 'managerId invalido' });
+    try {
+        const result = await pool.query(
+            `SELECT tb.*, tl.asking_price, tl.player_id, tl.is_active,
+                    p.first_name, p.last_name, t2.name AS seller_team_name
+             FROM transfer_bids tb
+             JOIN transfer_listings tl ON tl.id = tb.listing_id
+             JOIN players p ON p.player_id = tl.player_id
+             LEFT JOIN teams t2 ON t2.team_id = tl.team_id
+             WHERE tb.team_id = (SELECT team_id FROM teams WHERE manager_id = $1 LIMIT 1)
+             ORDER BY tb.created_at DESC`,
+            [managerId]
+        );
+        res.json({ success: true, bids: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Comprar jugador (transacción completa)
+app.post('/transfers/buy', async (req, res) => {
+    const { listingId, playerId, buyerTeamId, sellerTeamId, price } = req.body;
+    if (!playerId || !buyerTeamId || !price) return res.status(400).json({ error: 'Faltan datos' });
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        await client.query('UPDATE transfer_listings SET is_active = false WHERE player_id = $1', [playerId]);
+        await client.query('UPDATE players SET team_id = $1 WHERE player_id = $2', [buyerTeamId, playerId]);
+        await client.query('UPDATE team_finances SET cash_balance = cash_balance - $1 WHERE team_id = $2', [price, buyerTeamId]);
+        if (sellerTeamId) {
+            await client.query('UPDATE team_finances SET cash_balance = cash_balance + $1 WHERE team_id = $2', [price, sellerTeamId]);
+        }
+        await client.query('COMMIT');
+        res.json({ success: true });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally { client.release(); }
+});
+
 // Meta: temporada actual
 app.get('/meta/current-season', (req, res) => {
     res.json({
@@ -1736,6 +2034,251 @@ app.post('/admin/activate-manager', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+// ===================== TRANSFER MARKET =====================
+
+// GET /transfer-listings — active listings with player + team data
+app.get('/transfer-listings', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT
+                tl.id, tl.player_id, tl.asking_price, tl.seller_team_id,
+                tl.is_active, tl.views, tl.bids, tl.hotlists, tl.deadline, tl.created_at,
+                p.first_name, p.last_name, p.age, p.position, p.nationality,
+                p.pace, p.finishing, p.passing, p.dribbling, p.defense,
+                p.heading, p.stamina,
+                t.name AS seller_team_name
+            FROM transfer_listings tl
+            JOIN players p ON p.player_id = tl.player_id
+            LEFT JOIN teams t ON t.team_id = tl.seller_team_id
+            WHERE tl.is_active = true
+            ORDER BY tl.created_at DESC
+        `);
+        res.json({ success: true, listings: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /transfer-listings — create new listing
+app.post('/transfer-listings', async (req, res) => {
+    const { player_id, asking_price, seller_team_id } = req.body;
+    if (!player_id || !asking_price) {
+        return res.status(400).json({ error: 'Faltan datos requeridos' });
+    }
+    try {
+        const result = await pool.query(
+            `INSERT INTO transfer_listings (player_id, asking_price, seller_team_id, is_active, views, bids, hotlists)
+             VALUES ($1, $2, $3, true, 0, 0, 0) RETURNING *`,
+            [player_id, asking_price, seller_team_id || null]
+        );
+        res.json({ success: true, listing: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /transfer-listings/:id — single listing
+app.get('/transfer-listings/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await pool.query(
+            'SELECT * FROM transfer_listings WHERE id = $1',
+            [id]
+        );
+        if (!result.rows.length) return res.status(404).json({ error: 'Listing no encontrado' });
+        res.json({ success: true, listing: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /transfer-listings/:id/buy — complete purchase (atomic transaction)
+app.post('/transfer-listings/:id/buy', async (req, res) => {
+    const listingId = parseInt(req.params.id);
+    const { buyerTeamId } = req.body;
+    if (!buyerTeamId) return res.status(400).json({ error: 'Falta buyerTeamId' });
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Get listing
+        const listingResult = await client.query(
+            'SELECT * FROM transfer_listings WHERE id = $1 AND is_active = true',
+            [listingId]
+        );
+        if (!listingResult.rows.length) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Listing no encontrado o inactivo' });
+        }
+        const listing = listingResult.rows[0];
+        const { player_id, asking_price, seller_team_id } = listing;
+
+        // Deactivate all listings for this player
+        await client.query(
+            'UPDATE transfer_listings SET is_active = false WHERE player_id = $1',
+            [player_id]
+        );
+
+        // Update player's team
+        await client.query(
+            "UPDATE players SET team_id = $1, owned_since = NOW() WHERE player_id = $2",
+            [buyerTeamId, player_id]
+        );
+
+        // Deduct from buyer finances
+        await client.query(
+            `UPDATE team_finances
+             SET cash_balance = cash_balance - $1, new_signings_expenses = new_signings_expenses + $1
+             WHERE team_id = $2`,
+            [asking_price, buyerTeamId]
+        );
+
+        // Add to seller finances (if not free agent)
+        if (seller_team_id) {
+            await client.query(
+                `UPDATE team_finances
+                 SET cash_balance = cash_balance + $1, player_sales_income = player_sales_income + $1
+                 WHERE team_id = $2`,
+                [asking_price, seller_team_id]
+            );
+        }
+
+        await client.query('COMMIT');
+        res.json({ success: true });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
+// GET /transfer-listings/:id/bids — all bids for a listing (ordered by amount desc)
+app.get('/transfer-listings/:id/bids', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await pool.query(`
+            SELECT tb.id, tb.transfer_listing_id, tb.bidder_team_id,
+                   tb.bid_amount, tb.status, tb.created_at,
+                   t.name AS bidder_name
+            FROM transfer_bids tb
+            LEFT JOIN teams t ON t.team_id = tb.bidder_team_id
+            WHERE tb.transfer_listing_id = $1
+            ORDER BY tb.bid_amount DESC
+        `, [id]);
+        res.json({ success: true, bids: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /transfer-listings/:id/highest-bid
+app.get('/transfer-listings/:id/highest-bid', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await pool.query(`
+            SELECT id, bid_amount, bidder_team_id
+            FROM transfer_bids
+            WHERE transfer_listing_id = $1 AND status = 'pending'
+            ORDER BY bid_amount DESC
+            LIMIT 1
+        `, [id]);
+        if (!result.rows.length) {
+            return res.json({ success: true, bid: null });
+        }
+        res.json({ success: true, bid: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /transfer-listings/:id/bids — place or update a bid
+app.post('/transfer-listings/:id/bids', async (req, res) => {
+    const listingId = parseInt(req.params.id);
+    const { bidderTeamId, bidAmount } = req.body;
+    if (!bidderTeamId || !bidAmount) return res.status(400).json({ error: 'Faltan datos' });
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Check for existing pending bid
+        const existingResult = await client.query(
+            `SELECT id, bid_amount FROM transfer_bids
+             WHERE transfer_listing_id = $1 AND bidder_team_id = $2 AND status = 'pending'`,
+            [listingId, bidderTeamId]
+        );
+
+        if (existingResult.rows.length > 0) {
+            const existing = existingResult.rows[0];
+            if (existing.bid_amount >= bidAmount) {
+                await client.query('ROLLBACK');
+                return res.status(400).json({ error: 'La nueva oferta debe ser mayor que la actual' });
+            }
+            // Update existing bid
+            await client.query(
+                `UPDATE transfer_bids SET bid_amount = $1, updated_at = NOW() WHERE id = $2`,
+                [bidAmount, existing.id]
+            );
+        } else {
+            // Create new bid
+            await client.query(
+                `INSERT INTO transfer_bids (transfer_listing_id, bidder_team_id, bid_amount, status)
+                 VALUES ($1, $2, $3, 'pending')`,
+                [listingId, bidderTeamId, bidAmount]
+            );
+        }
+
+        // Update bid count on listing
+        const countResult = await client.query(
+            `SELECT COUNT(*) FROM transfer_bids WHERE transfer_listing_id = $1`,
+            [listingId]
+        );
+        await client.query(
+            `UPDATE transfer_listings SET bids = $1 WHERE id = $2`,
+            [parseInt(countResult.rows[0].count), listingId]
+        );
+
+        await client.query('COMMIT');
+        res.json({ success: true });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
+// GET /transfer-bids?teamId=X — enriched user bids
+app.get('/transfer-bids', async (req, res) => {
+    const { teamId } = req.query;
+    if (!teamId) return res.status(400).json({ error: 'Falta teamId' });
+    try {
+        const result = await pool.query(`
+            SELECT
+                tb.id, tb.transfer_listing_id, tb.bidder_team_id,
+                tb.bid_amount, tb.status, tb.created_at,
+                bt.name AS bidder_name,
+                p.player_id, p.first_name || ' ' || p.last_name AS player_name,
+                tl.is_active, tl.deadline, tl.seller_team_id,
+                st.name AS seller_team_name
+            FROM transfer_bids tb
+            LEFT JOIN teams bt ON bt.team_id = tb.bidder_team_id
+            LEFT JOIN transfer_listings tl ON tl.id = tb.transfer_listing_id
+            LEFT JOIN players p ON p.player_id = tl.player_id
+            LEFT JOIN teams st ON st.team_id = tl.seller_team_id
+            WHERE tb.bidder_team_id = $1
+            ORDER BY tb.created_at DESC
+        `, [teamId]);
+        res.json({ success: true, bids: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ===================== END TRANSFER MARKET =====================
 
 app.get('/', (req, res) => {
     res.send('Backend TeamSoccer funcionando');

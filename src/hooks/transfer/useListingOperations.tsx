@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 import { toast } from "sonner";
 import { useUserTeam } from "../useUserTeam";
 
@@ -16,19 +16,14 @@ export const useListingOperations = () => {
 
     setIsProcessing(true);
     try {
-      const { error: listingError } = await supabase
-        .from('transfer_listings')
-        .insert({
+      await apiFetch('/transfer-listings', {
+        method: 'POST',
+        body: JSON.stringify({
           player_id: playerId,
           asking_price: askingPrice,
           seller_team_id: team.team_id,
-          is_active: true,
-          views: 0,
-          bids: 0,
-          hotlists: 0
-        });
-
-      if (listingError) throw listingError;
+        }),
+      });
 
       toast.success("Player listed for transfer");
       return true;
