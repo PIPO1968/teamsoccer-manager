@@ -2,7 +2,7 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { X, User, Flag } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 import { Progress } from "@/components/ui/progress";
 
 interface PlayerDetailsProps {
@@ -21,21 +21,10 @@ const PlayerDetails: React.FC<PlayerDetailsProps> = ({ playerId, isOpen, onClose
     const fetchPlayerDetails = async () => {
       setIsLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('players')
-          .select(`
-            *,
-            team:teams!players_team_id_fkey (
-              name,
-              logo,
-              primary_color
-            )
-          `)
-          .eq('player_id', playerId)
-          .single();
-        
-        if (error) throw error;
-        setPlayer(data);
+        const data = await apiFetch<{ success: boolean; player: any }>(
+          `/players/${playerId}`
+        );
+        setPlayer(data.player);
       } catch (err) {
         console.error("Error fetching player details:", err);
       } finally {
@@ -100,8 +89,8 @@ const PlayerDetails: React.FC<PlayerDetailsProps> = ({ playerId, isOpen, onClose
                         <span className="text-sm font-medium">{label}</span>
                         <span className="text-sm text-muted-foreground">{value}/20</span>
                       </div>
-                      <Progress 
-                        value={toPercentage(value)} 
+                      <Progress
+                        value={toPercentage(value)}
                         className="h-2"
                         indicatorClassName={value >= 15 ? "bg-green-500" : value >= 10 ? "bg-yellow-500" : "bg-red-500"}
                       />
