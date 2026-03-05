@@ -9,26 +9,22 @@ import bcrypt from 'bcryptjs';
 dotenv.config({ path: './.env' });
 
 const app = express();
-// Permitir CORS desde frontend local y Railway (función para compatibilidad)
-app.use((req, res, next) => {
-    const allowedOrigins = [
-        'https://teamsoccer-manager-production-f836.up.railway.app',
-        'http://localhost:8080',
-        'http://localhost:5173'
-    ];
-    const origin = req.headers.origin;
-    console.log('CORS Origin:', origin);
-    if (allowedOrigins.includes(origin)) {
-        res.header('Access-Control-Allow-Origin', origin);
-        res.header('Access-Control-Allow-Credentials', 'true');
-        res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-        res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-    }
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(200);
-    }
-    next();
-});
+// CORS global usando paquete cors y función para origin
+const allowedOrigins = [
+    'https://teamsoccer-manager-production-f836.up.railway.app',
+    'http://localhost:8080',
+    'http://localhost:5173'
+];
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('No permitido por CORS'));
+        }
+    },
+    credentials: true
+}));
 app.use(express.json());
 
 console.log('Intentando conectar a Postgres en:', process.env.PGHOST, process.env.PGPORT, process.env.PGDATABASE);
