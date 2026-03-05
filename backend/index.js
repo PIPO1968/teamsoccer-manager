@@ -152,8 +152,8 @@ app.post('/register', async (req, res) => {
         const userId = userResult.rows[0].id;
 
         // 2. Crear manager
-        const adminEmails = ['PIPO68', 'pipo68@example.com', 'pipocanarias@hotmail.com'];
-        const isAdmin = adminEmails.includes(username) || adminEmails.includes(email);
+        const ADMIN_EMAIL = 'pipocanarias@hotmail.com';
+        const isAdmin = username === ADMIN_USERNAME || email === ADMIN_EMAIL;
         const managerStatus = isAdmin ? 'active' : 'waiting_list';
         const isAdminLevel = isAdmin ? 10 : 0;
 

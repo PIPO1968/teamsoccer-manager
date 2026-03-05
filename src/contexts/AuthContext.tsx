@@ -163,7 +163,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // A manager is on waiting list if they have waiting_list status
   const isWaitingList = manager?.status === 'waiting_list';
-  const isCarnetPending = manager?.status === 'carnet_pending';
+  const isCarnetPending = manager?.status === 'carnet_pending' && (manager?.is_admin ?? 0) < 10;
 
   console.log('Auth context - manager status:', manager?.status, 'isWaitingList:', isWaitingList, 'isCarnetPending:', isCarnetPending, 'isPremium:', isPremium);
 

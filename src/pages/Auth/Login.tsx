@@ -57,7 +57,7 @@ const Login = () => {
 
       signIn(response.manager);
       setLoading(false);
-      if (response.manager.status === 'carnet_pending') {
+      if (response.manager.status === 'carnet_pending' && response.manager.is_admin < 10) {
         navigate('/carnet');
       } else {
         navigate('/dashboard');
