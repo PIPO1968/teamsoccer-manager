@@ -9,12 +9,22 @@ import bcrypt from 'bcryptjs';
 dotenv.config({ path: './.env' });
 
 const app = express();
-// Permitir CORS desde frontend local y Railway
-const allowedOrigins = [
-    'http://localhost:8080',
-    'https://teamsoccer-manager-production-f836.up.railway.app'
-];
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+// Permitir CORS desde frontend local y Railway (función para compatibilidad)
+app.use(cors({
+    origin: function (origin, callback) {
+        const allowedOrigins = [
+            'https://teamsoccer-manager-production-f836.up.railway.app',
+            'http://localhost:8080',
+            'http://localhost:5173'
+        ];
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('No permitido por CORS'));
+        }
+    },
+    credentials: true
+}));
 app.use(express.json());
 
 console.log('Intentando conectar a Postgres en:', process.env.PGHOST, process.env.PGPORT, process.env.PGDATABASE);
