@@ -83,7 +83,33 @@ const initDb = async () => {
                 ('visit_community',       'La Comunidad',            'Visita la página de Comunidad',                50000, 10)
             ON CONFLICT (test_key) DO NOTHING
         `);
-        console.log('✅ Tablas Carnet de Manager verificadas/creadas');
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS avatar_configs (
+                id SERIAL PRIMARY KEY,
+                manager_id INTEGER NOT NULL UNIQUE REFERENCES managers(user_id) ON DELETE CASCADE,
+                gender TEXT,
+                face_type INTEGER,
+                body_type INTEGER,
+                body_variation INTEGER,
+                face_tone INTEGER,
+                eye_type INTEGER,
+                eye_color INTEGER,
+                eye_mood INTEGER,
+                eyebrows INTEGER,
+                mouth_type INTEGER,
+                mouth_mood INTEGER,
+                nose_type INTEGER,
+                facial_hair INTEGER,
+                hair_type INTEGER,
+                hair_color INTEGER,
+                shirt_color INTEGER,
+                background_color INTEGER,
+                show_anniversary_badge BOOLEAN DEFAULT FALSE,
+                updated_at TIMESTAMPTZ DEFAULT NOW(),
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+        console.log('✅ Tablas verificadas/creadas correctamente');
     } catch (err) {
         console.error('❌ Error en initDb:', err.message);
     } finally {
