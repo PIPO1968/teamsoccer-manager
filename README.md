@@ -1,4 +1,5 @@
 # TeamSoccer Manager — Guía Oficial
+# (Forzar redeploy Railway 2026-03-05)
 
 ## Descripción General
 
