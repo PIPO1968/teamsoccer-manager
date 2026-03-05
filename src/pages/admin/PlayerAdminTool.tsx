@@ -141,7 +141,7 @@ const PlayerAdminTool = () => {
         ...(createData.loyalty && { loyalty: Number(createData.loyalty) }),
         image_url: (() => {
           const country = countries.find(c => c.region_id === Number(createData.nationality_id));
-          return getPlayerImageUrl(country ? country.name : "");
+          return getPlayerImageUrl(country ? country.name : "", createData.first_name || '', createData.last_name || '');
         })()
       };
       await apiFetch('/admin/players', { method: 'POST', body: JSON.stringify(insertData) });

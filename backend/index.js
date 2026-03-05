@@ -121,57 +121,93 @@ initDb();
 const ADMIN_USERNAME = 'PIPO68';
 
 const randBetween = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+const randFrom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+// Valor de mercado basado en rating y edad
+const calcPlayerValue = (rating, age) => {
+    const base = Math.pow(rating / 60, 3.5) * 2000000;
+    let ageFactor;
+    if (age <= 21)       ageFactor = 1.25;
+    else if (age <= 25)  ageFactor = 1.05;
+    else if (age <= 28)  ageFactor = 1.00;
+    else if (age <= 31)  ageFactor = 0.75;
+    else if (age <= 34)  ageFactor = 0.50;
+    else                 ageFactor = 0.30;
+    return Math.round(base * ageFactor / 50000) * 50000;
+};
+
+// Imagen DiceBear única por jugador (seed = nombre completo)
+const playerImage = (firstName, lastName, countryId) => {
+    const seed = encodeURIComponent(`${firstName}${lastName}`);
+    if (countryId === 1) { // España
+        return `https://api.dicebear.com/9.x/avataaars/svg?seed=${seed}&skinColor=tanned,cream&hairColor=black,brown,brown2`;
+    }
+    if (countryId === 2) { // England
+        return `https://api.dicebear.com/9.x/avataaars/svg?seed=${seed}&skinColor=pale,light,cream&hairColor=blonde,brown,auburn`;
+    }
+    if (countryId === 3) { // France
+        return `https://api.dicebear.com/9.x/avataaars/svg?seed=${seed}&skinColor=tanned,brown,cream&hairColor=black,brown,brown2`;
+    }
+    return `https://api.dicebear.com/9.x/avataaars/svg?seed=${seed}`;
+};
+
+// Nombres por país
+const namesByCountry = {
+    1: { // España
+        first: ['Alejandro','Carlos','David','Diego','Fernando','Francisco','Gonzalo','Hugo','Javier','Jorge','José','Juan','Luis','Marcos','Miguel','Pablo','Pedro','Rafael','Roberto','Sergio','Álvaro','Adrián','Armando','Bruno','Cristian','Daniel','Emilio','Enrique','Iván','Jesús','Nicolás','Óscar','Raúl','Rubén','Víctor'],
+        last:  ['García','Martínez','López','Sánchez','González','Pérez','Rodríguez','Fernández','Torres','Romero','Flores','Álvarez','Díaz','Reyes','Cruz','Morales','Ortega','Castro','Ramos','Herrera','Jiménez','Ruiz','Navarro','Vázquez','Serrano','Blanco','Molina','Moreno','Delgado','Ortiz']
+    },
+    2: { // England
+        first: ['James','Oliver','Harry','George','Jack','Charlie','Thomas','Edward','William','Henry','Alfie','Joshua','Samuel','Ethan','Matthew','Daniel','Liam','Noah','Jake','Ryan'],
+        last:  ['Smith','Johnson','Williams','Brown','Jones','Miller','Davis','Wilson','Anderson','Taylor','Thomas','Moore','Martin','Lewis','White','Harris','Clark','Robinson','Walker','Hall']
+    },
+    3: { // France
+        first: ['Antoine','Baptiste','Clément','Damien','Etienne','François','Guillaume','Hugo','Julien','Kevin','Laurent','Mathieu','Nicolas','Olivier','Pierre','Quentin','Romain','Sébastien','Thomas','Vincent'],
+        last:  ['Martin','Bernard','Thomas','Petit','Robert','Richard','Durand','Dubois','Moreau','Laurent','Simon','Michel','Lefebvre','Leroy','Roux','David','Bertrand','Morel','Girard','Bonnet']
+    }
+};
+const defaultNames = {
+    first: ['Alex','Brian','Carlos','David','Eric','Frank','George','Henry','Ivan','Jack','Kevin','Luis','Mario','Nico','Oscar','Paul','Rafa','Stefan','Thomas','Victor'],
+    last:  ['Smith','Johnson','Williams','Brown','Jones','Miller','Davis','Garcia','Martinez','Hernandez','Lopez','Gonzalez','Wilson','Anderson','Thomas','Taylor','Moore','Martin','Clark','Lewis']
+};
 
 const createInitialPlayers = async (client, teamId, countryId) => {
     const positions = ['GK', 'RB', 'CB', 'CB', 'LB', 'RM', 'CM', 'CM', 'LM', 'RW', 'CAM', 'CDM', 'LW', 'ST', 'ST', 'CF', 'CB', 'RB'];
-    const firstNames = ['Alex', 'Brian', 'Carlos', 'David', 'Eric', 'Frank', 'George', 'Henry', 'Ivan', 'Jack', 'Kevin', 'Luis', 'Mario', 'Nico', 'Oscar', 'Paul', 'Quinn', 'Rafa'];
-    const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Miller', 'Davis', 'Garcia', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Martin'];
-
     const numericCountryId = countryId !== null && countryId !== undefined ? Number(countryId) : null;
+    const names = namesByCountry[numericCountryId] || defaultNames;
+
     for (let i = 0; i < positions.length; i += 1) {
+        const firstName = randFrom(names.first);
+        const lastName  = randFrom(names.last);
+        const age       = randBetween(17, 34);
+        const rating    = randBetween(58, 82);
+        const value     = calcPlayerValue(rating, age);
+        const wage      = Math.round(value / 400 / 500) * 500;
+        const imageUrl  = playerImage(firstName, lastName, numericCountryId);
+
         await client.query(
             `INSERT INTO players (
                 first_name, last_name, position, age, nationality_id, team_id,
                 value, wage, fitness, form, contract_until,
                 finishing, pace, passing, defense, dribbling, heading, stamina,
                 goals, assists, matches_played, minutes_played, rating,
-                personality, experience, leadership, loyalty, owned_since
+                personality, experience, leadership, loyalty, owned_since, image_url
             ) VALUES (
                 $1,$2,$3,$4,$5,$6,
                 $7,$8,$9,$10,$11,
                 $12,$13,$14,$15,$16,$17,$18,
                 $19,$20,$21,$22,$23,
-                $24,$25,$26,$27,$28
+                $24,$25,$26,$27,$28,$29
             )`,
             [
-                firstNames[i],
-                lastNames[i],
-                positions[i],
-                randBetween(18, 28),
-                numericCountryId,
-                teamId,
-                randBetween(800000, 4500000),
-                randBetween(1500, 12000),
-                randBetween(75, 100),
-                'Good',
-                '2027',
-                randBetween(40, 85),
-                randBetween(40, 85),
-                randBetween(40, 85),
-                randBetween(40, 85),
-                randBetween(40, 85),
-                randBetween(40, 85),
-                randBetween(40, 85),
-                0,
-                0,
-                0,
-                0,
-                randBetween(58, 82),
-                randBetween(40, 80),
-                randBetween(40, 80),
-                randBetween(40, 80),
-                randBetween(40, 80),
-                new Date()
+                firstName, lastName, positions[i], age, numericCountryId, teamId,
+                value, wage,
+                randBetween(75, 100), 'Good', '2027',
+                randBetween(40, 85), randBetween(40, 85), randBetween(40, 85),
+                randBetween(40, 85), randBetween(40, 85), randBetween(40, 85), randBetween(40, 85),
+                0, 0, 0, 0, rating,
+                randBetween(40, 80), randBetween(40, 80), randBetween(40, 80), randBetween(40, 80),
+                new Date(), imageUrl
             ]
         );
     }
