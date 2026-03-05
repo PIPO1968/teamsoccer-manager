@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { X, User, Flag } from "lucide-react";
 import { apiFetch } from "@/services/apiClient";
 import { Progress } from "@/components/ui/progress";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface PlayerDetailsProps {
   playerId: number | null;
@@ -14,6 +15,7 @@ interface PlayerDetailsProps {
 const PlayerDetails: React.FC<PlayerDetailsProps> = ({ playerId, isOpen, onClose }) => {
   const [player, setPlayer] = React.useState<any>(null);
   const [isLoading, setIsLoading] = React.useState(false);
+  const { t } = useLanguage();
 
   React.useEffect(() => {
     if (!playerId || !isOpen) return;
@@ -35,7 +37,13 @@ const PlayerDetails: React.FC<PlayerDetailsProps> = ({ playerId, isOpen, onClose
     fetchPlayerDetails();
   }, [playerId, isOpen]);
 
-  const toPercentage = (value: number) => (value / 20) * 100;
+  const toPercentage = (value: number) => value;
+
+  const getAttributeColor = (value: number) => {
+    if (value >= 70) return "bg-green-500";
+    if (value >= 45) return "bg-yellow-500";
+    return "bg-red-500";
+  };
 
   if (!isOpen) return null;
 
@@ -76,23 +84,24 @@ const PlayerDetails: React.FC<PlayerDetailsProps> = ({ playerId, isOpen, onClose
               <div className="space-y-4 pt-4">
                 <div className="space-y-4">
                   {[
-                    { label: "Pace", value: player.pace },
-                    { label: "Finishing", value: player.finishing },
-                    { label: "Passing", value: player.passing },
-                    { label: "Dribbling", value: player.dribbling },
-                    { label: "Defense", value: player.defense },
-                    { label: "Heading", value: player.heading },
-                    { label: "Stamina", value: player.stamina }
-                  ].map(({ label, value }) => (
-                    <div key={label}>
+                    { key: "pace", value: player.pace },
+                    { key: "finishing", value: player.finishing },
+                    { key: "passing", value: player.passing },
+                    { key: "dribbling", value: player.dribbling },
+                    { key: "defense", value: player.defense },
+                    { key: "heading", value: player.heading },
+                    { key: "stamina", value: player.stamina },
+                    { key: "goalkeeper", value: player.goalkeeper ?? 0 },
+                  ].map(({ key, value }) => (
+                    <div key={key}>
                       <div className="flex justify-between mb-2">
-                        <span className="text-sm font-medium">{label}</span>
-                        <span className="text-sm text-muted-foreground">{value}/20</span>
+                        <span className="text-sm font-medium">{t(`player.skill.${key}`)}</span>
+                        <span className="text-sm text-muted-foreground">{value}</span>
                       </div>
                       <Progress
                         value={toPercentage(value)}
                         className="h-2"
-                        indicatorClassName={value >= 15 ? "bg-green-500" : value >= 10 ? "bg-yellow-500" : "bg-red-500"}
+                        indicatorClassName={getAttributeColor(value)}
                       />
                     </div>
                   ))}

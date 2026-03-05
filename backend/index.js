@@ -109,6 +109,10 @@ const initDb = async () => {
                 created_at TIMESTAMPTZ DEFAULT NOW()
             )
         `);
+        // Añadir columna goalkeeper si no existe (para tablas ya creadas)
+        await client.query(`
+            ALTER TABLE players ADD COLUMN IF NOT EXISTS goalkeeper INTEGER DEFAULT 30
+        `);
         console.log('✅ Tablas verificadas/creadas correctamente');
     } catch (err) {
         console.error('❌ Error en initDb:', err.message);
@@ -184,27 +188,29 @@ const createInitialPlayers = async (client, teamId, countryId) => {
         const value     = calcPlayerValue(rating, age);
         const wage      = Math.round(value / 400 / 500) * 500;
         const imageUrl  = playerImage(firstName, lastName, numericCountryId);
+        const isGK      = positions[i] === 'GK';
+        const gkStat    = isGK ? randBetween(55, 85) : randBetween(5, 25);
 
         await client.query(
             `INSERT INTO players (
                 first_name, last_name, position, age, nationality_id, team_id,
                 value, wage, fitness, form, contract_until,
-                finishing, pace, passing, defense, dribbling, heading, stamina,
+                finishing, pace, passing, defense, dribbling, heading, stamina, goalkeeper,
                 goals, assists, matches_played, minutes_played, rating,
                 personality, experience, leadership, loyalty, owned_since, image_url
             ) VALUES (
                 $1,$2,$3,$4,$5,$6,
                 $7,$8,$9,$10,$11,
-                $12,$13,$14,$15,$16,$17,$18,
-                $19,$20,$21,$22,$23,
-                $24,$25,$26,$27,$28,$29
+                $12,$13,$14,$15,$16,$17,$18,$19,
+                $20,$21,$22,$23,$24,
+                $25,$26,$27,$28,$29,$30
             )`,
             [
                 firstName, lastName, positions[i], age, numericCountryId, teamId,
                 value, wage,
                 randBetween(75, 100), 'Good', '2027',
                 randBetween(40, 85), randBetween(40, 85), randBetween(40, 85),
-                randBetween(40, 85), randBetween(40, 85), randBetween(40, 85), randBetween(40, 85),
+                randBetween(40, 85), randBetween(40, 85), randBetween(40, 85), randBetween(40, 85), gkStat,
                 0, 0, 0, 0, rating,
                 randBetween(40, 80), randBetween(40, 80), randBetween(40, 80), randBetween(40, 80),
                 new Date(), imageUrl
@@ -3644,19 +3650,20 @@ app.post('/admin/players', async (req, res) => {
         const result = await pool.query(
             `INSERT INTO players (
                 first_name,last_name,position,age,nationality_id,team_id,
-                value,wage,rating,pace,finishing,passing,defense,dribbling,heading,stamina,
+                value,wage,rating,pace,finishing,passing,defense,dribbling,heading,stamina,goalkeeper,
                 fitness,form,personality,experience,leadership,loyalty,image_url,
                 contract_until,goals,assists,matches_played,minutes_played,owned_since
             ) VALUES (
                 $1,$2,$3,$4,$5,$6,
-                $7,$8,$9,$10,$11,$12,$13,$14,$15,$16,
-                $17,$18,$19,$20,$21,$22,$23,
-                $24,$25,$26,$27,$28,$29
+                $7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,
+                $18,$19,$20,$21,$22,$23,$24,
+                $25,$26,$27,$28,$29,$30
             ) RETURNING *`,
             [
                 p.first_name, p.last_name, p.position||'MID', p.age||20, p.nationality_id||1, p.team_id||null,
                 p.value||100000, p.wage||5000, p.rating||65, p.pace||10, p.finishing||10, p.passing||10,
                 p.defense||10, p.dribbling||10, p.heading||10, p.stamina||10,
+                p.position === 'GK' ? (p.goalkeeper||60) : (p.goalkeeper||10),
                 p.fitness||100, p.form||'Average', p.personality||5, p.experience||5, p.leadership||5, p.loyalty||5, p.image_url||null,
                 p.contract_until||'2027', 0, 0, 0, 0, new Date().toISOString().split('T')[0]
             ]
@@ -3690,7 +3697,7 @@ app.post('/admin/players/batch', async (req, res) => {
 app.put('/admin/players/:id', async (req, res) => {
     const { id } = req.params;
     const fields = req.body;
-    const allowed = ['first_name','last_name','position','age','nationality_id','team_id','value','wage','rating','pace','finishing','passing','defense','dribbling','heading','stamina','fitness','form','personality','experience','leadership','loyalty','image_url'];
+    const allowed = ['first_name','last_name','position','age','nationality_id','team_id','value','wage','rating','pace','finishing','passing','defense','dribbling','heading','stamina','goalkeeper','fitness','form','personality','experience','leadership','loyalty','image_url'];
     const updates = Object.entries(fields).filter(([k]) => allowed.includes(k));
     if (!updates.length) return res.status(400).json({ error: 'Sin campos validos' });
     const setClauses = updates.map(([k], i) => k + ' = $' + (i + 1)).join(', ');

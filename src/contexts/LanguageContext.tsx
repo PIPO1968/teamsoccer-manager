@@ -65,6 +65,17 @@ const translations = {
     'auth.createAccountDesc': 'Sign up to start your soccer manager career',
     'auth.haveAccount': 'Already have an account?',
     'auth.terms': 'By continuing, you agree to our Terms of Service and Privacy Policy.',
+
+    // Player attributes
+    'player.skill.finishing': 'Finishing', 'player.skill.pace': 'Pace',
+    'player.skill.passing': 'Passing', 'player.skill.defense': 'Defense',
+    'player.skill.dribbling': 'Dribbling', 'player.skill.heading': 'Heading',
+    'player.skill.stamina': 'Stamina', 'player.skill.goalkeeper': 'Goalkeeper',
+    'player.category.technical': 'Technical', 'player.category.physical': 'Physical',
+    'player.form.excellent': 'Excellent', 'player.form.good': 'Good',
+    'player.form.average': 'Average', 'player.form.poor': 'Poor',
+    'player.fitness': 'Fitness', 'player.goals': 'Goals', 'player.assists': 'Assists',
+    'player.value': 'Value', 'player.wage': 'Wage', 'player.age': 'Age',
   },
   es: {
     // Landing Page
@@ -120,6 +131,17 @@ const translations = {
     'auth.createAccountDesc': 'Regístrate para comenzar tu carrera como manager de fútbol',
     'auth.haveAccount': '¿Ya tienes una cuenta?',
     'auth.terms': 'Al continuar, aceptas nuestros Términos de Servicio y Política de Privacidad.',
+
+    // Atributos de jugador
+    'player.skill.finishing': 'Definición', 'player.skill.pace': 'Velocidad',
+    'player.skill.passing': 'Pase', 'player.skill.defense': 'Defensa',
+    'player.skill.dribbling': 'Regate', 'player.skill.heading': 'Cabeceo',
+    'player.skill.stamina': 'Resistencia', 'player.skill.goalkeeper': 'Portería',
+    'player.category.technical': 'Técnicas', 'player.category.physical': 'Físicas',
+    'player.form.excellent': 'Excelente', 'player.form.good': 'Buena',
+    'player.form.average': 'Normal', 'player.form.poor': 'Mala',
+    'player.fitness': 'Forma Física', 'player.goals': 'Goles', 'player.assists': 'Asistencias',
+    'player.value': 'Valor', 'player.wage': 'Salario', 'player.age': 'Edad',
   },
   it: {
     // Landing Page
@@ -175,6 +197,17 @@ const translations = {
     'auth.createAccountDesc': 'Registrati per iniziare la tua carriera da manager di calcio',
     'auth.haveAccount': 'Hai già un account?',
     'auth.terms': 'Continuando, accetti i nostri Termini di Servizio e la Politica sulla Privacy.',
+
+    // Attributi giocatore
+    'player.skill.finishing': 'Finalizzazione', 'player.skill.pace': 'Velocità',
+    'player.skill.passing': 'Passaggio', 'player.skill.defense': 'Difesa',
+    'player.skill.dribbling': 'Dribbling', 'player.skill.heading': 'Colpo di testa',
+    'player.skill.stamina': 'Resistenza', 'player.skill.goalkeeper': 'Portiere',
+    'player.category.technical': 'Tecniche', 'player.category.physical': 'Fisiche',
+    'player.form.excellent': 'Eccellente', 'player.form.good': 'Buona',
+    'player.form.average': 'Nella media', 'player.form.poor': 'Scarsa',
+    'player.fitness': 'Forma', 'player.goals': 'Gol', 'player.assists': 'Assist',
+    'player.value': 'Valore', 'player.wage': 'Stipendio', 'player.age': 'Età',
   },
   de: {
     // Landing Page
@@ -230,6 +263,17 @@ const translations = {
     'auth.createAccountDesc': 'Registriere dich, um deine Fußball-Manager-Karriere zu starten',
     'auth.haveAccount': 'Hast du bereits ein Konto?',
     'auth.terms': 'Durch Fortfahren stimmst du unseren Nutzungsbedingungen und der Datenschutzrichtlinie zu.',
+
+    // Spieler-Attribute
+    'player.skill.finishing': 'Abschluss', 'player.skill.pace': 'Tempo',
+    'player.skill.passing': 'Pass', 'player.skill.defense': 'Abwehr',
+    'player.skill.dribbling': 'Dribbling', 'player.skill.heading': 'Kopfball',
+    'player.skill.stamina': 'Ausdauer', 'player.skill.goalkeeper': 'Torwart',
+    'player.category.technical': 'Technisch', 'player.category.physical': 'Physisch',
+    'player.form.excellent': 'Ausgezeichnet', 'player.form.good': 'Gut',
+    'player.form.average': 'Durchschnittlich', 'player.form.poor': 'Schlecht',
+    'player.fitness': 'Fitness', 'player.goals': 'Tore', 'player.assists': 'Vorlagen',
+    'player.value': 'Marktwert', 'player.wage': 'Gehalt', 'player.age': 'Alter',
   },
   pl: {
     // Landing Page
@@ -285,6 +329,17 @@ const translations = {
     'auth.createAccountDesc': 'Zarejestruj się, aby rozpocząć karierę menedżera piłkarskiego',
     'auth.haveAccount': 'Masz już konto?',
     'auth.terms': 'Kontynuując, zgadzasz się na nasze Warunki Usługi i Politykę Prywatności.',
+
+    // Atrybuty zawodnika
+    'player.skill.finishing': 'Wykończenie', 'player.skill.pace': 'Szybkość',
+    'player.skill.passing': 'Podanie', 'player.skill.defense': 'Obrona',
+    'player.skill.dribbling': 'Drybling', 'player.skill.heading': 'Główka',
+    'player.skill.stamina': 'Wytrzymałość', 'player.skill.goalkeeper': 'Bramkarz',
+    'player.category.technical': 'Techniczne', 'player.category.physical': 'Fizyczne',
+    'player.form.excellent': 'Doskonała', 'player.form.good': 'Dobra',
+    'player.form.average': 'Przeciętna', 'player.form.poor': 'Słaba',
+    'player.fitness': 'Kondycja', 'player.goals': 'Gole', 'player.assists': 'Asysty',
+    'player.value': 'Wartość', 'player.wage': 'Pensja', 'player.age': 'Wiek',
   },
   pt: {
     // Landing Page
@@ -340,6 +395,17 @@ const translations = {
     'auth.createAccountDesc': 'Cadastre-se para começar sua carreira como manager de futebol',
     'auth.haveAccount': 'Já tem uma conta?',
     'auth.terms': 'Ao continuar, você concorda com nossos Termos de Serviço e Política de Privacidade.',
+
+    // Atributos do jogador
+    'player.skill.finishing': 'Finalização', 'player.skill.pace': 'Velocidade',
+    'player.skill.passing': 'Passe', 'player.skill.defense': 'Defesa',
+    'player.skill.dribbling': 'Drible', 'player.skill.heading': 'Cabeceio',
+    'player.skill.stamina': 'Resistência', 'player.skill.goalkeeper': 'Guarda-redes',
+    'player.category.technical': 'Técnicas', 'player.category.physical': 'Físicas',
+    'player.form.excellent': 'Excelente', 'player.form.good': 'Boa',
+    'player.form.average': 'Normal', 'player.form.poor': 'Má',
+    'player.fitness': 'Forma', 'player.goals': 'Golos', 'player.assists': 'Assistências',
+    'player.value': 'Valor', 'player.wage': 'Salário', 'player.age': 'Idade',
   },
   fr: {
     // Landing Page
@@ -395,6 +461,17 @@ const translations = {
     'auth.createAccountDesc': 'Inscrivez-vous pour commencer votre carrière de manager de football',
     'auth.haveAccount': 'Vous avez déjà un compte ?',
     'auth.terms': 'En continuant, vous acceptez nos Conditions d\'utilisation et notre Politique de confidentialité.',
+
+    // Attributs du joueur
+    'player.skill.finishing': 'Finition', 'player.skill.pace': 'Vitesse',
+    'player.skill.passing': 'Passe', 'player.skill.defense': 'Défense',
+    'player.skill.dribbling': 'Dribble', 'player.skill.heading': 'Jeu de tête',
+    'player.skill.stamina': 'Endurance', 'player.skill.goalkeeper': 'Gardien',
+    'player.category.technical': 'Techniques', 'player.category.physical': 'Physiques',
+    'player.form.excellent': 'Excellente', 'player.form.good': 'Bonne',
+    'player.form.average': 'Moyenne', 'player.form.poor': 'Mauvaise',
+    'player.fitness': 'Forme', 'player.goals': 'Buts', 'player.assists': 'Passes déc.',
+    'player.value': 'Valeur', 'player.wage': 'Salaire', 'player.age': 'Âge',
   },
   zh: {
     // Landing Page
@@ -450,6 +527,17 @@ const translations = {
     'auth.createAccountDesc': '注册开始您的足球经理职业生涯',
     'auth.haveAccount': '已有账户？',
     'auth.terms': '继续即表示您同意我们的服务条款和隐私政策。',
+
+    // 球员属性
+    'player.skill.finishing': '完成射门', 'player.skill.pace': '速度',
+    'player.skill.passing': '传球', 'player.skill.defense': '防守',
+    'player.skill.dribbling': '盘带', 'player.skill.heading': '头球',
+    'player.skill.stamina': '体力', 'player.skill.goalkeeper': '守门',
+    'player.category.technical': '技术', 'player.category.physical': '体能',
+    'player.form.excellent': '出色', 'player.form.good': '良好',
+    'player.form.average': '一般', 'player.form.poor': '差',
+    'player.fitness': '体能状态', 'player.goals': '进球', 'player.assists': '助攻',
+    'player.value': '市值', 'player.wage': '薪资', 'player.age': '年龄',
   },
 };
 

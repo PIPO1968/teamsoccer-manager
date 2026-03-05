@@ -33,6 +33,7 @@ export type PlayerData = {
   leadership: number;
   loyalty: number;
   owned_since: string | null;
+  goalkeeper?: number;
   avatar_seed?: string;
   avatar_hair_style?: number;
   avatar_hair_color?: number;

@@ -49,7 +49,7 @@ interface FieldConfig {
 const editableFields = [
   'first_name', 'last_name', 'position', 'age', 'nationality_id',
   'team_id', 'value', 'wage', 'rating', 'pace', 'finishing', 'passing',
-  'defense', 'dribbling', 'heading', 'stamina', 'fitness', 'form',
+  'defense', 'dribbling', 'heading', 'stamina', 'goalkeeper', 'fitness', 'form',
   'personality', 'experience', 'leadership', 'loyalty'
 ];
 
