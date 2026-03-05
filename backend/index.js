@@ -4,6 +4,8 @@ import { Pool } from 'pg';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
 
+// Forzar redeploy Railway - 2026-03-05
+
 dotenv.config({ path: './.env' });
 
 const app = express();
