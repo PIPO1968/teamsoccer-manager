@@ -8,7 +8,8 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "serve -s dist"
   },
   "dependencies": {
     "@apiverve/countryboundaries": "^1.1.9",
@@ -66,6 +67,7 @@
     "react-svg-worldmap": "^2.0.0-alpha.16",
     "recharts": "^2.12.7",
     "rehype-raw": "^7.0.0",
+    "serve": "^14.2.6",
     "sonner": "^1.5.0",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
