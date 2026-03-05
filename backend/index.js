@@ -214,7 +214,10 @@ app.post('/login', async (req, res) => {
         }
 
         const managerResult = await pool.query(
-            'SELECT * FROM managers WHERE user_id = $1',
+            `SELECT m.*, t.team_id
+             FROM managers m
+             LEFT JOIN teams t ON t.manager_id = m.user_id
+             WHERE m.user_id = $1`,
             [user.id]
         );
 
@@ -258,7 +261,11 @@ app.get('/managers/:id', async (req, res) => {
 
     try {
         const managerResult = await pool.query(
-            'SELECT user_id, username, email, country_id, is_admin, status, is_premium, premium_expires_at FROM managers WHERE user_id = $1',
+            `SELECT m.user_id, m.username, m.email, m.country_id, m.is_admin, m.status,
+                    m.is_premium, m.premium_expires_at, t.team_id
+             FROM managers m
+             LEFT JOIN teams t ON t.manager_id = m.user_id
+             WHERE m.user_id = $1`,
             [managerId]
         );
 
