@@ -44,7 +44,7 @@ const PlayerDetailsDialog: React.FC<PlayerDetailsDialogProps> = ({
     }
     return `$${(value / 1000).toFixed(0)}K`;
   };
-  
+
   // Format player wage to display as thousands per week
   const formatWage = (wage: number) => {
     return `$${(wage / 1000).toFixed(0)}K/week`;

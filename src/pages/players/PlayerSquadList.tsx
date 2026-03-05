@@ -140,10 +140,10 @@ export default function PlayerSquadList({ players }: PlayerSquadListProps) {
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-2">
                 {[
                   { skill: "finishing", value: player.finishing },
-                  { skill: "passing",   value: player.passing },
-                  { skill: "defense",   value: player.defense },
+                  { skill: "passing", value: player.passing },
+                  { skill: "defense", value: player.defense },
                   { skill: "dribbling", value: player.dribbling },
-                  { skill: "heading",   value: player.heading },
+                  { skill: "heading", value: player.heading },
                   { skill: "goalkeeper", value: (player as any).goalkeeper },
                 ].map(({ skill, value }) => (
                   <div key={skill} className="flex items-center gap-2">
@@ -168,7 +168,7 @@ export default function PlayerSquadList({ players }: PlayerSquadListProps) {
               <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                 {[
                   { skill: "stamina", value: player.stamina },
-                  { skill: "pace",    value: player.pace },
+                  { skill: "pace", value: player.pace },
                 ].map(({ skill, value }) => (
                   <div key={skill} className="flex items-center gap-2">
                     <span className="text-xs font-medium text-gray-700 w-16">

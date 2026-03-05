@@ -113,6 +113,36 @@ const initDb = async () => {
         await client.query(`
             ALTER TABLE players ADD COLUMN IF NOT EXISTS goalkeeper INTEGER DEFAULT 30
         `);
+        // Expandir países disponibles (idempotente - ON CONFLICT DO NOTHING)
+        await client.query(`
+            INSERT INTO leagues_regions (name) VALUES
+            ('Germany'), ('Italy'), ('Portugal'), ('Netherlands'), ('Belgium'),
+            ('Argentina'), ('Brazil'), ('Colombia'), ('Uruguay'), ('Chile'), ('Ecuador'),
+            ('Mexico'), ('United States'), ('Canada'), ('Japan'), ('South Korea'),
+            ('Australia'), ('China'), ('India'), ('Saudi Arabia'), ('Iran'),
+            ('Qatar'), ('United Arab Emirates'), ('Iraq'), ('Kuwait'), ('Oman'),
+            ('Jordan'), ('Bahrain'), ('Egypt'), ('Morocco'), ('Tunisia'),
+            ('Algeria'), ('Senegal'), ('Nigeria'), ('Ghana'), ('Cameroon'),
+            ('Ivory Coast'), ('South Africa'), ('Kenya'), ('Tanzania'), ('Ethiopia'),
+            ('Sweden'), ('Norway'), ('Denmark'), ('Finland'), ('Switzerland'),
+            ('Austria'), ('Czech Republic'), ('Hungary'), ('Romania'), ('Croatia'),
+            ('Serbia'), ('Greece'), ('Turkey'), ('Ukraine'), ('Russia'),
+            ('Poland'), ('Slovakia'), ('Bulgaria'), ('Belarus'), ('Lithuania'),
+            ('Latvia'), ('Estonia'), ('Slovenia'), ('Montenegro'), ('Albania'),
+            ('Bosnia and Herzegovina'), ('North Macedonia'), ('Georgia'), ('Armenia'), ('Azerbaijan'),
+            ('Cyprus'), ('Malta'), ('Iceland'), ('Luxembourg'), ('Ireland'),
+            ('Scotland'), ('Wales'), ('Northern Ireland'), ('Costa Rica'), ('Honduras'),
+            ('El Salvador'), ('Guatemala'), ('Panama'), ('Jamaica'), ('Peru'),
+            ('Paraguay'), ('Bolivia'), ('Venezuela'), ('New Zealand'), ('Indonesia'),
+            ('Vietnam'), ('Thailand'), ('Malaysia'), ('Singapore'), ('Philippines'),
+            ('Pakistan'), ('Bangladesh'), ('Kazakhstan'), ('Uzbekistan'), ('Tajikistan'),
+            ('Dominican Republic'), ('Trinidad and Tobago'), ('Haiti'), ('Cuba'), ('Zambia'),
+            ('Zimbabwe'), ('Uganda'), ('DR Congo'), ('Burkina Faso'), ('Mali'),
+            ('Sudan'), ('Libya'), ('Rwanda'), ('Mozambique'), ('Angola'),
+            ('Namibia'), ('Botswana'), ('Gabon'), ('Benin'), ('Togo'),
+            ('Niger'), ('Sierra Leone'), ('Liberia'), ('Mauritania'), ('Somalia')
+            ON CONFLICT (name) DO NOTHING
+        `);
         console.log('✅ Tablas verificadas/creadas correctamente');
     } catch (err) {
         console.error('❌ Error en initDb:', err.message);

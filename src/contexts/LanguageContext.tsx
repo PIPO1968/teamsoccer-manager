@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-export type Language = 'en' | 'es' | 'it' | 'de' | 'pl' | 'pt' | 'fr' | 'zh';
+export type Language = 'en' | 'es' | 'it' | 'de' | 'pl' | 'pt' | 'fr' | 'zh' | 'ru' | 'nl' | 'tr' | 'ja' | 'ko';
 
 interface LanguageContextType {
   language: Language;
@@ -28,7 +28,7 @@ const translations = {
     'landing.communityDesc': 'Join a vibrant community of managers from around the world.',
     'landing.discordTitle': 'Join the development community sharing ideas and insights!',
     'landing.chooseLanguage': 'Choose language',
-    
+
     // Navigation
     'nav.myClub': 'My Club',
     'nav.world': 'World',
@@ -38,7 +38,7 @@ const translations = {
     'nav.help': 'Help',
     'nav.premium': 'Premium',
     'nav.mailbox': 'Mailbox',
-    
+
     // Sidebar Menu
     'sidebar.overview': 'Overview',
     'sidebar.club': 'Club',
@@ -51,7 +51,7 @@ const translations = {
     'sidebar.transfers': 'Transfers',
     'sidebar.challenges': 'Challenges',
     'sidebar.manager': 'Manager',
-    
+
     // Auth
     'auth.signInTitle': 'Sign in to',
     'auth.signInDesc': 'Enter your email to access your team',
@@ -94,7 +94,7 @@ const translations = {
     'landing.communityDesc': 'Únete a una comunidad vibrante de managers de todo el mundo.',
     'landing.discordTitle': '¡Únete a la comunidad de desarrollo compartiendo ideas y conocimientos!',
     'landing.chooseLanguage': 'Elegir idioma',
-    
+
     // Navigation
     'nav.myClub': 'Mi Club',
     'nav.world': 'Mundo',
@@ -104,7 +104,7 @@ const translations = {
     'nav.help': 'Ayuda',
     'nav.premium': 'Premium',
     'nav.mailbox': 'Buzón',
-    
+
     // Sidebar Menu
     'sidebar.overview': 'Resumen',
     'sidebar.club': 'Club',
@@ -117,7 +117,7 @@ const translations = {
     'sidebar.transfers': 'Transferencias',
     'sidebar.challenges': 'Desafíos',
     'sidebar.manager': 'Manager',
-    
+
     // Auth
     'auth.signInTitle': 'Iniciar sesión en',
     'auth.signInDesc': 'Introduce tu email para acceder a tu equipo',
@@ -160,7 +160,7 @@ const translations = {
     'landing.communityDesc': 'Unisciti a una comunità vibrante di manager da tutto il mondo.',
     'landing.discordTitle': 'Unisciti alla comunità di sviluppo condividendo idee e intuizioni!',
     'landing.chooseLanguage': 'Scegli lingua',
-    
+
     // Navigation
     'nav.myClub': 'Il Mio Club',
     'nav.world': 'Mondo',
@@ -170,7 +170,7 @@ const translations = {
     'nav.help': 'Aiuto',
     'nav.premium': 'Premium',
     'nav.mailbox': 'Posta',
-    
+
     // Sidebar Menu
     'sidebar.overview': 'Panoramica',
     'sidebar.club': 'Club',
@@ -183,7 +183,7 @@ const translations = {
     'sidebar.transfers': 'Trasferimenti',
     'sidebar.challenges': 'Sfide',
     'sidebar.manager': 'Manager',
-    
+
     // Auth
     'auth.signInTitle': 'Accedi a',
     'auth.signInDesc': 'Inserisci la tua email per accedere alla tua squadra',
@@ -226,7 +226,7 @@ const translations = {
     'landing.communityDesc': 'Tritt einer lebendigen Gemeinschaft von Managern aus aller Welt bei.',
     'landing.discordTitle': 'Tritt der Entwicklungsgemeinschaft bei und teile Ideen und Einsichten!',
     'landing.chooseLanguage': 'Sprache wählen',
-    
+
     // Navigation
     'nav.myClub': 'Mein Verein',
     'nav.world': 'Welt',
@@ -236,7 +236,7 @@ const translations = {
     'nav.help': 'Hilfe',
     'nav.premium': 'Premium',
     'nav.mailbox': 'Postfach',
-    
+
     // Sidebar Menu
     'sidebar.overview': 'Übersicht',
     'sidebar.club': 'Verein',
@@ -249,7 +249,7 @@ const translations = {
     'sidebar.transfers': 'Transfers',
     'sidebar.challenges': 'Herausforderungen',
     'sidebar.manager': 'Manager',
-    
+
     // Auth
     'auth.signInTitle': 'Anmelden bei',
     'auth.signInDesc': 'Gib deine E-Mail ein, um auf dein Team zuzugreifen',
@@ -292,7 +292,7 @@ const translations = {
     'landing.communityDesc': 'Dołącz do żywej społeczności menedżerów z całego świata.',
     'landing.discordTitle': 'Dołącz do społeczności deweloperskiej dzieląc się pomysłami i spostrzeżeniami!',
     'landing.chooseLanguage': 'Wybierz język',
-    
+
     // Navigation
     'nav.myClub': 'Mój Klub',
     'nav.world': 'Świat',
@@ -302,7 +302,7 @@ const translations = {
     'nav.help': 'Pomoc',
     'nav.premium': 'Premium',
     'nav.mailbox': 'Skrzynka',
-    
+
     // Sidebar Menu
     'sidebar.overview': 'Przegląd',
     'sidebar.club': 'Klub',
@@ -315,7 +315,7 @@ const translations = {
     'sidebar.transfers': 'Transfery',
     'sidebar.challenges': 'Wyzwania',
     'sidebar.manager': 'Menedżer',
-    
+
     // Auth
     'auth.signInTitle': 'Zaloguj się do',
     'auth.signInDesc': 'Wprowadź swój email, aby uzyskać dostęp do swojej drużyny',
@@ -358,7 +358,7 @@ const translations = {
     'landing.communityDesc': 'Junte-se a uma comunidade vibrante de managers de todo o mundo.',
     'landing.discordTitle': 'Junte-se à comunidade de desenvolvimento compartilhando ideias e insights!',
     'landing.chooseLanguage': 'Escolher idioma',
-    
+
     // Navigation
     'nav.myClub': 'Meu Clube',
     'nav.world': 'Mundo',
@@ -368,7 +368,7 @@ const translations = {
     'nav.help': 'Ajuda',
     'nav.premium': 'Premium',
     'nav.mailbox': 'Caixa de Mensagens',
-    
+
     // Sidebar Menu
     'sidebar.overview': 'Visão Geral',
     'sidebar.club': 'Clube',
@@ -381,7 +381,7 @@ const translations = {
     'sidebar.transfers': 'Transferências',
     'sidebar.challenges': 'Desafios',
     'sidebar.manager': 'Manager',
-    
+
     // Auth
     'auth.signInTitle': 'Entrar em',
     'auth.signInDesc': 'Digite seu email para acessar sua equipe',
@@ -424,7 +424,7 @@ const translations = {
     'landing.communityDesc': 'Rejoignez une communauté dynamique de managers du monde entier.',
     'landing.discordTitle': 'Rejoignez la communauté de développement en partageant des idées et des insights !',
     'landing.chooseLanguage': 'Choisir la langue',
-    
+
     // Navigation
     'nav.myClub': 'Mon Club',
     'nav.world': 'Monde',
@@ -434,7 +434,7 @@ const translations = {
     'nav.help': 'Aide',
     'nav.premium': 'Premium',
     'nav.mailbox': 'Boîte mail',
-    
+
     // Sidebar Menu
     'sidebar.overview': 'Aperçu',
     'sidebar.club': 'Club',
@@ -447,7 +447,7 @@ const translations = {
     'sidebar.transfers': 'Transferts',
     'sidebar.challenges': 'Défis',
     'sidebar.manager': 'Manager',
-    
+
     // Auth
     'auth.signInTitle': 'Se connecter à',
     'auth.signInDesc': 'Entrez votre email pour accéder à votre équipe',
@@ -490,7 +490,7 @@ const translations = {
     'landing.communityDesc': '加入来自世界各地经理的充满活力的社区。',
     'landing.discordTitle': '加入开发社区，分享想法和见解！',
     'landing.chooseLanguage': '选择语言',
-    
+
     // Navigation
     'nav.myClub': '我的俱乐部',
     'nav.world': '世界',
@@ -500,7 +500,7 @@ const translations = {
     'nav.help': '帮助',
     'nav.premium': '高级版',
     'nav.mailbox': '邮箱',
-    
+
     // Sidebar Menu
     'sidebar.overview': '概览',
     'sidebar.club': '俱乐部',
@@ -513,7 +513,7 @@ const translations = {
     'sidebar.transfers': '转会',
     'sidebar.challenges': '挑战',
     'sidebar.manager': '经理',
-    
+
     // Auth
     'auth.signInTitle': '登录到',
     'auth.signInDesc': '输入您的电子邮件以访问您的团队',
@@ -539,6 +539,291 @@ const translations = {
     'player.fitness': '体能状态', 'player.goals': '进球', 'player.assists': '助攻',
     'player.value': '市值', 'player.wage': '薪资', 'player.age': '年龄',
   },
+  ru: {
+    'landing.title': 'Игра Менеджера | Присоединяйся к миру бесплатного футбола',
+    'landing.getTeam': 'Получи команду',
+    'landing.getTeamDesc': 'Начни с собственной командой — мы всегда ищем новых менеджеров!',
+    'landing.signIn': 'Войти',
+    'landing.signUp': 'Регистрация',
+    'landing.buildTrain': 'Стройте и тренируйте команду',
+    'landing.buildTrainDesc': 'Развивайте команду через тренировки. Изучайте финансы. Выбирайте лучших игроков.',
+    'landing.compete': 'Участвуйте в лигах',
+    'landing.competeDesc': 'Вступайте в лиги и турниры. Поднимайтесь по дивизионам.',
+    'landing.matchExp': 'Матчи',
+    'landing.matchExpDesc': 'Наблюдайте за матчами в реальном времени с нашим симулятором.',
+    'landing.community': 'Сообщество',
+    'landing.communityDesc': 'Присоединяйтесь к сообществу менеджеров со всего мира.',
+    'landing.discordTitle': 'Присоединяйтесь к сообществу разработчиков!',
+    'landing.chooseLanguage': 'Выберите язык',
+    'nav.myClub': 'Мой Клуб',
+    'nav.world': 'Мир',
+    'nav.groups': 'Группы',
+    'nav.forums': 'Форумы',
+    'nav.community': 'Сообщество',
+    'nav.help': 'Помощь',
+    'nav.premium': 'Премиум',
+    'nav.mailbox': 'Почта',
+    'sidebar.overview': 'Обзор',
+    'sidebar.club': 'Клуб',
+    'sidebar.players': 'Игроки',
+    'sidebar.training': 'Тренировки',
+    'sidebar.matches': 'Матчи',
+    'sidebar.league': 'Лига',
+    'sidebar.stadium': 'Стадион',
+    'sidebar.finances': 'Финансы',
+    'sidebar.transfers': 'Трансферы',
+    'sidebar.challenges': 'Задания',
+    'sidebar.manager': 'Менеджер',
+    'auth.signInTitle': 'Войти в',
+    'auth.signInDesc': 'Введите ваш email для доступа к команде',
+    'auth.email': 'Эл. почта',
+    'auth.password': 'Пароль',
+    'auth.forgotPassword': 'Забыли пароль?',
+    'auth.signIn': 'Войти',
+    'auth.signingIn': 'Вход...',
+    'auth.noAccount': 'Нет аккаунта?',
+    'auth.createAccount': 'Создать аккаунт',
+    'auth.createAccountDesc': 'Зарегистрируйтесь и начните карьеру менеджера',
+    'auth.haveAccount': 'Уже есть аккаунт?',
+    'auth.terms': 'Продолжая, вы соглашаетесь с нашими Условиями и Политикой конфиденциальности.',
+    'player.skill.finishing': 'Удар', 'player.skill.pace': 'Скорость',
+    'player.skill.passing': 'Пас', 'player.skill.defense': 'Защита',
+    'player.skill.dribbling': 'Дриблинг', 'player.skill.heading': 'Игра головой',
+    'player.skill.stamina': 'Выносливость', 'player.skill.goalkeeper': 'Вратарь',
+    'player.category.technical': 'Технические', 'player.category.physical': 'Физические',
+    'player.form.excellent': 'Отлично', 'player.form.good': 'Хорошо',
+    'player.form.average': 'Средне', 'player.form.poor': 'Плохо',
+    'player.fitness': 'Физ. форма', 'player.goals': 'Голы', 'player.assists': 'Передачи',
+    'player.value': 'Стоимость', 'player.wage': 'Зарплата', 'player.age': 'Возраст',
+  },
+  nl: {
+    'landing.title': 'Manager Game | Sluit je aan bij de vrije voetbalwereld',
+    'landing.getTeam': 'Kies je team',
+    'landing.getTeamDesc': 'Begin met je eigen team — we zijn altijd op zoek naar nieuw talent!',
+    'landing.signIn': 'Inloggen',
+    'landing.signUp': 'Aanmelden',
+    'landing.buildTrain': 'Bouw en train je team',
+    'landing.buildTrainDesc': 'Ontwikkel je team door training. Beheer je financiën. Selecteer je beste spelers.',
+    'landing.compete': 'Speel in competities',
+    'landing.competeDesc': 'Doe mee aan competities en toernooien. Stijg door de divisies.',
+    'landing.matchExp': 'Wedstrijdervaring',
+    'landing.matchExpDesc': 'Bekijk live wedstrijden met onze realtime wedstrijdsimulator.',
+    'landing.community': 'Community',
+    'landing.communityDesc': 'Word lid van een levendige community van managers wereldwijd.',
+    'landing.discordTitle': 'Sluit je aan bij de ontwikkelaarsgemeenschap!',
+    'landing.chooseLanguage': 'Kies taal',
+    'nav.myClub': 'Mijn Club',
+    'nav.world': 'Wereld',
+    'nav.groups': 'Groepen',
+    'nav.forums': 'Forums',
+    'nav.community': 'Community',
+    'nav.help': 'Help',
+    'nav.premium': 'Premium',
+    'nav.mailbox': 'Postbus',
+    'sidebar.overview': 'Overzicht',
+    'sidebar.club': 'Club',
+    'sidebar.players': 'Spelers',
+    'sidebar.training': 'Training',
+    'sidebar.matches': 'Wedstrijden',
+    'sidebar.league': 'Competitie',
+    'sidebar.stadium': 'Stadion',
+    'sidebar.finances': 'Financiën',
+    'sidebar.transfers': 'Transfers',
+    'sidebar.challenges': 'Uitdagingen',
+    'sidebar.manager': 'Manager',
+    'auth.signInTitle': 'Inloggen bij',
+    'auth.signInDesc': 'Voer je e-mail in om toegang te krijgen tot je team',
+    'auth.email': 'E-mail',
+    'auth.password': 'Wachtwoord',
+    'auth.forgotPassword': 'Wachtwoord vergeten?',
+    'auth.signIn': 'Inloggen',
+    'auth.signingIn': 'Inloggen...',
+    'auth.noAccount': 'Geen account?',
+    'auth.createAccount': 'Maak een Account',
+    'auth.createAccountDesc': 'Meld je aan om je voetbalmanagercarrière te starten',
+    'auth.haveAccount': 'Al een account?',
+    'auth.terms': 'Door verder te gaan, ga je akkoord met onze Servicevoorwaarden en Privacybeleid.',
+    'player.skill.finishing': 'Afwerking', 'player.skill.pace': 'Snelheid',
+    'player.skill.passing': 'Passing', 'player.skill.defense': 'Verdediging',
+    'player.skill.dribbling': 'Dribbelen', 'player.skill.heading': 'Koppen',
+    'player.skill.stamina': 'Uithoudingsvermogen', 'player.skill.goalkeeper': 'Keepersvaardigheid',
+    'player.category.technical': 'Technisch', 'player.category.physical': 'Fysiek',
+    'player.form.excellent': 'Uitstekend', 'player.form.good': 'Goed',
+    'player.form.average': 'Gemiddeld', 'player.form.poor': 'Slecht',
+    'player.fitness': 'Fitheid', 'player.goals': 'Doelpunten', 'player.assists': 'Assists',
+    'player.value': 'Waarde', 'player.wage': 'Salaris', 'player.age': 'Leeftijd',
+  },
+  tr: {
+    'landing.title': 'Yönetici Oyunu | Ücretsiz futbol dünyasına katıl',
+    'landing.getTeam': 'Takımını al',
+    'landing.getTeamDesc': 'Kendi takımınla başla — her zaman yeni yetenekler arıyoruz!',
+    'landing.signIn': 'Giriş Yap',
+    'landing.signUp': 'Kayıt Ol',
+    'landing.buildTrain': 'Takımını kur ve antrenman yap',
+    'landing.buildTrainDesc': 'Takımını antrenmanla geliştir. Finanslarını yönet. En iyi oyuncuları seç.',
+    'landing.compete': 'Liglerde rekabet et',
+    'landing.competeDesc': 'Liglere ve turnuvalara katıl. Divisionlar arasında yüksel.',
+    'landing.matchExp': 'Maç Deneyimi',
+    'landing.matchExpDesc': 'Gerçek zamanlı maç simülatörümüzle canlı maçları izle.',
+    'landing.community': 'Topluluk',
+    'landing.communityDesc': 'Dünya genelindeki yöneticilerden oluşan topluluğa katıl.',
+    'landing.discordTitle': 'Geliştirici topluluğuna katılın!',
+    'landing.chooseLanguage': 'Dil seçin',
+    'nav.myClub': 'Kulübüm',
+    'nav.world': 'Dünya',
+    'nav.groups': 'Gruplar',
+    'nav.forums': 'Forumlar',
+    'nav.community': 'Topluluk',
+    'nav.help': 'Yardım',
+    'nav.premium': 'Premium',
+    'nav.mailbox': 'Posta Kutusu',
+    'sidebar.overview': 'Genel Bakış',
+    'sidebar.club': 'Kulüp',
+    'sidebar.players': 'Oyuncular',
+    'sidebar.training': 'Antrenman',
+    'sidebar.matches': 'Maçlar',
+    'sidebar.league': 'Lig',
+    'sidebar.stadium': 'Stadyum',
+    'sidebar.finances': 'Finanslar',
+    'sidebar.transfers': 'Transferler',
+    'sidebar.challenges': 'Görevler',
+    'sidebar.manager': 'Yönetici',
+    'auth.signInTitle': 'Giriş yap:',
+    'auth.signInDesc': 'Takımına erişmek için e-posta adresini gir',
+    'auth.email': 'E-posta',
+    'auth.password': 'Şifre',
+    'auth.forgotPassword': 'Şifremi unuttum?',
+    'auth.signIn': 'Giriş Yap',
+    'auth.signingIn': 'Giriş yapılıyor...',
+    'auth.noAccount': 'Hesabın yok mu?',
+    'auth.createAccount': 'Hesap Oluştur',
+    'auth.createAccountDesc': 'Futbol yönetici kariyerine başlamak için kaydol',
+    'auth.haveAccount': 'Zaten hesabın var mı?',
+    'auth.terms': 'Devam ederek, Hizmet Şartlarımızı ve Gizlilik Politikamızı kabul etmiş olursunuz.',
+    'player.skill.finishing': 'Bitiricilik', 'player.skill.pace': 'Hız',
+    'player.skill.passing': 'Pas', 'player.skill.defense': 'Defans',
+    'player.skill.dribbling': 'Top Sürme', 'player.skill.heading': 'Kafa Vuruşu',
+    'player.skill.stamina': 'Kondisyon', 'player.skill.goalkeeper': 'Kaleci',
+    'player.category.technical': 'Teknik', 'player.category.physical': 'Fiziksel',
+    'player.form.excellent': 'Mükemmel', 'player.form.good': 'İyi',
+    'player.form.average': 'Ortalama', 'player.form.poor': 'Kötü',
+    'player.fitness': 'Fiziksel Durum', 'player.goals': 'Gol', 'player.assists': 'Asist',
+    'player.value': 'Değer', 'player.wage': 'Ücret', 'player.age': 'Yaş',
+  },
+  ja: {
+    'landing.title': 'マネージャーゲーム | 無料サッカーワールドに参加しよう',
+    'landing.getTeam': 'チームを取得',
+    'landing.getTeamDesc': '自分のチームで始めよう — 新しい才能を常に探しています！',
+    'landing.signIn': 'ログイン',
+    'landing.signUp': '新規登録',
+    'landing.buildTrain': 'チームを構築・トレーニング',
+    'landing.buildTrainDesc': 'トレーニングでチームを発展させよう。財務を管理。最高の選手を選ぼう。',
+    'landing.compete': 'リーグで競争',
+    'landing.competeDesc': 'リーグやトーナメントに参加。ディビジョンを昇格しよう。',
+    'landing.matchExp': 'マッチ体験',
+    'landing.matchExpDesc': 'リアルタイムマッチシミュレーターでライブマッチを観戦。',
+    'landing.community': 'コミュニティ',
+    'landing.communityDesc': '世界中のマネージャーからなる活気あるコミュニティに参加しよう。',
+    'landing.discordTitle': 'アイデアを共有する開発コミュニティに参加しよう！',
+    'landing.chooseLanguage': '言語を選択',
+    'nav.myClub': 'マイクラブ',
+    'nav.world': 'ワールド',
+    'nav.groups': 'グループ',
+    'nav.forums': 'フォーラム',
+    'nav.community': 'コミュニティ',
+    'nav.help': 'ヘルプ',
+    'nav.premium': 'プレミアム',
+    'nav.mailbox': 'メールボックス',
+    'sidebar.overview': '概要',
+    'sidebar.club': 'クラブ',
+    'sidebar.players': '選手',
+    'sidebar.training': 'トレーニング',
+    'sidebar.matches': '試合',
+    'sidebar.league': 'リーグ',
+    'sidebar.stadium': 'スタジアム',
+    'sidebar.finances': '財務',
+    'sidebar.transfers': '移籍',
+    'sidebar.challenges': 'チャレンジ',
+    'sidebar.manager': 'マネージャー',
+    'auth.signInTitle': 'ログイン：',
+    'auth.signInDesc': 'チームへのアクセスにメールを入力してください',
+    'auth.email': 'メール',
+    'auth.password': 'パスワード',
+    'auth.forgotPassword': 'パスワードをお忘れですか？',
+    'auth.signIn': 'ログイン',
+    'auth.signingIn': 'ログイン中...',
+    'auth.noAccount': 'アカウントがない方は',
+    'auth.createAccount': 'アカウントを作成',
+    'auth.createAccountDesc': '登録してサッカーマネージャーのキャリアを始めよう',
+    'auth.haveAccount': 'すでにアカウントをお持ちの方は',
+    'auth.terms': '続行することで、利用規約とプライバシーポリシーに同意したことになります。',
+    'player.skill.finishing': 'シュート力', 'player.skill.pace': 'スピード',
+    'player.skill.passing': 'パス', 'player.skill.defense': 'ディフェンス',
+    'player.skill.dribbling': 'ドリブル', 'player.skill.heading': 'ヘディング',
+    'player.skill.stamina': 'スタミナ', 'player.skill.goalkeeper': 'GK能力',
+    'player.category.technical': 'テクニカル', 'player.category.physical': 'フィジカル',
+    'player.form.excellent': '絶好調', 'player.form.good': '好調',
+    'player.form.average': '普通', 'player.form.poor': '不調',
+    'player.fitness': 'フィットネス', 'player.goals': 'ゴール', 'player.assists': 'アシスト',
+    'player.value': '市場価値', 'player.wage': '週給', 'player.age': '年齢',
+  },
+  ko: {
+    'landing.title': '감독 게임 | 무료 축구 세계에 참여하세요',
+    'landing.getTeam': '팀 받기',
+    'landing.getTeamDesc': '자신의 팀으로 시작하세요 — 항상 새로운 인재를 찾고 있습니다!',
+    'landing.signIn': '로그인',
+    'landing.signUp': '회원가입',
+    'landing.buildTrain': '팀을 구성하고 훈련하세요',
+    'landing.buildTrainDesc': '훈련을 통해 팀을 발전시키세요. 재정을 관리하세요. 최고의 선수를 선발하세요.',
+    'landing.compete': '리그에서 경쟁하세요',
+    'landing.competeDesc': '리그와 토너먼트에 참가하세요. 디비전을 올라가세요.',
+    'landing.matchExp': '경기 경험',
+    'landing.matchExpDesc': '실시간 경기 시뮬레이터로 라이브 경기를 시청하세요.',
+    'landing.community': '커뮤니티',
+    'landing.communityDesc': '전 세계 감독들의 활발한 커뮤니티에 참여하세요.',
+    'landing.discordTitle': '개발 커뮤니티에 참여하여 아이디어를 공유하세요!',
+    'landing.chooseLanguage': '언어 선택',
+    'nav.myClub': '내 클럽',
+    'nav.world': '세계',
+    'nav.groups': '그룹',
+    'nav.forums': '포럼',
+    'nav.community': '커뮤니티',
+    'nav.help': '도움말',
+    'nav.premium': '프리미엄',
+    'nav.mailbox': '우편함',
+    'sidebar.overview': '개요',
+    'sidebar.club': '클럽',
+    'sidebar.players': '선수',
+    'sidebar.training': '훈련',
+    'sidebar.matches': '경기',
+    'sidebar.league': '리그',
+    'sidebar.stadium': '경기장',
+    'sidebar.finances': '재정',
+    'sidebar.transfers': '이적',
+    'sidebar.challenges': '도전',
+    'sidebar.manager': '감독',
+    'auth.signInTitle': '로그인:',
+    'auth.signInDesc': '팀에 접근하려면 이메일을 입력하세요',
+    'auth.email': '이메일',
+    'auth.password': '비밀번호',
+    'auth.forgotPassword': '비밀번호를 잊으셨나요?',
+    'auth.signIn': '로그인',
+    'auth.signingIn': '로그인 중...',
+    'auth.noAccount': '계정이 없으신가요?',
+    'auth.createAccount': '계정 만들기',
+    'auth.createAccountDesc': '축구 감독 커리어를 시작하려면 가입하세요',
+    'auth.haveAccount': '계정이 있으신가요?',
+    'auth.terms': '계속하면 서비스 약관 및 개인정보 처리방침에 동의하는 것입니다.',
+    'player.skill.finishing': '결정력', 'player.skill.pace': '속도',
+    'player.skill.passing': '패스', 'player.skill.defense': '수비',
+    'player.skill.dribbling': '드리블', 'player.skill.heading': '헤딩',
+    'player.skill.stamina': '체력', 'player.skill.goalkeeper': '골키퍼',
+    'player.category.technical': '기술', 'player.category.physical': '신체',
+    'player.form.excellent': '최상', 'player.form.good': '좋음',
+    'player.form.average': '보통', 'player.form.poor': '나쁨',
+    'player.fitness': '피트니스', 'player.goals': '골', 'player.assists': '어시스트',
+    'player.value': '가치', 'player.wage': '주급', 'player.age': '나이',
+  },
 };
 
 const languageNames = {
@@ -550,6 +835,11 @@ const languageNames = {
   pt: 'Português',
   fr: 'Français',
   zh: '中文',
+  ru: 'Русский',
+  nl: 'Nederlands',
+  tr: 'Türkçe',
+  ja: '日本語',
+  ko: '한국어',
 };
 
 interface LanguageProviderProps {
