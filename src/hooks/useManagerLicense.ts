@@ -21,7 +21,7 @@ interface LicenseData {
 }
 
 export const useManagerLicense = () => {
-  const { manager, isCarnetPending, signIn } = useAuth();
+  const { manager, isCarnetPending, isWaitingList, signIn } = useAuth();
   const { toast } = useToast();
   const [data, setData] = useState<LicenseData>({
     tests: [],
@@ -52,10 +52,10 @@ export const useManagerLicense = () => {
   }, [manager?.user_id]);
 
   useEffect(() => {
-    if (isCarnetPending && manager?.user_id) {
+    if ((isCarnetPending || isWaitingList) && manager?.user_id) {
       fetchLicense();
     }
-  }, [isCarnetPending, manager?.user_id, fetchLicense]);
+  }, [isCarnetPending, isWaitingList, manager?.user_id, fetchLicense]);
 
   const completeTest = useCallback(async (testKey: string) => {
     if (!manager?.user_id || !isCarnetPending) return;
