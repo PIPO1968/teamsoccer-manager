@@ -3606,8 +3606,24 @@ app.post('/admin/players', async (req, res) => {
     const p = req.body;
     try {
         const result = await pool.query(
-            'INSERT INTO players (first_name,last_name,position,age,nationality_id,team_id,value,wage,rating,pace,finishing,passing,defense,dribbling,heading,stamina,fitness,form,personality,experience,leadership,loyalty,image_url) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23) RETURNING *',
-            [p.first_name,p.last_name,p.position||'MID',p.age||20,p.nationality_id||1,p.team_id||null,p.value||100000,p.wage||5000,p.rating||65,p.pace||10,p.finishing||10,p.passing||10,p.defense||10,p.dribbling||10,p.heading||10,p.stamina||10,p.fitness||100,p.form||'Average',p.personality||5,p.experience||5,p.leadership||5,p.loyalty||5,p.image_url||null]
+            `INSERT INTO players (
+                first_name,last_name,position,age,nationality_id,team_id,
+                value,wage,rating,pace,finishing,passing,defense,dribbling,heading,stamina,
+                fitness,form,personality,experience,leadership,loyalty,image_url,
+                contract_until,goals,assists,matches_played,minutes_played,owned_since
+            ) VALUES (
+                $1,$2,$3,$4,$5,$6,
+                $7,$8,$9,$10,$11,$12,$13,$14,$15,$16,
+                $17,$18,$19,$20,$21,$22,$23,
+                $24,$25,$26,$27,$28,$29
+            ) RETURNING *`,
+            [
+                p.first_name, p.last_name, p.position||'MID', p.age||20, p.nationality_id||1, p.team_id||null,
+                p.value||100000, p.wage||5000, p.rating||65, p.pace||10, p.finishing||10, p.passing||10,
+                p.defense||10, p.dribbling||10, p.heading||10, p.stamina||10,
+                p.fitness||100, p.form||'Average', p.personality||5, p.experience||5, p.leadership||5, p.loyalty||5, p.image_url||null,
+                p.contract_until||'2027', 0, 0, 0, 0, new Date().toISOString().split('T')[0]
+            ]
         );
         res.json({ success: true, player: result.rows[0] });
     } catch (err) { res.status(500).json({ error: err.message }); }
