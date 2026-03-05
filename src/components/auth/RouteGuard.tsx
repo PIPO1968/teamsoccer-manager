@@ -24,8 +24,8 @@ export const RouteGuard = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (isLoading) return;
 
-    if (!manager || manager.is_admin <= 3) {
-      console.log('RouteGuard: Redirecting to login - insufficient access level');
+    if (!manager) {
+      console.log('RouteGuard: Redirecting to login - not authenticated');
       navigate('/login');
       return;
     }
@@ -42,7 +42,7 @@ export const RouteGuard = ({ children }: { children: React.ReactNode }) => {
     return <div>Loading...</div>;
   }
 
-  if (!manager || manager.is_admin <= 3) {
+  if (!manager) {
     return null;
   }
 

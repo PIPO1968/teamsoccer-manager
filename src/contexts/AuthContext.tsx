@@ -40,31 +40,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (storedManager) {
         try {
           const parsedManager = JSON.parse(storedManager);
-          console.log('Loaded manager from localStorage:', parsedManager);
-
-          // Check if manager has sufficient admin level
-          if (parsedManager.is_admin <= 3) {
-            console.log('Manager does not have sufficient access level (admin > 3 required)');
-            localStorage.removeItem('manager');
-            setIsLoading(false);
-            return;
-          }
 
           // If the stored manager doesn't have status or premium info, fetch it from the database
           if (parsedManager && (!parsedManager.status || parsedManager.is_premium === undefined)) {
-            console.log('Manager data incomplete, fetching from database...');
             const updatedData = await fetchManagerData(parsedManager.user_id);
             if (updatedData) {
               const updatedManager = { ...parsedManager, ...updatedData };
-
-              // Double-check admin level after fetching updated data
-              if (updatedManager.is_admin <= 3) {
-                console.log('Manager does not have sufficient access level after data refresh');
-                localStorage.removeItem('manager');
-                setIsLoading(false);
-                return;
-              }
-
               setManager(updatedManager);
               localStorage.setItem('manager', JSON.stringify(updatedManager));
             } else {
