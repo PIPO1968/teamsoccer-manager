@@ -316,6 +316,24 @@ app.get('/teams/:id/players', async (req, res) => {
     }
 });
 
+// Obtener finanzas de un equipo
+app.get('/teams/:id/finances', async (req, res) => {
+    const teamId = parseInt(req.params.id, 10);
+    if (!teamId) {
+        return res.status(400).json({ error: 'teamId invalido' });
+    }
+    try {
+        const result = await pool.query(
+            'SELECT * FROM team_finances WHERE team_id = $1',
+            [teamId]
+        );
+        const finances = result.rows[0] || null;
+        res.json({ success: true, finances });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Obtener equipo por manager
 app.get('/teams/by-manager/:id', async (req, res) => {
     const managerId = parseInt(req.params.id, 10);

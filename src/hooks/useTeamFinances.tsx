@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 
 export type TeamFinances = {
   id: string;
@@ -35,15 +35,10 @@ export const useTeamFinances = (teamId: string | undefined) => {
       }
 
       try {
-        const { data, error: fetchError } = await supabase
-          .from("team_finances")
-          .select("*")
-          .eq("team_id", parseInt(teamId))
-          .maybeSingle();
-
-        if (fetchError) throw fetchError;
-        
-        setFinances(data);
+        const data = await apiFetch<{ success: boolean; finances: TeamFinances }>(
+          `/teams/${parseInt(teamId)}/finances`
+        );
+        setFinances(data.finances);
         setIsLoading(false);
       } catch (err) {
         console.error("Error fetching finances:", err);
