@@ -113,32 +113,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signIn = (managerData: Manager) => {
-    console.log('Attempting to sign in manager:', managerData);
-
-    // Check if manager has sufficient admin level (> 3)
-    if (managerData.is_admin <= 3) {
-      console.log('Access denied: Manager does not have sufficient admin level');
-      setManager(null);
-      localStorage.removeItem('manager');
-      setHasTeam(false);
-      return;
-    }
     setManager(managerData);
     localStorage.setItem('manager', JSON.stringify(managerData));
     if (managerData?.user_id) {
       checkManagerTeam(managerData.user_id);
     }
-    //   throw new Error('Access denied: Insufficient privileges. The game is under development and access is not enabled at the moment.');
-    // }
-    // 
-    // console.log('Manager has sufficient access level, proceeding with sign in');
-    // setManager(managerData);
-    // localStorage.setItem('manager', JSON.stringify(managerData));
-    // 
-    // // Check if this manager has a team
-    // if (managerData?.user_id) {
-    //   checkManagerTeam(managerData.user_id);
-    // }
   };
 
   const signOut = async () => {
