@@ -1,18 +1,42 @@
 
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+
+const CARNET_ALLOWED_PATHS = [
+  '/carnet',
+  '/dashboard',
+  '/team/',
+  '/matches',
+  '/transfer-market',
+  '/training',
+  '/finances/',
+  '/stadium/',
+  '/forums',
+  '/community',
+];
 
 export const RouteGuard = ({ children }: { children: React.ReactNode }) => {
   const { manager, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    if (!isLoading && (!manager || manager.is_admin <= 3)) {
+    if (isLoading) return;
+
+    if (!manager || manager.is_admin <= 3) {
       console.log('RouteGuard: Redirecting to login - insufficient access level');
       navigate('/login');
+      return;
     }
-  }, [manager, isLoading, navigate]);
+
+    if (manager.status === 'carnet_pending') {
+      const allowed = CARNET_ALLOWED_PATHS.some(p => location.pathname.startsWith(p));
+      if (!allowed) {
+        navigate('/carnet');
+      }
+    }
+  }, [manager, isLoading, navigate, location.pathname]);
 
   if (isLoading) {
     return <div>Loading...</div>;

@@ -8,8 +8,10 @@ import TeamHeader from "./team/TeamHeader";
 import TeamSidebar from "./team/TeamSidebar";
 import ClubDetails from "./team/ClubDetails";
 import TeamGuestbook from "./team/TeamGuestbook";
+import { useCompleteCarnetTest } from '@/hooks/useManagerLicense';
 
 export default function TeamView() {
+  useCompleteCarnetTest('visit_team');
   const { teamId } = useParams<{ teamId: string }>();
   const navigate = useNavigate();
   const { team, isLoading, error } = useTeamData(teamId);

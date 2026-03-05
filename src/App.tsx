@@ -60,6 +60,8 @@ import Help from "./pages/Help";
 import Community from "./pages/Community";
 import AccessDenied from "./pages/AccessDenied";
 import PlayerImageGallery from "./pages/admin/PlayerImageGallery";
+import CarnetDeManager from "./pages/CarnetDeManager";
+import CarnetLayout from "./components/layout/CarnetLayout";
 
 const App = () => {
   const [queryClient] = useState(() => new QueryClient());
@@ -80,6 +82,7 @@ const App = () => {
                 <Route path="/create-team" element={<CreateTeam />} />
 
                 <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
+                <Route path="/carnet" element={<CarnetLayout><CarnetDeManager /></CarnetLayout>} />
                 <Route path="/world" element={<Layout><World /></Layout>} />
                 <Route path="/team/:teamId" element={<Layout><TeamView /></Layout>} />
                 <Route path="/team/:teamId/players" element={<Layout><Players /></Layout>} />

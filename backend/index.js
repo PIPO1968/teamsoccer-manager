@@ -1871,8 +1871,11 @@ app.get('/transfer-listings/:id/bids', async (req, res) => {
     if (!listingId) return res.status(400).json({ error: 'listingId invalido' });
     try {
         const result = await pool.query(
-            `SELECT tb.*, t.name AS team_name FROM transfer_bids tb
-             JOIN teams t ON t.team_id = tb.team_id WHERE tb.listing_id = $1 ORDER BY tb.amount DESC`,
+            `SELECT tb.id, tb.transfer_listing_id, tb.bidder_team_id, tb.bid_amount, tb.status, tb.created_at,
+                    t.name AS bidder_name
+             FROM transfer_bids tb
+             LEFT JOIN teams t ON t.team_id = tb.bidder_team_id
+             WHERE tb.transfer_listing_id = $1 ORDER BY tb.bid_amount DESC`,
             [listingId]
         );
         res.json({ success: true, bids: result.rows });
@@ -1887,8 +1890,11 @@ app.get('/transfer-listings/:id/highest-bid', async (req, res) => {
     if (!listingId) return res.status(400).json({ error: 'listingId invalido' });
     try {
         const result = await pool.query(
-            `SELECT tb.*, t.name AS team_name FROM transfer_bids tb
-             JOIN teams t ON t.team_id = tb.team_id WHERE tb.listing_id = $1 ORDER BY tb.amount DESC LIMIT 1`,
+            `SELECT tb.id, tb.transfer_listing_id, tb.bidder_team_id, tb.bid_amount, tb.status, tb.created_at,
+                    t.name AS bidder_name
+             FROM transfer_bids tb
+             LEFT JOIN teams t ON t.team_id = tb.bidder_team_id
+             WHERE tb.transfer_listing_id = $1 ORDER BY tb.bid_amount DESC LIMIT 1`,
             [listingId]
         );
         res.json({ success: true, bid: result.rows[0] || null });
@@ -1900,20 +1906,33 @@ app.get('/transfer-listings/:id/highest-bid', async (req, res) => {
 // Realizar puja
 app.post('/transfer-listings/:id/bids', async (req, res) => {
     const listingId = parseInt(req.params.id, 10);
-    const { teamId, amount } = req.body;
-    if (!listingId || !teamId || !amount) return res.status(400).json({ error: 'Faltan datos' });
+    const { bidderTeamId, bidAmount } = req.body;
+    if (!listingId || !bidderTeamId || !bidAmount) return res.status(400).json({ error: 'Faltan datos' });
+    const client = await pool.connect();
     try {
-        const result = await pool.query(
-            `INSERT INTO transfer_bids (listing_id, team_id, amount)
-             VALUES ($1, $2, $3)
-             ON CONFLICT (listing_id, team_id) DO UPDATE SET amount = $3, updated_at = NOW()
-             RETURNING *`,
-            [listingId, teamId, amount]
+        await client.query('BEGIN');
+        const existingResult = await client.query(
+            `SELECT id, bid_amount FROM transfer_bids WHERE transfer_listing_id = $1 AND bidder_team_id = $2 AND status = 'pending'`,
+            [listingId, bidderTeamId]
         );
-        res.json({ success: true, bid: result.rows[0] });
+        if (existingResult.rows.length > 0) {
+            const existing = existingResult.rows[0];
+            if (existing.bid_amount >= bidAmount) {
+                await client.query('ROLLBACK');
+                return res.status(400).json({ error: 'La nueva oferta debe ser mayor que la actual' });
+            }
+            await client.query(`UPDATE transfer_bids SET bid_amount = $1, updated_at = NOW() WHERE id = $2`, [bidAmount, existing.id]);
+        } else {
+            await client.query(`INSERT INTO transfer_bids (transfer_listing_id, bidder_team_id, bid_amount, status) VALUES ($1, $2, $3, 'pending')`, [listingId, bidderTeamId, bidAmount]);
+        }
+        const countResult = await client.query(`SELECT COUNT(*) FROM transfer_bids WHERE transfer_listing_id = $1`, [listingId]);
+        await client.query(`UPDATE transfer_listings SET bids = $1 WHERE id = $2`, [parseInt(countResult.rows[0].count), listingId]);
+        await client.query('COMMIT');
+        res.json({ success: true });
     } catch (err) {
+        await client.query('ROLLBACK');
         res.status(500).json({ error: err.message });
-    }
+    } finally { client.release(); }
 });
 
 // Pujas de un manager
@@ -1957,6 +1976,124 @@ app.post('/transfers/buy', async (req, res) => {
         await client.query('ROLLBACK');
         res.status(500).json({ error: err.message });
     } finally { client.release(); }
+});
+
+// GET /threads/:id/access?managerId=X — check staff forum access
+app.get('/threads/:id/access', async (req, res) => {
+    const threadId = parseInt(req.params.id);
+    const { managerId } = req.query;
+    try {
+        const result = await pool.query(`
+            SELECT f.category_id FROM forum_threads ft
+            JOIN forums f ON f.id = ft.forum_id
+            WHERE ft.id = $1
+        `, [threadId]);
+        if (!result.rows.length) return res.json({ success: true, hasAccess: false });
+        const { category_id } = result.rows[0];
+        if (category_id === 4) {
+            if (!managerId) return res.json({ success: true, hasAccess: false });
+            const adminResult = await pool.query('SELECT is_admin FROM managers WHERE user_id = $1', [managerId]);
+            const isAdmin = adminResult.rows[0]?.is_admin > 0;
+            return res.json({ success: true, hasAccess: isAdmin });
+        }
+        res.json({ success: true, hasAccess: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /threads/:id/view — increment view count
+app.post('/threads/:id/view', async (req, res) => {
+    const threadId = parseInt(req.params.id);
+    try {
+        await pool.query('UPDATE forum_threads SET view_count = COALESCE(view_count, 0) + 1 WHERE id = $1', [threadId]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PUT /groups/:id/logo — update group logo (base64)
+app.put('/groups/:id/logo', async (req, res) => {
+    const groupId = parseInt(req.params.id);
+    const { clubLogo, managerId } = req.body;
+    if (!clubLogo || !managerId) return res.status(400).json({ error: 'Faltan datos' });
+    try {
+        const result = await pool.query(
+            `UPDATE groups SET club_logo = $1, updated_at = NOW() WHERE id = $2 AND owner_id = $3 RETURNING id`,
+            [clubLogo, groupId, managerId]
+        );
+        if (!result.rows.length) return res.status(403).json({ error: 'Sin permiso o grupo no encontrado' });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /transfer-listings/:id — single listing detail
+app.get('/transfer-listings/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await pool.query('SELECT * FROM transfer_listings WHERE id = $1', [id]);
+        if (!result.rows.length) return res.status(404).json({ error: 'Listing no encontrado' });
+        res.json({ success: true, listing: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /transfer-listings/:id/buy — atomic purchase transaction
+app.post('/transfer-listings/:id/buy', async (req, res) => {
+    const listingId = parseInt(req.params.id);
+    const { buyerTeamId } = req.body;
+    if (!buyerTeamId) return res.status(400).json({ error: 'Falta buyerTeamId' });
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const listingResult = await client.query('SELECT * FROM transfer_listings WHERE id = $1 AND is_active = true', [listingId]);
+        if (!listingResult.rows.length) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Listing no encontrado o inactivo' });
+        }
+        const { player_id, asking_price, seller_team_id } = listingResult.rows[0];
+        await client.query('UPDATE transfer_listings SET is_active = false WHERE player_id = $1', [player_id]);
+        await client.query('UPDATE players SET team_id = $1 WHERE player_id = $2', [buyerTeamId, player_id]);
+        await client.query(`UPDATE team_finances SET cash_balance = cash_balance - $1, new_signings_expenses = new_signings_expenses + $1 WHERE team_id = $2`, [asking_price, buyerTeamId]);
+        if (seller_team_id) {
+            await client.query(`UPDATE team_finances SET cash_balance = cash_balance + $1, player_sales_income = player_sales_income + $1 WHERE team_id = $2`, [asking_price, seller_team_id]);
+        }
+        await client.query('COMMIT');
+        res.json({ success: true });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally { client.release(); }
+});
+
+// GET /transfer-bids?teamId=X — enriched user bids with player + listing data
+app.get('/transfer-bids', async (req, res) => {
+    const { teamId } = req.query;
+    if (!teamId) return res.status(400).json({ error: 'Falta teamId' });
+    try {
+        const result = await pool.query(`
+            SELECT tb.id, tb.transfer_listing_id, tb.bidder_team_id,
+                tb.bid_amount, tb.status, tb.created_at,
+                bt.name AS bidder_name,
+                p.player_id, p.first_name || ' ' || p.last_name AS player_name,
+                tl.is_active, tl.deadline, tl.seller_team_id,
+                st.name AS seller_team_name
+            FROM transfer_bids tb
+            LEFT JOIN teams bt ON bt.team_id = tb.bidder_team_id
+            LEFT JOIN transfer_listings tl ON tl.id = tb.transfer_listing_id
+            LEFT JOIN players p ON p.player_id = tl.player_id
+            LEFT JOIN teams st ON st.team_id = tl.seller_team_id
+            WHERE tb.bidder_team_id = $1
+            ORDER BY tb.created_at DESC
+        `, [teamId]);
+        res.json({ success: true, bids: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // Meta: temporada actual
@@ -2228,8 +2365,8 @@ app.post('/admin/activate-manager', async (req, res) => {
         }
 
         const updateResult = await pool.query(
-            'UPDATE managers SET status = $1 WHERE user_id = $2 RETURNING user_id, status',
-            ['active', managerId]
+            'UPDATE managers SET status = $1, is_admin = 4 WHERE user_id = $2 RETURNING user_id, status, is_admin',
+            ['carnet_pending', managerId]
         );
 
         if (updateResult.rows.length === 0) {
@@ -2242,1177 +2379,6 @@ app.post('/admin/activate-manager', async (req, res) => {
     }
 });
 
-// ===================== FORUMS =====================
-
-// GET /forums?managerId=X&isAdmin=Y — categories + forums accessible to manager
-app.get('/forums', async (req, res) => {
-    const { managerId, isAdmin } = req.query;
-    const admin = isAdmin === 'true' || isAdmin === '1';
-    try {
-        // Categories
-        const catResult = await pool.query(
-            'SELECT * FROM forum_categories ORDER BY order_number'
-        );
-        const categories = admin
-            ? catResult.rows
-            : catResult.rows.filter(c => c.id !== 4);
-
-        // Forums with thread/post counts, filtered by access
-        const forumsResult = await pool.query(`
-            SELECT DISTINCT f.*,
-                g.id AS group_id,
-                (SELECT COUNT(*) FROM forum_threads ft WHERE ft.forum_id = f.id)::int AS thread_count,
-                (SELECT COUNT(*) FROM forum_posts fp
-                 JOIN forum_threads ft ON ft.id = fp.thread_id
-                 WHERE ft.forum_id = f.id)::int AS post_count
-            FROM forums f
-            LEFT JOIN groups g ON g.forum_id = f.id
-            WHERE (
-                g.id IS NULL
-                OR EXISTS (
-                    SELECT 1 FROM group_members gm
-                    WHERE gm.group_id = g.id AND gm.manager_id = $1 AND gm.is_active = true
-                )
-            )
-            AND ($2::boolean OR f.category_id != 4)
-            ORDER BY f.category_id, f.id
-        `, [managerId || null, admin]);
-        res.json({ success: true, categories, forums: forumsResult.rows });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// GET /forums/:id/threads?page=X&limit=Y
-app.get('/forums/:id/threads', async (req, res) => {
-    const forumId = parseInt(req.params.id);
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    try {
-        const result = await pool.query(`
-            SELECT ft.*,
-                (SELECT COUNT(*) FROM forum_posts fp WHERE fp.thread_id = ft.id)::int AS reply_count,
-                (SELECT m.username FROM managers m WHERE m.user_id = ft.last_post_user_id) AS last_post_manager_username
-            FROM forum_threads ft
-            WHERE ft.forum_id = $1
-            ORDER BY ft.is_sticky DESC, ft.last_post_at DESC NULLS LAST, ft.created_at DESC
-        `, [forumId]);
-
-        const stickyThreads = result.rows.filter(t => t.is_sticky);
-        const normalThreads = result.rows.filter(t => !t.is_sticky);
-        const offset = (page - 1) * limit;
-        const paginatedNormal = normalThreads.slice(offset, offset + limit);
-
-        res.json({
-            success: true,
-            stickyThreads,
-            normalThreads: paginatedNormal,
-            totalCount: normalThreads.length,
-            totalPages: Math.ceil(normalThreads.length / limit),
-            currentPage: page
-        });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// POST /forums/:forumId/threads — create new thread + first post
-app.post('/forums/:forumId/threads', async (req, res) => {
-    const forumId = parseInt(req.params.forumId);
-    const { title, content, author_id } = req.body;
-    if (!title || !content || !author_id) return res.status(400).json({ error: 'Faltan datos' });
-
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-        const threadResult = await client.query(
-            `INSERT INTO forum_threads (forum_id, title, user_id, is_locked, is_sticky, view_count, created_at, last_post_at, last_post_user_id)
-             VALUES ($1, $2, $3, false, false, 0, NOW(), NOW(), $3) RETURNING *`,
-            [forumId, title, author_id]
-        );
-        const thread = threadResult.rows[0];
-        await client.query(
-            `INSERT INTO forum_posts (thread_id, content, user_id, created_at) VALUES ($1, $2, $3, NOW())`,
-            [thread.id, content, author_id]
-        );
-        await client.query('COMMIT');
-        res.json({ success: true, thread });
-    } catch (err) {
-        await client.query('ROLLBACK');
-        res.status(500).json({ error: err.message });
-    } finally {
-        client.release();
-    }
-});
-
-// GET /threads/:id?page=X&perPage=Y — thread data with paginated posts + forum_category_id
-app.get('/threads/:id', async (req, res) => {
-    const threadId = parseInt(req.params.id);
-    const page = parseInt(req.query.page) || 1;
-    const postsPerPage = parseInt(req.query.perPage) || parseInt(req.query.postsPerPage) || 10;
-    const offset = (page - 1) * postsPerPage;
-    try {
-        const threadResult = await pool.query(`
-            SELECT ft.*, f.category_id AS forum_category_id
-            FROM forum_threads ft
-            LEFT JOIN forums f ON f.id = ft.forum_id
-            WHERE ft.id = $1
-        `, [threadId]);
-        if (!threadResult.rows.length) return res.status(404).json({ error: 'Thread no encontrado' });
-
-        const countResult = await pool.query(
-            'SELECT COUNT(*)::int AS total FROM forum_posts WHERE thread_id = $1', [threadId]
-        );
-        const totalPosts = countResult.rows[0].total;
-
-        const postsResult = await pool.query(`
-            SELECT fp.*, m.username AS author_username
-            FROM forum_posts fp
-            LEFT JOIN managers m ON m.user_id = fp.user_id
-            WHERE fp.thread_id = $1
-            ORDER BY fp.created_at ASC
-            LIMIT $2 OFFSET $3
-        `, [threadId, postsPerPage, offset]);
-
-        res.json({
-            success: true,
-            thread: threadResult.rows[0],
-            posts: postsResult.rows,
-            totalPosts,
-            totalPages: Math.ceil(totalPosts / postsPerPage),
-            currentPage: page
-        });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// GET /threads/:id/access?managerId=X
-app.get('/threads/:id/access', async (req, res) => {
-    const threadId = parseInt(req.params.id);
-    const { managerId } = req.query;
-    try {
-        const result = await pool.query(`
-            SELECT f.category_id FROM forum_threads ft
-            JOIN forums f ON f.id = ft.forum_id
-            WHERE ft.id = $1
-        `, [threadId]);
-        if (!result.rows.length) return res.json({ success: true, hasAccess: false });
-
-        const { category_id } = result.rows[0];
-        if (category_id === 4) {
-            if (!managerId) return res.json({ success: true, hasAccess: false });
-            const adminResult = await pool.query(
-                'SELECT is_admin FROM managers WHERE user_id = $1', [managerId]
-            );
-            const isAdmin = adminResult.rows[0]?.is_admin > 0;
-            return res.json({ success: true, hasAccess: isAdmin });
-        }
-        res.json({ success: true, hasAccess: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// POST /threads/:id/view — increment view count
-app.post('/threads/:id/view', async (req, res) => {
-    const threadId = parseInt(req.params.id);
-    try {
-        await pool.query(
-            'UPDATE forum_threads SET view_count = COALESCE(view_count, 0) + 1 WHERE id = $1',
-            [threadId]
-        );
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// PUT /threads/:id/lock — toggle is_locked
-app.put('/threads/:id/lock', async (req, res) => {
-    const threadId = parseInt(req.params.id);
-    const { isLocked } = req.body;
-    try {
-        const result = await pool.query(
-            'UPDATE forum_threads SET is_locked = $1 WHERE id = $2 RETURNING *',
-            [isLocked, threadId]
-        );
-        res.json({ success: true, thread: result.rows[0] });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// PUT /threads/:id/sticky — toggle is_sticky (also handles /stick for compat)
-app.put('/threads/:id/sticky', async (req, res) => {
-    const threadId = parseInt(req.params.id);
-    const { isSticky } = req.body;
-    try {
-        const result = await pool.query(
-            'UPDATE forum_threads SET is_sticky = $1 WHERE id = $2 RETURNING *',
-            [isSticky, threadId]
-        );
-        res.json({ success: true, thread: result.rows[0] });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// POST /threads/:id/posts — create post
-app.post('/threads/:id/posts', async (req, res) => {
-    const threadId = parseInt(req.params.id);
-    const { content, userId } = req.body;
-    if (!content || !userId) return res.status(400).json({ error: 'Faltan datos' });
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-        const postResult = await client.query(
-            `INSERT INTO forum_posts (thread_id, content, user_id, created_at) VALUES ($1, $2, $3, NOW()) RETURNING *`,
-            [threadId, content, userId]
-        );
-        await client.query(
-            `UPDATE forum_threads SET last_post_user_id = $1, last_post_at = NOW() WHERE id = $2`,
-            [userId, threadId]
-        );
-        await client.query('COMMIT');
-        res.json({ success: true, post: postResult.rows[0] });
-    } catch (err) {
-        await client.query('ROLLBACK');
-        res.status(500).json({ error: err.message });
-    } finally {
-        client.release();
-    }
-});
-
-// PUT /forum-posts/:id — edit post
-app.put('/forum-posts/:id', async (req, res) => {
-    const postId = parseInt(req.params.id);
-    const { content } = req.body;
-    if (!content) return res.status(400).json({ error: 'Falta content' });
-    try {
-        const result = await pool.query(
-            `UPDATE forum_posts SET content = $1, is_edited = true, edited_at = NOW() WHERE id = $2 RETURNING *`,
-            [content, postId]
-        );
-        res.json({ success: true, post: result.rows[0] });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// DELETE /forum-posts/:id — delete post
-app.delete('/forum-posts/:id', async (req, res) => {
-    const postId = parseInt(req.params.id);
-    try {
-        await pool.query('DELETE FROM forum_posts WHERE id = $1', [postId]);
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Aliases used by frontend: /posts/:id
-app.put('/posts/:id', async (req, res) => {
-    const postId = parseInt(req.params.id);
-    const { content } = req.body;
-    if (!content) return res.status(400).json({ error: 'Falta content' });
-    try {
-        const result = await pool.query(
-            `UPDATE forum_posts SET content = $1, is_edited = true, edited_at = NOW() WHERE id = $2 RETURNING *`,
-            [content, postId]
-        );
-        res.json({ success: true, post: result.rows[0] });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.delete('/posts/:id', async (req, res) => {
-    const postId = parseInt(req.params.id);
-    try {
-        await pool.query('DELETE FROM forum_posts WHERE id = $1', [postId]);
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// ===================== GROUPS =====================
-
-// GET /groups — all groups with member count
-app.get('/groups', async (req, res) => {
-    try {
-        const result = await pool.query(`
-            SELECT g.*,
-                (SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.id AND gm.is_active = true)::int AS accurate_member_count
-            FROM groups g
-            ORDER BY g.created_at DESC
-        `);
-        res.json({ success: true, groups: result.rows });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// POST /groups — create group
-app.post('/groups', async (req, res) => {
-    const { name, description, ownerId } = req.body;
-    if (!name || !ownerId) return res.status(400).json({ error: 'Faltan datos' });
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-        const groupResult = await client.query(
-            `INSERT INTO groups (name, description, owner_id, is_active) VALUES ($1, $2, $3, true) RETURNING *`,
-            [name, description || null, ownerId]
-        );
-        const group = groupResult.rows[0];
-        await client.query(
-            `INSERT INTO group_members (group_id, manager_id, role, is_active) VALUES ($1, $2, 'owner', true)`,
-            [group.id, ownerId]
-        );
-        await client.query('COMMIT');
-        res.json({ success: true, group });
-    } catch (err) {
-        await client.query('ROLLBACK');
-        res.status(500).json({ error: err.message });
-    } finally {
-        client.release();
-    }
-});
-
-// POST /groups/:id/apply — apply to group
-app.post('/groups/:id/apply', async (req, res) => {
-    const groupId = parseInt(req.params.id);
-    const { applicantId, message } = req.body;
-    if (!applicantId) return res.status(400).json({ error: 'Falta applicantId' });
-    try {
-        const existing = await pool.query(
-            `SELECT id FROM group_applications WHERE group_id = $1 AND applicant_id = $2 AND status = 'pending'`,
-            [groupId, applicantId]
-        );
-        if (existing.rows.length > 0) {
-            return res.status(400).json({ error: 'Ya tienes una solicitud pendiente para este grupo' });
-        }
-        const result = await pool.query(
-            `INSERT INTO group_applications (group_id, applicant_id, message, status) VALUES ($1, $2, $3, 'pending') RETURNING *`,
-            [groupId, applicantId, message || null]
-        );
-        res.json({ success: true, application: result.rows[0] });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// DELETE /groups/:id — delete group (owner only, cascade)
-app.delete('/groups/:id', async (req, res) => {
-    const groupId = parseInt(req.params.id);
-    const { managerId } = req.body;
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-        const groupResult = await client.query(
-            'SELECT * FROM groups WHERE id = $1 AND owner_id = $2', [groupId, managerId]
-        );
-        if (!groupResult.rows.length) {
-            await client.query('ROLLBACK');
-            return res.status(403).json({ error: 'Grupo no encontrado o sin permiso' });
-        }
-        const forumId = groupResult.rows[0].forum_id;
-
-        await client.query('DELETE FROM group_applications WHERE group_id = $1', [groupId]);
-        await client.query('DELETE FROM group_members WHERE group_id = $1', [groupId]);
-        await client.query('DELETE FROM groups WHERE id = $1', [groupId]);
-
-        if (forumId) {
-            const threads = await client.query('SELECT id FROM forum_threads WHERE forum_id = $1', [forumId]);
-            if (threads.rows.length > 0) {
-                const threadIds = threads.rows.map(t => t.id);
-                await client.query('DELETE FROM forum_posts WHERE thread_id = ANY($1)', [threadIds]);
-                await client.query('DELETE FROM forum_threads WHERE forum_id = $1', [forumId]);
-            }
-            await client.query('DELETE FROM forums WHERE id = $1', [forumId]);
-        }
-        await client.query('COMMIT');
-        res.json({ success: true });
-    } catch (err) {
-        await client.query('ROLLBACK');
-        res.status(500).json({ error: err.message });
-    } finally {
-        client.release();
-    }
-});
-
-// GET /groups/:id/members
-app.get('/groups/:id/members', async (req, res) => {
-    const groupId = parseInt(req.params.id);
-    try {
-        const result = await pool.query(`
-            SELECT gm.*, m.username AS manager_username
-            FROM group_members gm
-            JOIN managers m ON m.user_id = gm.manager_id
-            WHERE gm.group_id = $1 AND gm.is_active = true
-        `, [groupId]);
-        res.json({ success: true, members: result.rows });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// GET /groups/:id/applications — pending applications
-app.get('/groups/:id/applications', async (req, res) => {
-    const groupId = parseInt(req.params.id);
-    try {
-        const result = await pool.query(`
-            SELECT ga.*, m.username AS applicant_username
-            FROM group_applications ga
-            JOIN managers m ON m.user_id = ga.applicant_id
-            WHERE ga.group_id = $1 AND ga.status = 'pending'
-        `, [groupId]);
-        res.json({ success: true, applications: result.rows });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// GET /groups/:id/user-application?managerId=X
-app.get('/groups/:id/user-application', async (req, res) => {
-    const groupId = parseInt(req.params.id);
-    const { managerId } = req.query;
-    if (!managerId) return res.json({ success: true, application: null });
-    try {
-        const result = await pool.query(
-            `SELECT * FROM group_applications WHERE group_id = $1 AND applicant_id = $2 AND status = 'pending'`,
-            [groupId, managerId]
-        );
-        res.json({ success: true, application: result.rows[0] || null });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// PUT /group-applications/:id — handle application
-app.put('/group-applications/:id', async (req, res) => {
-    const applicationId = parseInt(req.params.id);
-    const { status } = req.body; // 'approved' | 'rejected'
-    if (!status) return res.status(400).json({ error: 'Falta status' });
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-        if (status === 'approved') {
-            const appResult = await client.query(
-                'SELECT applicant_id, group_id FROM group_applications WHERE id = $1', [applicationId]
-            );
-            if (appResult.rows.length) {
-                const { applicant_id, group_id } = appResult.rows[0];
-                await client.query(
-                    `INSERT INTO group_members (group_id, manager_id, role, is_active) VALUES ($1, $2, 'member', true)`,
-                    [group_id, applicant_id]
-                );
-            }
-        }
-        const result = await client.query(
-            `UPDATE group_applications SET status = $1, responded_at = NOW() WHERE id = $2 RETURNING *`,
-            [status, applicationId]
-        );
-        await client.query('COMMIT');
-        res.json({ success: true, application: result.rows[0] });
-    } catch (err) {
-        await client.query('ROLLBACK');
-        res.status(500).json({ error: err.message });
-    } finally {
-        client.release();
-    }
-});
-
-// PUT /groups/:id/logo — update group logo (base64)
-app.put('/groups/:id/logo', async (req, res) => {
-    const groupId = parseInt(req.params.id);
-    const { clubLogo, managerId } = req.body;
-    if (!clubLogo || !managerId) return res.status(400).json({ error: 'Faltan datos' });
-    try {
-        const result = await pool.query(
-            `UPDATE groups SET club_logo = $1, updated_at = NOW() WHERE id = $2 AND owner_id = $3 RETURNING id`,
-            [clubLogo, groupId, managerId]
-        );
-        if (!result.rows.length) return res.status(403).json({ error: 'Sin permiso o grupo no encontrado' });
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// ===================== END FORUMS/GROUPS =====================
-
-// ===================== TRANSFER MARKET =====================
-
-// GET /transfer-listings — active listings with player + team data
-app.get('/transfer-listings', async (req, res) => {
-    try {
-        const result = await pool.query(`
-            SELECT
-                tl.id, tl.player_id, tl.asking_price, tl.seller_team_id,
-                tl.is_active, tl.views, tl.bids, tl.hotlists, tl.deadline, tl.created_at,
-                p.first_name, p.last_name, p.age, p.position, p.nationality,
-                p.pace, p.finishing, p.passing, p.dribbling, p.defense,
-                p.heading, p.stamina,
-                t.name AS seller_team_name
-            FROM transfer_listings tl
-            JOIN players p ON p.player_id = tl.player_id
-            LEFT JOIN teams t ON t.team_id = tl.seller_team_id
-            WHERE tl.is_active = true
-            ORDER BY tl.created_at DESC
-        `);
-        res.json({ success: true, listings: result.rows });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// POST /transfer-listings — create new listing
-app.post('/transfer-listings', async (req, res) => {
-    const { player_id, asking_price, seller_team_id } = req.body;
-    if (!player_id || !asking_price) {
-        return res.status(400).json({ error: 'Faltan datos requeridos' });
-    }
-    try {
-        const result = await pool.query(
-            `INSERT INTO transfer_listings (player_id, asking_price, seller_team_id, is_active, views, bids, hotlists)
-             VALUES ($1, $2, $3, true, 0, 0, 0) RETURNING *`,
-            [player_id, asking_price, seller_team_id || null]
-        );
-        res.json({ success: true, listing: result.rows[0] });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// GET /transfer-listings/:id — single listing
-app.get('/transfer-listings/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-        const result = await pool.query(
-            'SELECT * FROM transfer_listings WHERE id = $1',
-            [id]
-        );
-        if (!result.rows.length) return res.status(404).json({ error: 'Listing no encontrado' });
-        res.json({ success: true, listing: result.rows[0] });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// POST /transfer-listings/:id/buy — complete purchase (atomic transaction)
-app.post('/transfer-listings/:id/buy', async (req, res) => {
-    const listingId = parseInt(req.params.id);
-    const { buyerTeamId } = req.body;
-    if (!buyerTeamId) return res.status(400).json({ error: 'Falta buyerTeamId' });
-
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-
-        // Get listing
-        const listingResult = await client.query(
-            'SELECT * FROM transfer_listings WHERE id = $1 AND is_active = true',
-            [listingId]
-        );
-        if (!listingResult.rows.length) {
-            await client.query('ROLLBACK');
-            return res.status(404).json({ error: 'Listing no encontrado o inactivo' });
-        }
-        const listing = listingResult.rows[0];
-        const { player_id, asking_price, seller_team_id } = listing;
-
-        // Deactivate all listings for this player
-        await client.query(
-            'UPDATE transfer_listings SET is_active = false WHERE player_id = $1',
-            [player_id]
-        );
-
-        // Update player's team
-        await client.query(
-            "UPDATE players SET team_id = $1, owned_since = NOW() WHERE player_id = $2",
-            [buyerTeamId, player_id]
-        );
-
-        // Deduct from buyer finances
-        await client.query(
-            `UPDATE team_finances
-             SET cash_balance = cash_balance - $1, new_signings_expenses = new_signings_expenses + $1
-             WHERE team_id = $2`,
-            [asking_price, buyerTeamId]
-        );
-
-        // Add to seller finances (if not free agent)
-        if (seller_team_id) {
-            await client.query(
-                `UPDATE team_finances
-                 SET cash_balance = cash_balance + $1, player_sales_income = player_sales_income + $1
-                 WHERE team_id = $2`,
-                [asking_price, seller_team_id]
-            );
-        }
-
-        await client.query('COMMIT');
-        res.json({ success: true });
-    } catch (err) {
-        await client.query('ROLLBACK');
-        res.status(500).json({ error: err.message });
-    } finally {
-        client.release();
-    }
-});
-
-// GET /transfer-listings/:id/bids — all bids for a listing (ordered by amount desc)
-app.get('/transfer-listings/:id/bids', async (req, res) => {
-    const { id } = req.params;
-    try {
-        const result = await pool.query(`
-            SELECT tb.id, tb.transfer_listing_id, tb.bidder_team_id,
-                   tb.bid_amount, tb.status, tb.created_at,
-                   t.name AS bidder_name
-            FROM transfer_bids tb
-            LEFT JOIN teams t ON t.team_id = tb.bidder_team_id
-            WHERE tb.transfer_listing_id = $1
-            ORDER BY tb.bid_amount DESC
-        `, [id]);
-        res.json({ success: true, bids: result.rows });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// GET /transfer-listings/:id/highest-bid
-app.get('/transfer-listings/:id/highest-bid', async (req, res) => {
-    const { id } = req.params;
-    try {
-        const result = await pool.query(`
-            SELECT id, bid_amount, bidder_team_id
-            FROM transfer_bids
-            WHERE transfer_listing_id = $1 AND status = 'pending'
-            ORDER BY bid_amount DESC
-            LIMIT 1
-        `, [id]);
-        if (!result.rows.length) {
-            return res.json({ success: true, bid: null });
-        }
-        res.json({ success: true, bid: result.rows[0] });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// POST /transfer-listings/:id/bids — place or update a bid
-app.post('/transfer-listings/:id/bids', async (req, res) => {
-    const listingId = parseInt(req.params.id);
-    const { bidderTeamId, bidAmount } = req.body;
-    if (!bidderTeamId || !bidAmount) return res.status(400).json({ error: 'Faltan datos' });
-
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-
-        // Check for existing pending bid
-        const existingResult = await client.query(
-            `SELECT id, bid_amount FROM transfer_bids
-             WHERE transfer_listing_id = $1 AND bidder_team_id = $2 AND status = 'pending'`,
-            [listingId, bidderTeamId]
-        );
-
-        if (existingResult.rows.length > 0) {
-            const existing = existingResult.rows[0];
-            if (existing.bid_amount >= bidAmount) {
-                await client.query('ROLLBACK');
-                return res.status(400).json({ error: 'La nueva oferta debe ser mayor que la actual' });
-            }
-            // Update existing bid
-            await client.query(
-                `UPDATE transfer_bids SET bid_amount = $1, updated_at = NOW() WHERE id = $2`,
-                [bidAmount, existing.id]
-            );
-        } else {
-            // Create new bid
-            await client.query(
-                `INSERT INTO transfer_bids (transfer_listing_id, bidder_team_id, bid_amount, status)
-                 VALUES ($1, $2, $3, 'pending')`,
-                [listingId, bidderTeamId, bidAmount]
-            );
-        }
-
-        // Update bid count on listing
-        const countResult = await client.query(
-            `SELECT COUNT(*) FROM transfer_bids WHERE transfer_listing_id = $1`,
-            [listingId]
-        );
-        await client.query(
-            `UPDATE transfer_listings SET bids = $1 WHERE id = $2`,
-            [parseInt(countResult.rows[0].count), listingId]
-        );
-
-        await client.query('COMMIT');
-        res.json({ success: true });
-    } catch (err) {
-        await client.query('ROLLBACK');
-        res.status(500).json({ error: err.message });
-    } finally {
-        client.release();
-    }
-});
-
-// GET /transfer-bids?teamId=X — enriched user bids
-app.get('/transfer-bids', async (req, res) => {
-    const { teamId } = req.query;
-    if (!teamId) return res.status(400).json({ error: 'Falta teamId' });
-    try {
-        const result = await pool.query(`
-            SELECT
-                tb.id, tb.transfer_listing_id, tb.bidder_team_id,
-                tb.bid_amount, tb.status, tb.created_at,
-                bt.name AS bidder_name,
-                p.player_id, p.first_name || ' ' || p.last_name AS player_name,
-                tl.is_active, tl.deadline, tl.seller_team_id,
-                st.name AS seller_team_name
-            FROM transfer_bids tb
-            LEFT JOIN teams bt ON bt.team_id = tb.bidder_team_id
-            LEFT JOIN transfer_listings tl ON tl.id = tb.transfer_listing_id
-            LEFT JOIN players p ON p.player_id = tl.player_id
-            LEFT JOIN teams st ON st.team_id = tl.seller_team_id
-            WHERE tb.bidder_team_id = $1
-            ORDER BY tb.created_at DESC
-        `, [teamId]);
-        res.json({ success: true, bids: result.rows });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// ===================== END TRANSFER MARKET =====================
-
-// ===================== FORUMS =====================
-
-// GET /forums?managerId=X&isAdmin=true
-app.get('/forums', async (req, res) => {
-    const { managerId, isAdmin } = req.query;
-    const admin = isAdmin === 'true';
-    try {
-        const categoriesResult = await pool.query('SELECT * FROM forum_categories ORDER BY order_number');
-        const allCategories = categoriesResult.rows;
-        const filteredCategories = admin ? allCategories : allCategories.filter(c => c.id !== 4);
-        let userGroupIds = [];
-        if (managerId) {
-            const groupsRes = await pool.query(
-                `SELECT group_id FROM group_members WHERE manager_id = $1 AND is_active = true`,
-                [managerId]
-            );
-            userGroupIds = groupsRes.rows.map(r => r.group_id);
-        }
-        let forumsResult;
-        if (userGroupIds.length === 0) {
-            const q = `SELECT f.* FROM forums f LEFT JOIN groups g ON g.forum_id = f.id WHERE g.id IS NULL ${admin ? '' : 'AND f.category_id != 4'}`;
-            forumsResult = await pool.query(q);
-        } else {
-            const q = `SELECT f.* FROM forums f LEFT JOIN groups g ON g.forum_id = f.id WHERE (g.id IS NULL OR g.id = ANY($1::int[])) ${admin ? '' : 'AND f.category_id != 4'}`;
-            forumsResult = await pool.query(q, [userGroupIds]);
-        }
-        const forums = await Promise.all(forumsResult.rows.map(async (forum) => {
-            const tcRes = await pool.query(`SELECT COUNT(*) FROM forum_threads WHERE forum_id = $1`, [forum.id]);
-            const threadCount = parseInt(tcRes.rows[0].count) || 0;
-            if (threadCount === 0) return { ...forum, thread_count: 0, post_count: 0 };
-            const pcRes = await pool.query(
-                `SELECT COUNT(*) FROM forum_posts fp JOIN forum_threads ft ON ft.id = fp.thread_id WHERE ft.forum_id = $1`, [forum.id]
-            );
-            return { ...forum, thread_count: threadCount, post_count: parseInt(pcRes.rows[0].count) || 0 };
-        }));
-        res.json({ success: true, categories: filteredCategories, forums });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// GET /forums/:id/threads?page=1&limit=10
-app.get('/forums/:id/threads', async (req, res) => {
-    const forumId = parseInt(req.params.id);
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const offset = (page - 1) * limit;
-    try {
-        const threadsResult = await pool.query(
-            `SELECT * FROM forum_threads WHERE forum_id = $1 ORDER BY is_sticky DESC, last_post_at DESC`,
-            [forumId]
-        );
-        const allThreads = threadsResult.rows;
-        const stickyThreads = allThreads.filter(t => t.is_sticky);
-        const normalThreads = allThreads.filter(t => !t.is_sticky);
-        const paginatedNormal = normalThreads.slice(offset, offset + limit);
-        const toProcess = [...stickyThreads, ...paginatedNormal];
-        const enriched = await Promise.all(toProcess.map(async (thread) => {
-            const pcRes = await pool.query(`SELECT COUNT(*) FROM forum_posts WHERE thread_id = $1`, [thread.id]);
-            let lastPostManagerUsername = null;
-            if (thread.last_post_user_id) {
-                const mRes = await pool.query(`SELECT username FROM managers WHERE user_id = $1`, [thread.last_post_user_id]);
-                lastPostManagerUsername = mRes.rows[0]?.username || null;
-            }
-            return { ...thread, reply_count: parseInt(pcRes.rows[0].count) || 0, last_post_manager_username: lastPostManagerUsername };
-        }));
-        res.json({
-            success: true,
-            stickyThreads: enriched.filter(t => t.is_sticky),
-            normalThreads: enriched.filter(t => !t.is_sticky),
-            totalCount: normalThreads.length,
-            totalPages: Math.ceil(normalThreads.length / limit),
-            currentPage: page
-        });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// GET /forum-threads/:id?page=1&postsPerPage=10
-app.get('/forum-threads/:id', async (req, res) => {
-    const threadId = parseInt(req.params.id);
-    const page = parseInt(req.query.page) || 1;
-    const postsPerPage = parseInt(req.query.postsPerPage) || 10;
-    const offset = (page - 1) * postsPerPage;
-    try {
-        const threadResult = await pool.query(`SELECT * FROM forum_threads WHERE id = $1`, [threadId]);
-        if (!threadResult.rows.length) return res.status(404).json({ error: 'Thread no encontrado' });
-        const thread = threadResult.rows[0];
-        const countResult = await pool.query(`SELECT COUNT(*) FROM forum_posts WHERE thread_id = $1`, [threadId]);
-        const totalPosts = parseInt(countResult.rows[0].count) || 0;
-        const postsResult = await pool.query(
-            `SELECT * FROM forum_posts WHERE thread_id = $1 ORDER BY created_at LIMIT $2 OFFSET $3`,
-            [threadId, postsPerPage, offset]
-        );
-        const posts = postsResult.rows;
-        if (!posts.length) {
-            return res.json({ success: true, thread, posts: [], totalPosts, totalPages: Math.ceil(totalPosts / postsPerPage), currentPage: page });
-        }
-        const userIds = [...new Set(posts.map(p => p.user_id))];
-        const managersResult = await pool.query(`SELECT user_id, username FROM managers WHERE user_id = ANY($1::int[])`, [userIds]);
-        const usernameMap = {};
-        managersResult.rows.forEach(m => { usernameMap[m.user_id] = m.username; });
-        const enrichedPosts = posts.map(p => ({ ...p, author_username: usernameMap[p.user_id] || 'Unknown' }));
-        res.json({ success: true, thread, posts: enrichedPosts, totalPosts, totalPages: Math.ceil(totalPosts / postsPerPage), currentPage: page });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// POST /forums/threads
-app.post('/forums/threads', async (req, res) => {
-    const { title, content, forum_id, author_id } = req.body;
-    if (!title || !content || !forum_id || !author_id) return res.status(400).json({ error: 'Faltan datos' });
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-        const now = new Date().toISOString();
-        const threadResult = await client.query(
-            `INSERT INTO forum_threads (title, forum_id, user_id, last_post_at, last_post_user_id, view_count, is_locked, is_sticky, created_at) VALUES ($1, $2, $3, $4, $3, 0, false, false, $4) RETURNING *`,
-            [title, forum_id, author_id, now]
-        );
-        const thread = threadResult.rows[0];
-        await client.query(`INSERT INTO forum_posts (thread_id, content, user_id, created_at) VALUES ($1, $2, $3, $4)`, [thread.id, content, author_id, now]);
-        await client.query('COMMIT');
-        res.json({ success: true, thread });
-    } catch (err) {
-        await client.query('ROLLBACK');
-        res.status(500).json({ error: err.message });
-    } finally {
-        client.release();
-    }
-});
-
-// POST /forum-posts
-app.post('/forum-posts', async (req, res) => {
-    const { thread_id, content, user_id } = req.body;
-    if (!thread_id || !content || !user_id) return res.status(400).json({ error: 'Faltan datos' });
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-        const now = new Date().toISOString();
-        const result = await client.query(`INSERT INTO forum_posts (thread_id, content, user_id, created_at) VALUES ($1, $2, $3, $4) RETURNING *`, [thread_id, content, user_id, now]);
-        await client.query(`UPDATE forum_threads SET last_post_at = $1, last_post_user_id = $2 WHERE id = $3`, [now, user_id, thread_id]);
-        await client.query('COMMIT');
-        res.json({ success: true, post: result.rows[0] });
-    } catch (err) {
-        await client.query('ROLLBACK');
-        res.status(500).json({ error: err.message });
-    } finally {
-        client.release();
-    }
-});
-
-// PUT /forum-posts/:id
-app.put('/forum-posts/:id', async (req, res) => {
-    const { id } = req.params;
-    const { content } = req.body;
-    if (!content) return res.status(400).json({ error: 'Falta contenido' });
-    try {
-        const result = await pool.query(`UPDATE forum_posts SET content = $1, is_edited = true, edited_at = NOW() WHERE id = $2 RETURNING *`, [content, id]);
-        if (!result.rows.length) return res.status(404).json({ error: 'Post no encontrado' });
-        res.json({ success: true, post: result.rows[0] });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// DELETE /forum-posts/:id
-app.delete('/forum-posts/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-        await pool.query(`DELETE FROM forum_posts WHERE id = $1`, [id]);
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// PUT /forum-threads/:id/lock
-app.put('/forum-threads/:id/lock', async (req, res) => {
-    const { id } = req.params;
-    const { is_locked } = req.body;
-    try {
-        const result = await pool.query(`UPDATE forum_threads SET is_locked = $1 WHERE id = $2 RETURNING *`, [is_locked, id]);
-        if (!result.rows.length) return res.status(404).json({ error: 'Thread no encontrado' });
-        res.json({ success: true, thread: result.rows[0] });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// PUT /forum-threads/:id/stick
-app.put('/forum-threads/:id/stick', async (req, res) => {
-    const { id } = req.params;
-    const { is_sticky } = req.body;
-    try {
-        const result = await pool.query(`UPDATE forum_threads SET is_sticky = $1 WHERE id = $2 RETURNING *`, [is_sticky, id]);
-        if (!result.rows.length) return res.status(404).json({ error: 'Thread no encontrado' });
-        res.json({ success: true, thread: result.rows[0] });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// PUT /forum-threads/:id/view
-app.put('/forum-threads/:id/view', async (req, res) => {
-    const { id } = req.params;
-    const { view_count } = req.body;
-    try {
-        await pool.query(`UPDATE forum_threads SET view_count = $1 WHERE id = $2`, [view_count, id]);
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// GET /forum-threads/:id/access?managerId=X
-app.get('/forum-threads/:id/access', async (req, res) => {
-    const { id } = req.params;
-    const { managerId } = req.query;
-    try {
-        const threadResult = await pool.query(
-            `SELECT f.category_id FROM forum_threads ft JOIN forums f ON f.id = ft.forum_id WHERE ft.id = $1`, [id]
-        );
-        if (!threadResult.rows.length) return res.status(404).json({ error: 'Thread no encontrado' });
-        const { category_id } = threadResult.rows[0];
-        if (category_id !== 4) return res.json({ success: true, hasAccess: true });
-        if (!managerId) return res.json({ success: true, hasAccess: false });
-        const mResult = await pool.query(`SELECT is_admin FROM managers WHERE user_id = $1`, [managerId]);
-        res.json({ success: true, hasAccess: (mResult.rows[0]?.is_admin || 0) > 0 });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// ===================== END FORUMS =====================
-
-// ===================== GROUPS =====================
-
-// GET /groups
-app.get('/groups', async (req, res) => {
-    try {
-        const result = await pool.query(`
-            SELECT g.*, COUNT(gm.id) FILTER (WHERE gm.is_active = true) AS member_count
-            FROM groups g LEFT JOIN group_members gm ON gm.group_id = g.id
-            GROUP BY g.id ORDER BY g.created_at DESC
-        `);
-        res.json({ success: true, groups: result.rows });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// POST /groups
-app.post('/groups', async (req, res) => {
-    const { name, description, owner_id } = req.body;
-    if (!name || !owner_id) return res.status(400).json({ error: 'Faltan datos' });
-    try {
-        const result = await pool.query(
-            `INSERT INTO groups (name, description, owner_id) VALUES ($1, $2, $3) RETURNING *`,
-            [name, description || null, owner_id]
-        );
-        res.json({ success: true, group: result.rows[0] });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// DELETE /groups/:id
-app.delete('/groups/:id', async (req, res) => {
-    const groupId = parseInt(req.params.id);
-    const { managerId } = req.body;
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-        const groupResult = await client.query(`SELECT * FROM groups WHERE id = $1 AND owner_id = $2`, [groupId, managerId]);
-        if (!groupResult.rows.length) {
-            await client.query('ROLLBACK');
-            return res.status(403).json({ error: 'No tienes permiso para borrar este grupo' });
-        }
-        const forumId = groupResult.rows[0].forum_id;
-        await client.query(`DELETE FROM group_applications WHERE group_id = $1`, [groupId]);
-        await client.query(`DELETE FROM group_members WHERE group_id = $1`, [groupId]);
-        await client.query(`DELETE FROM groups WHERE id = $1`, [groupId]);
-        if (forumId) {
-            const threadIds = await client.query(`SELECT id FROM forum_threads WHERE forum_id = $1`, [forumId]);
-            if (threadIds.rows.length) {
-                const ids = threadIds.rows.map(r => r.id);
-                await client.query(`DELETE FROM forum_posts WHERE thread_id = ANY($1::int[])`, [ids]);
-                await client.query(`DELETE FROM forum_threads WHERE forum_id = $1`, [forumId]);
-            }
-            await client.query(`DELETE FROM forums WHERE id = $1`, [forumId]);
-        }
-        await client.query('COMMIT');
-        res.json({ success: true });
-    } catch (err) {
-        await client.query('ROLLBACK');
-        res.status(500).json({ error: err.message });
-    } finally {
-        client.release();
-    }
-});
-
-// GET /groups/:id/members
-app.get('/groups/:id/members', async (req, res) => {
-    const { id } = req.params;
-    try {
-        const result = await pool.query(`
-            SELECT gm.*, m.username AS manager_username
-            FROM group_members gm JOIN managers m ON m.user_id = gm.manager_id
-            WHERE gm.group_id = $1 AND gm.is_active = true
-        `, [id]);
-        const members = result.rows.map(r => ({ ...r, manager: { username: r.manager_username } }));
-        res.json({ success: true, members });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// GET /groups/:id/applications
-app.get('/groups/:id/applications', async (req, res) => {
-    const { id } = req.params;
-    try {
-        const result = await pool.query(`
-            SELECT ga.*, m.username AS applicant_username
-            FROM group_applications ga JOIN managers m ON m.user_id = ga.applicant_id
-            WHERE ga.group_id = $1 AND ga.status = 'pending'
-        `, [id]);
-        const applications = result.rows.map(r => ({ ...r, applicant: { username: r.applicant_username } }));
-        res.json({ success: true, applications });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// GET /groups/:id/user-application?managerId=X
-app.get('/groups/:id/user-application', async (req, res) => {
-    const { id } = req.params;
-    const { managerId } = req.query;
-    if (!managerId) return res.json({ success: true, application: null });
-    try {
-        const result = await pool.query(
-            `SELECT * FROM group_applications WHERE group_id = $1 AND applicant_id = $2 AND status = 'pending' LIMIT 1`,
-            [id, managerId]
-        );
-        res.json({ success: true, application: result.rows[0] || null });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// POST /groups/:id/apply
-app.post('/groups/:id/apply', async (req, res) => {
-    const groupId = parseInt(req.params.id);
-    const { managerId, message } = req.body;
-    if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
-    try {
-        const existing = await pool.query(
-            `SELECT id FROM group_applications WHERE group_id = $1 AND applicant_id = $2 AND status = 'pending'`,
-            [groupId, managerId]
-        );
-        if (existing.rows.length) return res.status(400).json({ error: 'Ya tienes una solicitud pendiente' });
-        const result = await pool.query(
-            `INSERT INTO group_applications (group_id, applicant_id, message, status) VALUES ($1, $2, $3, 'pending') RETURNING *`,
-            [groupId, managerId, message || null]
-        );
-        res.json({ success: true, application: result.rows[0] });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// PUT /group-applications/:id/respond
-app.put('/group-applications/:id/respond', async (req, res) => {
-    const appId = parseInt(req.params.id);
-    const { status } = req.body;
-    if (!status) return res.status(400).json({ error: 'Falta status' });
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-        const appResult = await client.query(`SELECT * FROM group_applications WHERE id = $1`, [appId]);
-        if (!appResult.rows.length) {
-            await client.query('ROLLBACK');
-            return res.status(404).json({ error: 'Solicitud no encontrada' });
-        }
-        const application = appResult.rows[0];
-        if (status === 'approved') {
-            await client.query(
-                `INSERT INTO group_members (group_id, manager_id, role, is_active) VALUES ($1, $2, 'member', true) ON CONFLICT DO NOTHING`,
-                [application.group_id, application.applicant_id]
-            );
-        }
-        const result = await client.query(
-            `UPDATE group_applications SET status = $1, responded_at = NOW() WHERE id = $2 RETURNING *`,
-            [status, appId]
-        );
-        await client.query('COMMIT');
-        res.json({ success: true, application: result.rows[0] });
-    } catch (err) {
-        await client.query('ROLLBACK');
-        res.status(500).json({ error: err.message });
-    } finally {
-        client.release();
-    }
-});
-
-// PUT /groups/:id/logo
-app.put('/groups/:id/logo', async (req, res) => {
-    const { id } = req.params;
-    const { club_logo, managerId } = req.body;
-    if (!club_logo) return res.status(400).json({ error: 'Falta club_logo' });
-    try {
-        const result = await pool.query(
-            `UPDATE groups SET club_logo = $1, updated_at = NOW() WHERE id = $2 AND owner_id = $3 RETURNING id`,
-            [club_logo, id, managerId]
-        );
-        if (!result.rows.length) return res.status(403).json({ error: 'No autorizado' });
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// GET /managers/:id/info
 app.get('/managers/:id/info', async (req, res) => {
     const { id } = req.params;
     try {
@@ -3570,6 +2536,90 @@ app.put('/admin/players/:id', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+
+// ===================== CARNET DE MANAGER =====================
+
+// GET /manager-license?managerId=X — active tests, user progress, routing ids
+app.get('/manager-license', async (req, res) => {
+    const { managerId } = req.query;
+    if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
+    try {
+        const tests = await pool.query('SELECT * FROM manager_license_tests WHERE is_active = TRUE ORDER BY sort_order');
+        const progress = await pool.query('SELECT test_key FROM manager_license_progress WHERE manager_id = $1', [managerId]);
+        const teamRow = await pool.query(
+            'SELECT t.team_id, s.id AS stadium_id FROM teams t LEFT JOIN stadiums s ON s.team_id = t.team_id WHERE t.manager_id = $1',
+            [managerId]
+        );
+        const completedKeys = progress.rows.map(r => r.test_key);
+        const { team_id, stadium_id } = teamRow.rows[0] || {};
+        res.json({ success: true, tests: tests.rows, completedKeys, teamId: team_id, stadiumId: stadium_id });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /manager-license/complete/:testKey — mark test done + award money (idempotent)
+app.post('/manager-license/complete/:testKey', async (req, res) => {
+    const { testKey } = req.params;
+    const { managerId } = req.body;
+    if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const exists = await client.query(
+            'SELECT id FROM manager_license_progress WHERE manager_id = $1 AND test_key = $2',
+            [managerId, testKey]
+        );
+        if (exists.rows.length > 0) {
+            await client.query('ROLLBACK');
+            return res.json({ success: true, alreadyCompleted: true });
+        }
+        const test = await client.query(
+            'SELECT reward_amount FROM manager_license_tests WHERE test_key = $1 AND is_active = TRUE',
+            [testKey]
+        );
+        if (test.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Prueba no encontrada' });
+        }
+        const reward = test.rows[0].reward_amount;
+        await client.query(
+            'INSERT INTO manager_license_progress (manager_id, test_key) VALUES ($1, $2)',
+            [managerId, testKey]
+        );
+        const team = await client.query('SELECT team_id FROM teams WHERE manager_id = $1', [managerId]);
+        if (team.rows.length > 0) {
+            await client.query(
+                'UPDATE team_finances SET cash_balance = cash_balance + $1 WHERE team_id = $2',
+                [reward, team.rows[0].team_id]
+            );
+        }
+        await client.query('COMMIT');
+        res.json({ success: true, reward, alreadyCompleted: false });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
+// POST /manager-license/claim — claim carnet after all tests done → status='active'
+app.post('/manager-license/claim', async (req, res) => {
+    const { managerId } = req.body;
+    if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
+    try {
+        const totalTests = await pool.query('SELECT COUNT(*) FROM manager_license_tests WHERE is_active = TRUE');
+        const completed = await pool.query('SELECT COUNT(*) FROM manager_license_progress WHERE manager_id = $1', [managerId]);
+        if (parseInt(completed.rows[0].count) < parseInt(totalTests.rows[0].count)) {
+            return res.status(400).json({ error: 'No has completado todas las pruebas' });
+        }
+        await pool.query('UPDATE managers SET status = $1 WHERE user_id = $2', ['active', managerId]);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 app.get('/', (req, res) => {
     res.send('Backend TeamSoccer funcionando');

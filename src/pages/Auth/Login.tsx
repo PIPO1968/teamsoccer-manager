@@ -57,7 +57,11 @@ const Login = () => {
 
       signIn(response.manager);
       setLoading(false);
-      navigate('/dashboard');
+      if (response.manager.status === 'carnet_pending') {
+        navigate('/carnet');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err: any) {
       toast({
         title: t('auth.signInError') || 'Login failed',

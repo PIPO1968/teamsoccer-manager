@@ -3,8 +3,10 @@ import { User } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { CommunityNews } from "./community/CommunityNews";
 import { TopForumPosters } from "./community/TopForumPosters";
+import { useCompleteCarnetTest } from '@/hooks/useManagerLicense';
 
 const Community = () => {
+  useCompleteCarnetTest('visit_community');
   const { t } = useLanguage();
 
   return (

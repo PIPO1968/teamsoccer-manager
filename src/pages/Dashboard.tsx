@@ -7,8 +7,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { GAME_NAME } from "@/config/constants";
 import { useAuth } from "@/contexts/AuthContext";
 import { WaitingListDashboard } from "@/components/dashboard/WaitingListDashboard";
+import { useCompleteCarnetTest } from '@/hooks/useManagerLicense';
 
 const Dashboard = () => {
+  useCompleteCarnetTest('visit_dashboard');
   const { isWaitingList } = useAuth();
   const { 
     team, 

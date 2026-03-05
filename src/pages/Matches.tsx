@@ -8,8 +8,10 @@ import { MatchesSection } from "./components/match/MatchesSection";
 import { MatchesSkeleton } from "./components/match/MatchesSkeleton";
 import { MatchesError } from "./components/match/MatchesError";
 import { MatchFeatureBlocks } from "./components/match/MatchFeatureBlocks";
+import { useCompleteCarnetTest } from '@/hooks/useManagerLicense';
 
 const Matches = () => {
+  useCompleteCarnetTest('visit_matches');
   const { teamId } = useParams<{ teamId: string }>();
   const navigate = useNavigate();
   

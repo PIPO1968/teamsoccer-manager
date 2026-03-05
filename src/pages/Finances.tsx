@@ -4,8 +4,10 @@ import { useTeamFinances } from "@/hooks/useTeamFinances";
 import { useTeamData } from "@/hooks/useTeamData";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowUpRight, ArrowDownRight, DollarSign } from "lucide-react";
+import { useCompleteCarnetTest } from '@/hooks/useManagerLicense';
 
 export default function Finances() {
+  useCompleteCarnetTest('visit_finances');
   const { teamId } = useParams<{ teamId: string }>();
   const { finances, isLoading: financesLoading } = useTeamFinances(teamId);
   const { team, isLoading: teamLoading } = useTeamData(teamId);

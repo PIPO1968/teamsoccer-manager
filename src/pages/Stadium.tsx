@@ -10,8 +10,10 @@ import { StadiumHeader } from "./Stadium/components/StadiumHeader";
 import { StadiumVisualization } from "./Stadium/components/StadiumVisualization";
 import { StadiumInformation } from "./Stadium/components/StadiumInformation";
 import { StadiumLoading } from "./Stadium/components/StadiumLoading";
+import { useCompleteCarnetTest } from '@/hooks/useManagerLicense';
 
 const Stadium = () => {
+  useCompleteCarnetTest('visit_stadium');
   const { stadiumId } = useParams<{ stadiumId: string }>();
   const { stadium, isLoading, error } = useStadiumData(stadiumId);
   const { matches, isLoading: matchesLoading } = useStadiumMatches(stadiumId);

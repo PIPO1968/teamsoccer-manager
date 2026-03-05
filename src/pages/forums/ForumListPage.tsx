@@ -6,8 +6,10 @@ import { Link } from "react-router-dom";
 import { MessageCircle, Loader2, Lock, ShieldAlert } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from '@/contexts/AuthContext';
+import { useCompleteCarnetTest } from '@/hooks/useManagerLicense';
 
 export default function ForumListPage() {
+  useCompleteCarnetTest('visit_forums');
   const { data, isLoading, error } = useForums();
   const { manager } = useAuth();
   const isAdmin = manager?.is_admin > 0;

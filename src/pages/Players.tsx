@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTeamData } from "@/hooks/useTeamData";
+import { useCompleteCarnetTest } from '@/hooks/useManagerLicense';
 
 const sortOptions = [
   { value: "firstName", label: "First Name" },
@@ -23,6 +24,7 @@ const sortOptions = [
 ];
 
 const Players = () => {
+  useCompleteCarnetTest('visit_players');
   const { teamId } = useParams<{ teamId: string }>();
   const [sortBy, setSortBy] = useState<string>("firstName");
   const { players, isLoading, error } = useTeamPlayers(teamId);

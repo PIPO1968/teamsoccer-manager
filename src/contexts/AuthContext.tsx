@@ -21,6 +21,7 @@ interface AuthContextType {
   isLoading: boolean;
   isPremium: boolean;
   isWaitingList: boolean;
+  isCarnetPending: boolean;
   hasTeam: boolean;
 }
 
@@ -162,8 +163,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // A manager is on waiting list if they have waiting_list status
   const isWaitingList = manager?.status === 'waiting_list';
+  const isCarnetPending = manager?.status === 'carnet_pending';
 
-  console.log('Auth context - manager status:', manager?.status, 'isWaitingList:', isWaitingList, 'isPremium:', isPremium);
+  console.log('Auth context - manager status:', manager?.status, 'isWaitingList:', isWaitingList, 'isCarnetPending:', isCarnetPending, 'isPremium:', isPremium);
 
   return (
     <AuthContext.Provider value={{
@@ -173,6 +175,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isLoading,
       isPremium,
       isWaitingList,
+      isCarnetPending,
       hasTeam
     }}>
       {children}

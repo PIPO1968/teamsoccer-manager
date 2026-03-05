@@ -8,8 +8,10 @@ import { useTeamFinances } from "@/hooks/useTeamFinances";
 import { MarketListingsTab } from "./components/MarketListingsTab";
 import { Button } from "@/components/ui/button";
 import { Inbox } from "lucide-react";
+import { useCompleteCarnetTest } from '@/hooks/useManagerLicense';
 
 const TransferMarketPage = () => {
+  useCompleteCarnetTest('visit_transfer_market');
   const [searchTerm, setSearchTerm] = useState("");
   const [positionFilter, setPositionFilter] = useState<string>("all");
   const { team } = useUserTeam();
