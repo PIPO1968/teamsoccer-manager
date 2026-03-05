@@ -53,14 +53,18 @@ const initDb = async () => {
                 reward_amount INTEGER NOT NULL DEFAULT 50000,
                 sort_order INTEGER NOT NULL DEFAULT 0,
                 is_active BOOLEAN DEFAULT TRUE
-            );
+            )
+        `);
+        await client.query(`
             CREATE TABLE IF NOT EXISTS manager_license_progress (
                 id SERIAL PRIMARY KEY,
                 manager_id INTEGER NOT NULL REFERENCES managers(user_id) ON DELETE CASCADE,
                 test_key TEXT NOT NULL,
                 completed_at TIMESTAMPTZ DEFAULT NOW(),
                 UNIQUE (manager_id, test_key)
-            );
+            )
+        `);
+        await client.query(`
             INSERT INTO manager_license_tests (test_key, title, description, reward_amount, sort_order) VALUES
                 ('visit_dashboard',       'Explora tu Panel',        'Visita la página Resumen de tu club',          50000, 1),
                 ('visit_team',            'Conoce tu Equipo',        'Visita la página de tu equipo',                50000, 2),
@@ -72,7 +76,7 @@ const initDb = async () => {
                 ('visit_training',        'Entrenamiento',           'Visita la sección de Entrenamiento',           50000, 8),
                 ('visit_forums',          'Los Foros',               'Visita los Foros de la comunidad',             50000, 9),
                 ('visit_community',       'La Comunidad',            'Visita la página de Comunidad',                50000, 10)
-            ON CONFLICT (test_key) DO NOTHING;
+            ON CONFLICT (test_key) DO NOTHING
         `);
         console.log('✅ Tablas Carnet de Manager verificadas/creadas');
     } catch (err) {
