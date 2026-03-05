@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 
@@ -22,40 +22,18 @@ export const useTeamFollowers = (teamId: string | undefined) => {
 
     try {
       setIsLoading(true);
-      
-      // Get followers list
-      const { data: followersData, error: followersError } = await supabase
-        .rpc('get_team_followers', { p_team_id: parseInt(teamId) });
-        
-      if (followersError) {
-        console.error("Error fetching followers:", followersError);
-        return;
-      }
-      
-      // Get follower count
-      const { data: countData, error: countError } = await supabase
-        .rpc('get_team_follower_count', { p_team_id: parseInt(teamId) });
-        
-      if (countError) {
-        console.error("Error fetching follower count:", countError);
-        return;
-      }
-      
-      // Check if current manager is following
+      const data = await apiFetch<{ success: boolean; followers: TeamFollower[]; count: number }>(
+        `/teams/${parseInt(teamId)}/followers`
+      );
+      setFollowers(data.followers || []);
+      setFollowerCount(data.count || 0);
+
       if (manager?.user_id) {
-        const { data: isFollowingData, error: isFollowingError } = await supabase
-          .rpc('is_following_team', { 
-            p_team_id: parseInt(teamId), 
-            p_follower_id: manager.user_id 
-          });
-          
-        if (!isFollowingError) {
-          setIsFollowing(!!isFollowingData);
-        }
+        const statusData = await apiFetch<{ success: boolean; isFollowing: boolean }>(
+          `/teams/${parseInt(teamId)}/follow-status?managerId=${manager.user_id}`
+        );
+        setIsFollowing(statusData.isFollowing);
       }
-      
-      setFollowers(followersData || []);
-      setFollowerCount(countData || 0);
     } catch (error) {
       console.error("Error in useTeamFollowers:", error);
     } finally {
@@ -72,29 +50,25 @@ export const useTeamFollowers = (teamId: string | undefined) => {
       });
       return;
     }
-    
+
     try {
-      const { data, error } = await supabase
-        .rpc('toggle_team_follow', { 
-          p_team_id: parseInt(teamId), 
-          p_follower_id: manager.user_id 
-        });
-        
-      if (error) {
-        throw error;
+      const data = await apiFetch<{ success: boolean; isFollowing: boolean }>(
+        `/teams/${parseInt(teamId)}/toggle-follow`, {
+        method: 'POST',
+        body: JSON.stringify({ managerId: manager.user_id }),
       }
-      
-      setIsFollowing(!!data);
-      setFollowerCount(prev => data ? prev + 1 : Math.max(prev - 1, 0));
-      
+      );
+
+      setIsFollowing(data.isFollowing);
+      setFollowerCount(prev => data.isFollowing ? prev + 1 : Math.max(prev - 1, 0));
+
       toast({
-        title: data ? "Team followed" : "Team unfollowed",
-        description: data 
-          ? "You are now following this team" 
+        title: data.isFollowing ? "Team followed" : "Team unfollowed",
+        description: data.isFollowing
+          ? "You are now following this team"
           : "You have unfollowed this team",
       });
-      
-      // Refresh followers list
+
       fetchFollowers();
     } catch (error) {
       console.error("Error toggling follow status:", error);
@@ -119,3 +93,4 @@ export const useTeamFollowers = (teamId: string | undefined) => {
     refetch: fetchFollowers
   };
 };
+

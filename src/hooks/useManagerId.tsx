@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 export const useManagerId = () => {
@@ -15,7 +14,7 @@ export const useManagerId = () => {
         setIsLoading(false);
         return;
       }
-      
+
       // Otherwise try to fetch from localStorage as a fallback
       const storedManager = localStorage.getItem('manager');
       if (storedManager) {

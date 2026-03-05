@@ -1,6 +1,6 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 
 interface ManagerEvent {
   event_type: string;
@@ -13,18 +13,10 @@ export const useManagerEvents = (managerId: string | undefined) => {
     queryKey: ['manager-events', managerId],
     queryFn: async (): Promise<ManagerEvent[]> => {
       if (!managerId) return [];
-      
-      const { data, error } = await supabase
-        .rpc('get_manager_recent_events', { 
-          p_manager_id: parseInt(managerId) 
-        });
-
-      if (error) {
-        console.error('Error fetching manager events:', error);
-        throw error;
-      }
-
-      return data || [];
+      const data = await apiFetch<{ success: boolean; events: ManagerEvent[] }>(
+        `/managers/${parseInt(managerId)}/events`
+      );
+      return data.events || [];
     },
     enabled: !!managerId,
   });

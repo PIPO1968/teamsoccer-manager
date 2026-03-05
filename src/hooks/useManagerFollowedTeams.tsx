@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 import { toast } from "@/hooks/use-toast";
 
 export type FollowedTeam = {
@@ -17,25 +17,10 @@ export const useManagerFollowedTeams = (managerId: string | undefined) => {
 
     try {
       setIsLoading(true);
-      
-      // Get teams that the manager follows
-      const { data, error } = await supabase
-        .from('team_followers')
-        .select('team_id, teams:team_id(name)')
-        .eq('follower_id', parseInt(managerId));
-        
-      if (error) {
-        console.error("Error fetching followed teams:", error);
-        return;
-      }
-      
-      // Format the data
-      const formattedTeams: FollowedTeam[] = data.map(item => ({
-        team_id: item.team_id,
-        team_name: item.teams?.name || 'Unknown Team'
-      }));
-      
-      setFollowedTeams(formattedTeams);
+      const data = await apiFetch<{ success: boolean; followedTeams: FollowedTeam[] }>(
+        `/managers/${parseInt(managerId)}/followed-teams`
+      );
+      setFollowedTeams(data.followedTeams || []);
     } catch (error) {
       console.error("Error in useManagerFollowedTeams:", error);
       toast({
