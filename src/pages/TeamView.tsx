@@ -9,10 +9,12 @@ import TeamSidebar from "./team/TeamSidebar";
 import ClubDetails from "./team/ClubDetails";
 import TeamGuestbook from "./team/TeamGuestbook";
 import { useCompleteCarnetTest } from '@/hooks/useManagerLicense';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function TeamView() {
-  useCompleteCarnetTest('visit_team');
   const { teamId } = useParams<{ teamId: string }>();
+  const { manager } = useAuth();
+  useCompleteCarnetTest('visit_team', !!teamId && teamId === String(manager?.team_id));
   const navigate = useNavigate();
   const { team, isLoading, error } = useTeamData(teamId);
 

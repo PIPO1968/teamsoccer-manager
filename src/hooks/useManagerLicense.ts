@@ -21,7 +21,7 @@ interface LicenseData {
 }
 
 export const useManagerLicense = () => {
-  const { manager, isCarnetPending } = useAuth();
+  const { manager, isCarnetPending, signIn } = useAuth();
   const { toast } = useToast();
   const [data, setData] = useState<LicenseData>({
     tests: [],
@@ -86,6 +86,8 @@ export const useManagerLicense = () => {
         method: 'POST',
         body: JSON.stringify({ managerId: manager.user_id }),
       });
+      const updated = await apiFetch<{ success: boolean; manager: any }>(`/managers/${manager.user_id}`);
+      if (updated?.manager) signIn(updated.manager);
       return true;
     } catch (err: any) {
       toast({
@@ -95,7 +97,7 @@ export const useManagerLicense = () => {
       });
       return false;
     }
-  }, [manager?.user_id, toast]);
+  }, [manager?.user_id, signIn, toast]);
 
   const isAllCompleted =
     data.tests.length > 0 && data.completedKeys.length >= data.tests.length;
@@ -115,12 +117,12 @@ export const useManagerLicense = () => {
  * No-ops if the manager is not in carnet_pending status.
  * Usage: call at the top level of any target page component.
  */
-export const useCompleteCarnetTest = (testKey: string) => {
+export const useCompleteCarnetTest = (testKey: string, enabled = true) => {
   const { manager, isCarnetPending } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!isCarnetPending || !manager?.user_id) return;
+    if (!isCarnetPending || !manager?.user_id || !enabled) return;
 
     apiFetch<{ success: boolean; reward?: number; alreadyCompleted?: boolean }>(
       `/manager-license/complete/${testKey}`,
@@ -136,6 +138,6 @@ export const useCompleteCarnetTest = (testKey: string) => {
       console.error('Error completing carnet test:', err);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run on mount
+  }, [enabled]); // Re-run when enabled changes (e.g., own team ID resolved)
 };
 

@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTeamData } from "@/hooks/useTeamData";
 import { useCompleteCarnetTest } from '@/hooks/useManagerLicense';
+import { useAuth } from '@/contexts/AuthContext';
 
 const sortOptions = [
   { value: "firstName", label: "First Name" },
@@ -24,8 +25,9 @@ const sortOptions = [
 ];
 
 const Players = () => {
-  useCompleteCarnetTest('visit_players');
   const { teamId } = useParams<{ teamId: string }>();
+  const { manager } = useAuth();
+  useCompleteCarnetTest('visit_players', !!teamId && teamId === String(manager?.team_id));
   const [sortBy, setSortBy] = useState<string>("firstName");
   const { players, isLoading, error } = useTeamPlayers(teamId);
   const { team, isLoading: isTeamLoading } = useTeamData(teamId);
@@ -81,7 +83,7 @@ const Players = () => {
             </Select>
           </div>
         </div>
-        
+
         {isLoading ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {[1, 2, 3, 4].map((i) => (

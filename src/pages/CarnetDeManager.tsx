@@ -55,13 +55,15 @@ const TestCard = ({ test, isCompleted, teamId, stadiumId }: TestCardProps) => {
                 {isCompleted ? '✓ Recompensa recibida:' : 'Recompensa:'}{' '}
                 <span className="font-bold">€{test.reward_amount.toLocaleString('es-ES')}</span>
               </span>
-              {!isCompleted && (
-                <Link to={route}>
-                  <Button size="sm" variant="outline" className="gap-1 text-xs border-yellow-400 text-yellow-700 hover:bg-yellow-50">
-                    Ir a la sección <ExternalLink className="h-3 w-3" />
-                  </Button>
-                </Link>
-              )}
+              <Link to={route}>
+                <Button
+                  size="sm"
+                  variant={isCompleted ? 'ghost' : 'outline'}
+                  className={`gap-1 text-xs ${isCompleted ? 'text-green-700 hover:bg-green-50' : 'border-yellow-400 text-yellow-700 hover:bg-yellow-50'}`}
+                >
+                  {isCompleted ? '✓ Visitado' : 'Ir a la sección'} <ExternalLink className="h-3 w-3" />
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
@@ -92,15 +94,7 @@ const CarnetDeManager = () => {
   const handleClaim = async () => {
     const ok = await claimCarnet();
     if (ok) {
-      // Refresh manager data in localStorage to reflect 'active' status
-      const stored = localStorage.getItem('manager');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        localStorage.setItem('manager', JSON.stringify({ ...parsed, status: 'active' }));
-      }
       navigate('/dashboard');
-      // Force page reload so AuthContext re-reads localStorage
-      window.location.href = '/dashboard';
     }
   };
 
