@@ -108,6 +108,7 @@ app.post('/register', async (req, res) => {
         return res.status(400).json({ error: 'Faltan datos' });
     }
     // Obtener el ID del país: acepta tanto nombre (string) como region_id (número)
+    // Si el país no existe en leagues_regions, se guarda como null
     let countryId = null;
     try {
         const numericCountry = Number(country);
@@ -119,9 +120,8 @@ app.post('/register', async (req, res) => {
             const countryRes = await pool.query('SELECT region_id FROM leagues_regions WHERE name = $1', [country]);
             if (countryRes.rows.length > 0) {
                 countryId = countryRes.rows[0].region_id;
-            } else {
-                return res.status(400).json({ error: 'País no válido' });
             }
+            // Si no se encuentra, countryId queda como null (válido)
         }
     } catch (err) {
         return res.status(500).json({ error: 'Error buscando el país: ' + err.message });

@@ -12,7 +12,7 @@ interface RegisterFormProps {
   useCountryIds?: boolean;
 }
 
-export function RegisterForm({ onSuccess, countries, useCountryIds = true }: RegisterFormProps) {
+export function RegisterForm({ onSuccess, countries, useCountryIds = false }: RegisterFormProps) {
   const { formData, setFormData, errors, loading, handleSubmit } = useRegisterForm(onSuccess);
   const { toast } = useToast();
 

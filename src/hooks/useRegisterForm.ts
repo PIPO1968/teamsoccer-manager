@@ -30,7 +30,7 @@ export const useRegisterForm = (onSuccess: () => void) => {
     email: "",
     password: "",
     confirmPassword: "",
-    country: 2, // Default to England (region_id = 2)
+    country: "", // Default empty, user must select
     teamName: "",
     agreedToTerms: false,
   });
