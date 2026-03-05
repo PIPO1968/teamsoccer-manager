@@ -29,12 +29,17 @@ app.use(express.json({ limit: '5mb' }));
 
 console.log('Intentando conectar a Postgres en:', process.env.PGHOST, process.env.PGPORT, process.env.PGDATABASE);
 
+// PGHOST puede incluir el puerto (ej: "host:15941"), lo separamos manualmente
+const pgHostRaw = process.env.PGHOST || 'localhost';
+const [pgHostname, pgHostPort] = pgHostRaw.includes(':') ? pgHostRaw.split(':') : [pgHostRaw, null];
+const pgPort = pgHostPort ? parseInt(pgHostPort) : (parseInt(process.env.PGPORT) || 5432);
+
 const pool = new Pool({
-    host: process.env.PGHOST,
+    host: pgHostname,
     user: process.env.PGUSER,
     password: process.env.PGPASSWORD,
     database: process.env.PGDATABASE,
-    port: process.env.PGPORT || 5432,
+    port: pgPort,
 });
 
 pool.connect()
