@@ -2,9 +2,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useManagerLicense, LicenseTest } from '@/hooks/useManagerLicense';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, Clock, ExternalLink, Award } from 'lucide-react';
+import { CheckCircle2, Clock, ExternalLink, Award, Lock } from 'lucide-react';
 
 const getTestRoute = (
   testKey: string,
@@ -106,6 +106,8 @@ const CarnetDeManager = () => {
     );
   }
 
+  const isPendingApproval = manager?.status === 'waiting_list';
+
   return (
     <div className="max-w-3xl mx-auto py-6 px-4">
       {/* Header */}
@@ -124,24 +126,41 @@ const CarnetDeManager = () => {
         </p>
       </div>
 
-      {/* Progress */}
-      <Card className="mb-6">
-        <CardContent className="p-5">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">Progreso</span>
-            <span className="text-sm font-bold text-gray-900">{completed} / {total} pruebas</span>
-          </div>
-          <Progress value={progressPct} className="h-3" />
-          {isAllCompleted && (
-            <p className="text-sm text-green-700 font-medium mt-2 text-center">
-              ¡Has completado todas las pruebas! Ya puedes obtener tu Carnet.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+      {/* Pending approval banner */}
+      {isPendingApproval && (
+        <Card className="mb-6 border-2 border-orange-300 bg-orange-50">
+          <CardContent className="p-5 flex items-start gap-3">
+            <Lock className="h-6 w-6 text-orange-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-orange-800">Cuenta pendiente de confirmación</p>
+              <p className="text-sm text-orange-700 mt-1">
+                Tu registro está en lista de espera. Una vez que el administrador confirme tu acceso, podrás realizar las pruebas del Carnet de Manager.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Test cards */}
-      <div className="grid gap-4 mb-8">
+      {/* Progress */}
+      {!isPendingApproval && (
+        <Card className="mb-6">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">Progreso</span>
+              <span className="text-sm font-bold text-gray-900">{completed} / {total} pruebas</span>
+            </div>
+            <Progress value={progressPct} className="h-3" />
+            {isAllCompleted && (
+              <p className="text-sm text-green-700 font-medium mt-2 text-center">
+                ¡Has completado todas las pruebas! Ya puedes obtener tu Carnet.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Test cards — locked if pending approval */}
+      <div className={`grid gap-4 mb-8 ${isPendingApproval ? 'opacity-40 pointer-events-none select-none' : ''}`}>
         {tests.map(test => (
           <TestCard
             key={test.test_key}
@@ -154,22 +173,24 @@ const CarnetDeManager = () => {
       </div>
 
       {/* Claim button */}
-      <div className="text-center">
-        <Button
-          size="lg"
-          disabled={!isAllCompleted}
-          onClick={handleClaim}
-          className="px-10 bg-yellow-500 hover:bg-yellow-600 text-white font-bold disabled:opacity-40"
-        >
-          <Award className="h-5 w-5 mr-2" />
-          Obtener Carnet de Manager
-        </Button>
-        {!isAllCompleted && (
-          <p className="text-xs text-gray-500 mt-2">
-            Completa las {total - completed} pruebas restantes para desbloquear el botón.
-          </p>
-        )}
-      </div>
+      {!isPendingApproval && (
+        <div className="text-center">
+          <Button
+            size="lg"
+            disabled={!isAllCompleted}
+            onClick={handleClaim}
+            className="px-10 bg-yellow-500 hover:bg-yellow-600 text-white font-bold disabled:opacity-40"
+          >
+            <Award className="h-5 w-5 mr-2" />
+            Obtener Carnet de Manager
+          </Button>
+          {!isAllCompleted && (
+            <p className="text-xs text-gray-500 mt-2">
+              Completa las {total - completed} pruebas restantes para desbloquear el botón.
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 };

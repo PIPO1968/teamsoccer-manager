@@ -16,11 +16,7 @@ interface LayoutProps {
 const Layout = ({ children }: LayoutProps) => {
   const { isWaitingList, isCarnetPending } = useAuth();
 
-  if (isWaitingList) {
-    return <WaitingListLayout>{children}</WaitingListLayout>;
-  }
-
-  if (isCarnetPending) {
+  if (isWaitingList || isCarnetPending) {
     return <CarnetLayout>{children}</CarnetLayout>;
   }
 
