@@ -272,6 +272,118 @@ app.get('/managers/:id', async (req, res) => {
     }
 });
 
+// Perfil completo de un manager (con país y equipo)
+app.get('/managers/:id/profile', async (req, res) => {
+    const managerId = parseInt(req.params.id, 10);
+    if (!managerId) return res.status(400).json({ error: 'managerId invalido' });
+    try {
+        const mResult = await pool.query(
+            `SELECT m.user_id, m.username, m.email, m.country_id, m.is_admin,
+                    m.is_premium, m.premium_expires_at, m.status, m.created_at,
+                    r.name AS country_name
+             FROM managers m
+             LEFT JOIN leagues_regions r ON r.region_id = m.country_id
+             WHERE m.user_id = $1`,
+            [managerId]
+        );
+        if (!mResult.rows[0]) return res.status(404).json({ error: 'Manager no encontrado' });
+        const tResult = await pool.query(
+            'SELECT name, team_id, created_at, is_bot, club_logo FROM teams WHERE manager_id = $1',
+            [managerId]
+        );
+        res.json({ success: true, manager: { ...mResult.rows[0], teams: tResult.rows } });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Estado online de un manager
+app.get('/managers/:id/status', async (req, res) => {
+    const managerId = parseInt(req.params.id, 10);
+    if (!managerId) return res.status(400).json({ error: 'managerId invalido' });
+    try {
+        const result = await pool.query(
+            'SELECT is_online, last_seen FROM managers WHERE user_id = $1',
+            [managerId]
+        );
+        if (!result.rows[0]) return res.status(404).json({ error: 'Manager no encontrado' });
+        res.json({ success: true, ...result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Obtener mensajes de un manager
+app.get('/messages', async (req, res) => {
+    const managerId = parseInt(req.query.managerId as string, 10);
+    if (!managerId) return res.status(400).json({ error: 'managerId requerido' });
+    try {
+        const result = await pool.query(
+            `SELECT m.id, m.sender_id, m.recipient_id, m.subject, m.content, m.created_at, m.read,
+                    s.username AS sender_name, r.username AS recipient_name
+             FROM messages m
+             JOIN managers s ON s.user_id = m.sender_id
+             JOIN managers r ON r.user_id = m.recipient_id
+             WHERE m.recipient_id = $1 OR m.sender_id = $1
+             ORDER BY m.created_at DESC`,
+            [managerId]
+        );
+        const unread = result.rows.filter(m => !m.read && m.recipient_id === managerId).length;
+        res.json({ success: true, messages: result.rows, unreadCount: unread });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Enviar mensaje
+app.post('/messages', async (req, res) => {
+    const { senderId, recipientId, subject, content } = req.body;
+    if (!senderId || !recipientId || !subject || !content) {
+        return res.status(400).json({ error: 'Faltan datos' });
+    }
+    try {
+        await pool.query(
+            'INSERT INTO messages (sender_id, recipient_id, subject, content) VALUES ($1, $2, $3, $4)',
+            [senderId, recipientId, subject, content]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Marcar mensaje como leído
+app.put('/messages/:id/read', async (req, res) => {
+    const messageId = parseInt(req.params.id, 10);
+    const { managerId } = req.body;
+    if (!messageId || !managerId) return res.status(400).json({ error: 'Faltan datos' });
+    try {
+        await pool.query(
+            'UPDATE messages SET read = true WHERE id = $1 AND recipient_id = $2',
+            [messageId, managerId]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Eliminar mensaje
+app.delete('/messages/:id', async (req, res) => {
+    const messageId = parseInt(req.params.id, 10);
+    const managerId = parseInt(req.query.managerId as string, 10);
+    if (!messageId || !managerId) return res.status(400).json({ error: 'Faltan datos' });
+    try {
+        await pool.query(
+            'DELETE FROM messages WHERE id = $1 AND (sender_id = $2 OR recipient_id = $2)',
+            [messageId, managerId]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Actualizar logo del equipo (solo el manager propietario)
 app.put('/teams/:id/logo', async (req, res) => {
     const teamId = parseInt(req.params.id, 10);

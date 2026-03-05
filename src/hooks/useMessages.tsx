@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { apiFetch } from '@/services/apiClient';
 
 export type Message = {
   id: number;
@@ -23,24 +23,12 @@ export const useMessages = () => {
 
   const fetchMessages = async () => {
     if (!manager) return;
-    
     try {
-      const { data, error } = await supabase
-        .rpc('get_manager_messages', {
-          p_manager_id: manager.user_id
-        });
-
-      if (error) throw error;
-      setMessages(data || []);
-
-      // Get unread count
-      const { data: countData, error: countError } = await supabase
-        .rpc('get_unread_message_count', {
-          p_manager_id: manager.user_id
-        });
-
-      if (countError) throw countError;
-      setUnreadCount(countData || 0);
+      const data = await apiFetch<{ success: boolean; messages: Message[]; unreadCount: number }>(
+        `/messages?managerId=${manager.user_id}`
+      );
+      setMessages(data.messages || []);
+      setUnreadCount(data.unreadCount || 0);
     } catch (error) {
       console.error('Error fetching messages:', error);
     } finally {
@@ -49,19 +37,12 @@ export const useMessages = () => {
   };
 
   const sendMessage = async (recipientId: number, subject: string, content: string) => {
-    if (!manager) return;
-
+    if (!manager) return false;
     try {
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({
-          sender_id: manager.user_id,
-          recipient_id: recipientId,
-          subject,
-          content
-        });
-
-      if (error) throw error;
+      await apiFetch('/messages', {
+        method: 'POST',
+        body: JSON.stringify({ senderId: manager.user_id, recipientId, subject, content }),
+      });
       await fetchMessages();
       return true;
     } catch (error) {
@@ -71,16 +52,12 @@ export const useMessages = () => {
   };
 
   const markAsRead = async (messageId: number) => {
-    if (!manager) return;
-
+    if (!manager) return false;
     try {
-      const { data, error } = await supabase
-        .rpc('mark_message_as_read', {
-          p_message_id: messageId,
-          p_manager_id: manager.user_id
-        });
-
-      if (error) throw error;
+      await apiFetch(`/messages/${messageId}/read`, {
+        method: 'PUT',
+        body: JSON.stringify({ managerId: manager.user_id }),
+      });
       await fetchMessages();
       return true;
     } catch (error) {
@@ -90,16 +67,11 @@ export const useMessages = () => {
   };
 
   const deleteMessage = async (messageId: number) => {
-    if (!manager) return;
-
+    if (!manager) return false;
     try {
-      const { data, error } = await supabase
-        .rpc('delete_message', {
-          p_message_id: messageId,
-          p_manager_id: manager.user_id
-        });
-
-      if (error) throw error;
+      await apiFetch(`/messages/${messageId}?managerId=${manager.user_id}`, {
+        method: 'DELETE',
+      });
       await fetchMessages();
       return true;
     } catch (error) {
