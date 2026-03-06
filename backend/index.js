@@ -333,7 +333,7 @@ app.post('/register', async (req, res) => {
         );
         const teamId = teamResult.rows[0].team_id;
 
-        await client.query('INSERT INTO team_finances (team_id) VALUES ($1)', [teamId]);
+        await client.query('INSERT INTO team_finances (team_id, cash_balance) VALUES ($1, 1000000)', [teamId]);
         await client.query('INSERT INTO stadiums (name, team_id) VALUES ($1, $2)', [`${teamName} Stadium`, teamId]);
         await createInitialPlayers(client, teamId, countryId);
 
