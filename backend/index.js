@@ -3798,26 +3798,27 @@ app.get('/manager-license', async (req, res) => {
 });
 
 // Recompensas hardcodeadas — independiente del estado de la tabla manager_license_tests
+// visit_dashboard = null → activa 30 días Premium en lugar de dar dinero
 const CARNET_REWARDS = {
-    visit_dashboard:       50000,
-    visit_team:            50000,
-    visit_players:         50000,
-    visit_transfer_market: 75000,
-    visit_matches:         50000,
-    visit_finances:        50000,
-    visit_stadium:         50000,
-    visit_training:        50000,
-    visit_forums:          50000,
-    visit_community:       50000,
+    visit_dashboard:       null,   // 30 días Premium
+    visit_team:            25000,
+    visit_players:         25000,
+    visit_transfer_market: 25000,
+    visit_matches:         25000,
+    visit_finances:        25000,
+    visit_stadium:         25000,
+    visit_training:        25000,
+    visit_forums:          25000,
+    visit_community:       25000,
 };
 const TOTAL_CARNET_TESTS = Object.keys(CARNET_REWARDS).length; // 10
 
-// POST /manager-license/complete/:testKey — mark test done + award money (idempotent)
+// POST /manager-license/complete/:testKey — mark test done + award reward (idempotent)
 app.post('/manager-license/complete/:testKey', async (req, res) => {
     const { testKey } = req.params;
     const { managerId } = req.body;
     if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
-    if (!CARNET_REWARDS[testKey]) return res.status(404).json({ error: 'Prueba no encontrada' });
+    if (!(testKey in CARNET_REWARDS)) return res.status(404).json({ error: 'Prueba no encontrada' });
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
@@ -3829,11 +3830,21 @@ app.post('/manager-license/complete/:testKey', async (req, res) => {
             await client.query('ROLLBACK');
             return res.json({ success: true, alreadyCompleted: true });
         }
-        const reward = CARNET_REWARDS[testKey];
         await client.query(
             'INSERT INTO manager_license_progress (manager_id, test_key) VALUES ($1, $2)',
             [managerId, testKey]
         );
+        if (CARNET_REWARDS[testKey] === null) {
+            // Primera prueba: activar Premium 30 días
+            await client.query(
+                `UPDATE managers SET is_premium = 1, premium_expires_at = NOW() + INTERVAL '30 days' WHERE user_id = $1`,
+                [managerId]
+            );
+            await client.query('COMMIT');
+            return res.json({ success: true, premiumActivated: true, alreadyCompleted: false });
+        }
+        // Resto de pruebas: recompensa en efectivo
+        const reward = CARNET_REWARDS[testKey];
         const team = await client.query('SELECT team_id FROM teams WHERE manager_id = $1', [managerId]);
         if (team.rows.length > 0) {
             await client.query(

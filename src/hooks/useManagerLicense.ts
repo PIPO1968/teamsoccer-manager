@@ -8,21 +8,22 @@ export interface LicenseTest {
   title: string;
   description: string;
   reward_amount: number;
+  reward_label?: string; // si está presente, se muestra en lugar del importe
 }
 
 // Las 10 pruebas del Carnet de Manager — definidas en el frontend para
 // que siempre aparezcan independientemente del estado de la base de datos.
 export const CARNET_TESTS: LicenseTest[] = [
-  { test_key: 'visit_dashboard',       title: 'Explora tu Panel',        description: 'Visita la página Resumen de tu club',          reward_amount: 50000 },
-  { test_key: 'visit_team',            title: 'Conoce tu Equipo',        description: 'Visita la página de tu equipo',                reward_amount: 50000 },
-  { test_key: 'visit_players',         title: 'Gestiona tus Jugadores',  description: 'Visita la lista de jugadores',                 reward_amount: 50000 },
-  { test_key: 'visit_transfer_market', title: 'Mercado de Fichajes',     description: 'Visita el Mercado de Transferencias',          reward_amount: 75000 },
-  { test_key: 'visit_matches',         title: 'Los Partidos',            description: 'Visita la sección de Partidos',                reward_amount: 50000 },
-  { test_key: 'visit_finances',        title: 'Las Finanzas',            description: 'Revisa las finanzas de tu equipo',             reward_amount: 50000 },
-  { test_key: 'visit_stadium',         title: 'Tu Estadio',              description: 'Visita tu estadio',                            reward_amount: 50000 },
-  { test_key: 'visit_training',        title: 'Entrenamiento',           description: 'Visita la sección de Entrenamiento',           reward_amount: 50000 },
-  { test_key: 'visit_forums',          title: 'Los Foros',               description: 'Visita los Foros de la comunidad',             reward_amount: 50000 },
-  { test_key: 'visit_community',       title: 'La Comunidad',            description: 'Visita la página de Comunidad',                reward_amount: 50000 },
+  { test_key: 'visit_dashboard',       title: 'Explora tu Panel',        description: 'Visita la página Resumen de tu club',          reward_amount: 0,     reward_label: '30 días Premium' },
+  { test_key: 'visit_team',            title: 'Conoce tu Equipo',        description: 'Visita la página de tu equipo',                reward_amount: 25000 },
+  { test_key: 'visit_players',         title: 'Gestiona tus Jugadores',  description: 'Visita la lista de jugadores',                 reward_amount: 25000 },
+  { test_key: 'visit_transfer_market', title: 'Mercado de Fichajes',     description: 'Visita el Mercado de Transferencias',          reward_amount: 25000 },
+  { test_key: 'visit_matches',         title: 'Los Partidos',            description: 'Visita la sección de Partidos',                reward_amount: 25000 },
+  { test_key: 'visit_finances',        title: 'Las Finanzas',            description: 'Revisa las finanzas de tu equipo',             reward_amount: 25000 },
+  { test_key: 'visit_stadium',         title: 'Tu Estadio',              description: 'Visita tu estadio',                            reward_amount: 25000 },
+  { test_key: 'visit_training',        title: 'Entrenamiento',           description: 'Visita la sección de Entrenamiento',           reward_amount: 25000 },
+  { test_key: 'visit_forums',          title: 'Los Foros',               description: 'Visita los Foros de la comunidad',             reward_amount: 25000 },
+  { test_key: 'visit_community',       title: 'La Comunidad',            description: 'Visita la página de Comunidad',                reward_amount: 25000 },
 ];
 
 interface ProgressData {
@@ -74,15 +75,22 @@ export const useManagerLicense = () => {
       return { ...prev, completedKeys: [...prev.completedKeys, testKey] };
     });
     try {
-      const res = await apiFetch<{ success: boolean; reward?: number; alreadyCompleted?: boolean }>(
+      const res = await apiFetch<{ success: boolean; reward?: number; premiumActivated?: boolean; alreadyCompleted?: boolean }>(
         `/manager-license/complete/${testKey}`,
         { method: 'POST', body: JSON.stringify({ managerId: manager.user_id }) }
       );
-      if (res.success && !res.alreadyCompleted && res.reward) {
-        toast({
-          title: '¡Prueba completada!',
-          description: `Has ganado €${res.reward.toLocaleString('es-ES')} por completar esta prueba.`,
-        });
+      if (res.success && !res.alreadyCompleted) {
+        if (res.premiumActivated) {
+          toast({
+            title: '¡Premium activado!',
+            description: '¡Has ganado 30 días Premium por explorar tu panel!',
+          });
+        } else if (res.reward) {
+          toast({
+            title: '¡Prueba completada!',
+            description: `Has ganado €${res.reward.toLocaleString('es-ES')} por completar esta prueba.`,
+          });
+        }
       }
     } catch (err) {
       console.error('Error completing test:', err);

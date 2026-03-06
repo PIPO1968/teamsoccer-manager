@@ -54,7 +54,9 @@ const TestCard = ({ test, isCompleted, teamId, stadiumId, onComplete }: TestCard
             <div className="flex items-center justify-between">
               <span className={`text-sm font-medium ${isCompleted ? 'text-green-700' : 'text-gray-500'}`}>
                 {isCompleted ? '✓ Recompensa recibida:' : 'Recompensa:'}{' '}
-                <span className="font-bold">€{test.reward_amount.toLocaleString('es-ES')}</span>
+                <span className="font-bold">
+                  {test.reward_label ?? `€${test.reward_amount.toLocaleString('es-ES')}`}
+                </span>
               </span>
               <Link to={route} onClick={!isCompleted ? onComplete : undefined}>
                 <Button
@@ -115,7 +117,8 @@ const CarnetDeManager = () => {
           ¡Bienvenido, {manager?.username}! Completa todas las pruebas para obtener tu carnet y acceder al juego.
         </p>
         <p className="text-sm text-gray-500 mt-1">
-          Recompensa total: <span className="font-semibold text-green-700">€{totalReward.toLocaleString('es-ES')}</span>
+          Recompensas: <span className="font-semibold text-green-700">€{totalReward.toLocaleString('es-ES')}</span>
+          {' + '}<span className="font-semibold text-yellow-600">30 días Premium</span>
         </p>
       </div>
 
