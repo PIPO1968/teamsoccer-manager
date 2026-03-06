@@ -3,26 +3,31 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useTeamFinances } from "@/hooks/useTeamFinances";
 import { useTeamData } from "@/hooks/useTeamData";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowUpRight, ArrowDownRight, DollarSign } from "lucide-react";
-import { useCompleteCarnetTest } from '@/hooks/useManagerLicense';
+import { ArrowUpRight, ArrowDownRight, DollarSign, Award } from "lucide-react";
+import { useCompleteCarnetTest, useManagerLicense, CARNET_TESTS } from '@/hooks/useManagerLicense';
 
 export default function Finances() {
   useCompleteCarnetTest('visit_finances');
   const { teamId } = useParams<{ teamId: string }>();
   const { finances, isLoading: financesLoading } = useTeamFinances(teamId);
   const { team, isLoading: teamLoading } = useTeamData(teamId);
+  const { completedKeys: carnetCompletedKeys } = useManagerLicense();
 
   if (financesLoading || teamLoading) {
     return <FinancesSkeleton />;
   }
 
   const formatMoney = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { 
-      style: 'currency', 
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
       currency: 'USD',
-      maximumFractionDigits: 0 
+      maximumFractionDigits: 0
     }).format(amount);
   };
+
+  const cashEarned = CARNET_TESTS
+    .filter(t => t.test_key !== 'visit_dashboard' && carnetCompletedKeys.includes(t.test_key))
+    .reduce((sum, t) => sum + t.reward_amount, 0);
 
   return (
     <div className="space-y-8">
@@ -143,6 +148,44 @@ export default function Finances() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Premios del Carnet de Manager */}
+      {carnetCompletedKeys.length > 0 && (
+        <Card className="border-yellow-200 bg-yellow-50/40">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-yellow-800">
+              <Award className="h-5 w-5 text-yellow-500" />
+              Premios del Carnet de Manager
+            </CardTitle>
+            <CardDescription>Recompensas obtenidas durante el proceso de obtención del carnet</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {carnetCompletedKeys.includes('visit_dashboard') && (
+                <div className="flex justify-between items-center py-2 border-b border-yellow-200">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-yellow-800">⭐ 30 días Premium</span>
+                    <span className="text-xs text-gray-500">— Explora tu Panel</span>
+                  </div>
+                  <span className="text-sm font-bold text-yellow-700">Activado</span>
+                </div>
+              )}
+              {CARNET_TESTS.filter(t => t.test_key !== 'visit_dashboard' && carnetCompletedKeys.includes(t.test_key)).map(t => (
+                <div key={t.test_key} className="flex justify-between items-center">
+                  <span className="text-sm text-gray-700">{t.title}</span>
+                  <span className="text-sm font-bold text-green-600">+{formatMoney(t.reward_amount)}</span>
+                </div>
+              ))}
+              {cashEarned > 0 && (
+                <div className="flex justify-between items-center pt-3 border-t border-yellow-200 font-bold">
+                  <span className="text-sm text-gray-900">Total ganado en metálico</span>
+                  <span className="text-sm text-green-700">+{formatMoney(cashEarned)}</span>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

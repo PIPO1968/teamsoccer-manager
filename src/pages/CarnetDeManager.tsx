@@ -91,6 +91,7 @@ const CarnetDeManager = () => {
   const completed = completedKeys.length;
   const total = tests.length;
   const progressPct = total > 0 ? Math.round((completed / total) * 100) : 0;
+  const pendingTests = tests.filter(t => !completedKeys.includes(t.test_key));
 
   const totalReward = tests.reduce((sum, t) => sum + t.reward_amount, 0);
 
@@ -155,18 +156,28 @@ const CarnetDeManager = () => {
         </Card>
       )}
 
-      {/* Test cards — locked if pending approval */}
+      {/* Test cards — locked if pending approval; completed ones disappear */}
       <div className={`grid gap-4 mb-8 ${isPendingApproval ? 'opacity-40 pointer-events-none select-none' : ''}`}>
-        {tests.map(test => (
-          <TestCard
-            key={test.test_key}
-            test={test}
-            isCompleted={completedKeys.includes(test.test_key)}
-            teamId={teamId}
-            stadiumId={stadiumId}
-            onComplete={() => completeTest(test.test_key)}
-          />
-        ))}
+        {pendingTests.length === 0 && !isPendingApproval ? (
+          <Card className="border-2 border-green-300 bg-green-50">
+            <CardContent className="p-6 text-center">
+              <CheckCircle2 className="h-10 w-10 text-green-600 mx-auto mb-3" />
+              <p className="text-green-800 font-semibold text-lg">¡Has completado todas las pruebas!</p>
+              <p className="text-sm text-green-700 mt-1">Activa tu cuenta para acceder al juego completo.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          pendingTests.map(test => (
+            <TestCard
+              key={test.test_key}
+              test={test}
+              isCompleted={false}
+              teamId={teamId}
+              stadiumId={stadiumId}
+              onComplete={() => completeTest(test.test_key)}
+            />
+          ))
+        )}
       </div>
 
       {/* Claim button */}
@@ -179,7 +190,7 @@ const CarnetDeManager = () => {
             className="px-10 bg-yellow-500 hover:bg-yellow-600 text-white font-bold disabled:opacity-40"
           >
             <Award className="h-5 w-5 mr-2" />
-            {isAllCompleted ? '¡Activar cuenta y entrar al juego!' : 'Completa las pruebas para activar tu cuenta'}
+            {isAllCompleted ? 'Enhorabuena ya puedes activar tu cuenta y acceder a TeamSoccer' : 'Completa las pruebas para activar tu cuenta'}
           </Button>
           {!isAllCompleted && total > 0 && (
             <p className="text-xs text-gray-500 mt-2">

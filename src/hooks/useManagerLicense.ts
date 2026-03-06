@@ -144,15 +144,22 @@ export const useCompleteCarnetTest = (testKey: string, enabled = true) => {
   useEffect(() => {
     if (!isCarnetPending || !manager?.user_id || !enabled) return;
 
-    apiFetch<{ success: boolean; reward?: number; alreadyCompleted?: boolean }>(
+    apiFetch<{ success: boolean; reward?: number; premiumActivated?: boolean; alreadyCompleted?: boolean }>(
       `/manager-license/complete/${testKey}`,
       { method: 'POST', body: JSON.stringify({ managerId: manager.user_id }) }
     ).then(res => {
-      if (res.success && !res.alreadyCompleted && res.reward) {
-        toast({
-          title: '¡Prueba completada!',
-          description: `Has ganado €${res.reward.toLocaleString('es-ES')} por explorar esta sección.`,
-        });
+      if (res.success && !res.alreadyCompleted) {
+        if (res.premiumActivated) {
+          toast({
+            title: '¡Premium activado!',
+            description: '¡Has ganado 30 días Premium por explorar tu panel!',
+          });
+        } else if (res.reward) {
+          toast({
+            title: '¡Prueba completada!',
+            description: `Has ganado €${res.reward.toLocaleString('es-ES')} por explorar esta sección.`,
+          });
+        }
       }
     }).catch(err => {
       console.error('Error completing carnet test:', err);
