@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS teams (
 CREATE TABLE IF NOT EXISTS stadiums (
   stadium_id serial PRIMARY KEY,
   name text NOT NULL,
-  capacity integer DEFAULT 15000,
+  capacity integer DEFAULT 2500,
   team_id integer UNIQUE REFERENCES teams(team_id) ON DELETE CASCADE,
   build_date timestamptz,
   created_at timestamptz DEFAULT now(),

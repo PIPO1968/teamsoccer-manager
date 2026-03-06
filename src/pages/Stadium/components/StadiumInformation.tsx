@@ -33,49 +33,49 @@ export const StadiumInformation = ({ stadium }: StadiumInformationProps) => {
             <span className="text-gray-600">{t('stadium.totalCapacity')}</span>
           </div>
           <div className="font-medium">
-            {stadium.stadium_capacity?.toLocaleString() || '15,000'}
+            {stadium.stadium_capacity?.toLocaleString() || '2,500'}
           </div>
 
           <div>
             <span className="text-gray-600">{t('stadium.terraces')}</span>
           </div>
           <div className="font-medium">
-            {Math.floor((stadium.stadium_capacity || 15000) * 0.6).toLocaleString()}
+            {Math.floor((stadium.stadium_capacity || 2500) * 0.80).toLocaleString()}
           </div>
 
           <div>
             <span className="text-gray-600">{t('stadium.basicSeating')}</span>
           </div>
           <div className="font-medium">
-            {Math.floor((stadium.stadium_capacity || 15000) * 0.2).toLocaleString()}
+            {Math.floor((stadium.stadium_capacity || 2500) * 0.192).toLocaleString()}
           </div>
 
           <div>
             <span className="text-gray-600">{t('stadium.seatsUnderRoof')}</span>
           </div>
           <div className="font-medium">
-            {Math.floor((stadium.stadium_capacity || 15000) * 0.15).toLocaleString()}
+            {Math.floor((stadium.stadium_capacity || 2500) * 0.008).toLocaleString()}
           </div>
 
           <div>
             <span className="text-gray-600">{t('stadium.vipBoxes')}</span>
           </div>
           <div className="font-medium">
-            {Math.floor((stadium.stadium_capacity || 15000) * 0.05).toLocaleString()}
+            0
           </div>
 
           <div>
             <span className="text-gray-600">{t('stadium.potentialTakings')}</span>
           </div>
           <div className="font-medium">
-            {Math.floor((stadium.stadium_capacity || 15000) * 5).toLocaleString()} £
+            {Math.floor((stadium.stadium_capacity || 2500) * 5).toLocaleString()} £
           </div>
 
           <div>
             <span className="text-gray-600">{t('stadium.maintenance')}</span>
           </div>
           <div className="font-medium">
-            {Math.floor((stadium.stadium_capacity || 15000) * 0.3).toLocaleString()} £
+            {Math.floor((stadium.stadium_capacity || 2500) * 0.3).toLocaleString()} £
           </div>
         </div>
       </CardContent>

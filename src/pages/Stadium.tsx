@@ -10,6 +10,7 @@ import { StadiumHeader } from "./Stadium/components/StadiumHeader";
 import { StadiumVisualization } from "./Stadium/components/StadiumVisualization";
 import { StadiumInformation } from "./Stadium/components/StadiumInformation";
 import { StadiumLoading } from "./Stadium/components/StadiumLoading";
+import { StadiumAttendanceSection } from "./Stadium/components/StadiumAttendanceSection";
 import { useCompleteCarnetTest } from '@/hooks/useManagerLicense';
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -49,9 +50,9 @@ const Stadium = () => {
     .filter(match => match.status === 'completed')
     .slice(0, 5); // Show last 5 completed matches
 
-  const upcomingMatches = matches
-    .filter(match => match.status === 'scheduled' && new Date(match.match_date) > now)
-    .slice(0, 5); // Show next 5 upcoming matches
+  const playedMatches = matches
+    .filter(match => match.status === 'completed')
+    .slice(0, 10); // Last 10 for attendance section
 
   return (
     <div className="space-y-6">
@@ -79,13 +80,11 @@ const Stadium = () => {
         />
       </div>
 
-      {/* Upcoming Matches Section - Full Width */}
+      {/* Attendance & Earnings Section - Full Width */}
       <div className="w-full">
-        <StadiumMatchesSection
-          title={t('stadium.upcomingMatches')}
-          matches={upcomingMatches}
-          emptyMessage={t('stadium.noUpcomingMatches')}
-          showResult={false}
+        <StadiumAttendanceSection
+          matches={playedMatches}
+          stadiumCapacity={stadium.stadium_capacity || 15000}
         />
       </div>
 

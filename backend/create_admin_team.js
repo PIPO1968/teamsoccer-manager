@@ -48,7 +48,7 @@ const run = async () => {
 
         const teamId = insertTeam.rows[0].team_id;
         await client.query("INSERT INTO team_finances (team_id) VALUES ($1)", [teamId]);
-        await client.query("INSERT INTO stadiums (name, team_id) VALUES ($1, $2)", [
+        await client.query("INSERT INTO stadiums (name, team_id, capacity) VALUES ($1, $2, 2500)", [
             `${ADMIN_TEAM_NAME} Stadium`,
             teamId,
         ]);

@@ -7,7 +7,7 @@ interface StadiumVisualizationProps {
   stadium: StadiumData;
 }
 
-const MAX_CAPACITY = 80000;
+const MAX_CAPACITY = 10000;
 const ROWS = 12;
 
 // Colors
@@ -66,17 +66,17 @@ const VStand = ({ x, y, w, h, filledCols, color, fromRight }: VStandProps) => {
 
 export const StadiumVisualization = ({ stadium }: StadiumVisualizationProps) => {
   const { t } = useLanguage();
-  const cap = stadium?.stadium_capacity ?? 15000;
+  const cap = stadium?.stadium_capacity ?? 2500;
 
-  const terraces = Math.floor(cap * 0.60);
-  const basicSeats = Math.floor(cap * 0.20);
-  const roofSeats = Math.floor(cap * 0.15);
-  const vipSeats = Math.floor(cap * 0.05);
+  // Estándar: Gradas=2000(80%), Básicos=480(19.2%), Cubiertos=20(0.8%), VIP=0
+  const terraces = Math.floor(cap * 0.80);   // tribuna norte — azul
+  const basicSeats = Math.floor(cap * 0.192);  // esquinas — morado
+  const roofSeats = Math.floor(cap * 0.008);  // laterales E/O — ámbar
+  const vipSeats = 0;                         // tribuna sur — verde (inicia vacía)
 
-  const tRows = Math.round(Math.min(terraces / (MAX_CAPACITY * 0.60), 1) * ROWS);
-  const bRows = Math.round(Math.min(basicSeats / (MAX_CAPACITY * 0.20), 1) * ROWS);
-  const rCols = Math.round(Math.min(roofSeats / (MAX_CAPACITY * 0.15), 1) * ROWS);
-  const vFill = Math.min(vipSeats / (MAX_CAPACITY * 0.05), 1);
+  const tRows = Math.round(Math.min(terraces / (MAX_CAPACITY * 0.80), 1) * ROWS);
+  const bFill = Math.min(basicSeats / (MAX_CAPACITY * 0.192), 1);  // relleno esquinas
+  const rCols = Math.round(Math.min(roofSeats / (MAX_CAPACITY * 0.008), 1) * ROWS);
 
   // Layout (viewBox 420×340):
   // Pitch: (80,78) 260×184
@@ -99,15 +99,15 @@ export const StadiumVisualization = ({ stadium }: StadiumVisualizationProps) => 
             [5, 5], [345, 5], [5, 267], [345, 267]
           ] as [number, number][]).map(([cx, cy], i) => (
             <rect key={i} x={cx} y={cy} width={70} height={68}
-              fill={vFill > 0 ? C.vip : C.empty}
+              fill={bFill > 0 ? C.vip : C.empty}
               stroke={C.emptyStr} strokeWidth={0.5} rx={2}
-              opacity={vFill > 0 ? 0.25 + vFill * 0.75 : 0.4} />
+              opacity={bFill > 0 ? 0.25 + bFill * 0.75 : 0.4} />
           ))}
 
           {/* North – Terraces */}
           <HStand x={80} y={5} w={260} h={68} filledRows={tRows} color={C.terraces} fromBottom={true} />
-          {/* South – Basic seating */}
-          <HStand x={80} y={267} w={260} h={68} filledRows={bRows} color={C.basic} fromBottom={false} />
+          {/* South – Palcos VIP (inicia vacío) */}
+          <HStand x={80} y={267} w={260} h={68} filledRows={0} color={C.basic} fromBottom={false} />
           {/* West – Seats under roof */}
           <VStand x={5} y={78} w={70} h={184} filledCols={rCols} color={C.roof} fromRight={false} />
           {/* East – Seats under roof */}
@@ -148,7 +148,7 @@ export const StadiumVisualization = ({ stadium }: StadiumVisualizationProps) => 
             {terraces.toLocaleString()}
           </text>
           <text x={210} y={305} textAnchor="middle" fill="white" fontSize={9} opacity={0.85} fontFamily="sans-serif">
-            {basicSeats.toLocaleString()}
+            {vipSeats.toLocaleString()}
           </text>
           <text x={40} y={173} textAnchor="middle" fill="white" fontSize={8} opacity={0.85} fontFamily="sans-serif"
             transform="rotate(-90,40,173)">{roofSeats.toLocaleString()}</text>
@@ -160,9 +160,9 @@ export const StadiumVisualization = ({ stadium }: StadiumVisualizationProps) => 
         <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-1 px-1">
           {[
             { color: C.terraces, label: t('stadium.terraces'), count: terraces },
-            { color: C.basic, label: t('stadium.basicSeating'), count: basicSeats },
+            { color: C.vip, label: t('stadium.basicSeating'), count: basicSeats },
             { color: C.roof, label: t('stadium.seatsUnderRoof'), count: roofSeats },
-            { color: C.vip, label: t('stadium.vipBoxes'), count: vipSeats },
+            { color: C.basic, label: t('stadium.vipBoxes'), count: vipSeats },
           ].map(({ color, label, count }) => (
             <div key={label} className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: color }} />
