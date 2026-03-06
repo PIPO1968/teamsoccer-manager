@@ -33,7 +33,7 @@ interface ProgressData {
 }
 
 export const useManagerLicense = () => {
-  const { manager, isCarnetPending, signIn } = useAuth();
+  const { manager, signIn } = useAuth();
   const { toast } = useToast();
   const [progress, setProgress] = useState<ProgressData>({
     completedKeys: [],
@@ -68,7 +68,7 @@ export const useManagerLicense = () => {
   }, [manager?.user_id, fetchProgress]);
 
   const completeTest = useCallback(async (testKey: string) => {
-    if (!manager?.user_id || !isCarnetPending) return;
+    if (!manager?.user_id || manager?.status !== 'carnet_pending') return;
     // Optimistic update: marca como completada en UI inmediatamente
     setProgress(prev => {
       if (prev.completedKeys.includes(testKey)) return prev;
@@ -95,7 +95,7 @@ export const useManagerLicense = () => {
     } catch (err) {
       console.error('Error completing test:', err);
     }
-  }, [manager?.user_id, isCarnetPending, toast]);
+  }, [manager?.user_id, manager?.status, toast]);
 
   const claimCarnet = useCallback(async (): Promise<boolean> => {
     if (!manager?.user_id) return false;
@@ -138,11 +138,11 @@ export const useManagerLicense = () => {
  * No-ops if the manager is not in carnet_pending status.
  */
 export const useCompleteCarnetTest = (testKey: string, enabled = true) => {
-  const { manager, isCarnetPending } = useAuth();
+  const { manager } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!isCarnetPending || !manager?.user_id || !enabled) return;
+    if (!manager?.user_id || manager?.status !== 'carnet_pending' || !enabled) return;
 
     apiFetch<{ success: boolean; reward?: number; premiumActivated?: boolean; alreadyCompleted?: boolean }>(
       `/manager-license/complete/${testKey}`,
