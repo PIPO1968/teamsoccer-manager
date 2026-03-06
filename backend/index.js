@@ -409,15 +409,15 @@ app.post('/register', async (req, res) => {
         );
         const managerId = managerResult.rows[0].user_id;
 
-        // 3. Asignar equipo: reclamar BOT de Div4 del país del usuario si hay disponible
+        // 3. Asignar equipo: reclamar el primer slot BOT libre del país, rellenando desde Div1 hacia abajo
         let teamId = null;
         let claimedBot = false;
         if (countryId) {
             const botResult = await client.query(
                 `SELECT t.team_id FROM teams t
                  JOIN series s ON s.series_id = t.series_id
-                 WHERE t.is_bot = 1 AND s.region_id = $1 AND s.division = 4
-                 ORDER BY t.team_id ASC LIMIT 1`,
+                 WHERE t.is_bot = 1 AND s.region_id = $1
+                 ORDER BY s.division ASC, s.group_number ASC, t.team_id ASC LIMIT 1`,
                 [countryId]
             );
             if (botResult.rows.length > 0) {
@@ -4153,20 +4153,40 @@ app.get('/series/:id/hierarchy', async (req, res) => {
         if (!currentResult.rows[0]) return res.status(404).json({ error: 'Serie no encontrada' });
         const current = currentResult.rows[0];
 
+        // Navegación secuencial: II.1 → II.2 → III.1 → III.2 → ...
+        // "Arriba" (previous): grupo anterior en misma división; si no existe, último grupo de división-1
         let higherSeries = null;
-        if (current.parent_series_id) {
-            const r = await pool.query('SELECT series_id, division, group_number, region_id, season, parent_series_id FROM series WHERE series_id = $1', [current.parent_series_id]);
+        if (current.group_number > 1) {
+            const r = await pool.query(
+                'SELECT series_id, division, group_number, region_id, season, parent_series_id FROM series WHERE region_id = $1 AND division = $2 AND group_number = $3',
+                [current.region_id, current.division, current.group_number - 1]
+            );
             higherSeries = r.rows[0] || null;
-        } else if (current.division > 1) {
-            const r = await pool.query('SELECT series_id, division, group_number, region_id, season, parent_series_id FROM series WHERE region_id = $1 AND division = $2 LIMIT 1', [current.region_id, current.division - 1]);
+        }
+        if (!higherSeries && current.division > 1) {
+            // Saltar a la división superior: ir al último grupo de esa división
+            const r = await pool.query(
+                'SELECT series_id, division, group_number, region_id, season, parent_series_id FROM series WHERE region_id = $1 AND division = $2 ORDER BY group_number DESC LIMIT 1',
+                [current.region_id, current.division - 1]
+            );
             higherSeries = r.rows[0] || null;
         }
 
-        const lowerResult = await pool.query(
-            'SELECT series_id, division, group_number, region_id, season, parent_series_id FROM series WHERE region_id = $1 AND division = $2 ORDER BY group_number ASC LIMIT 1',
-            [current.region_id, current.division + 1]
+        // "Abajo" (next): grupo siguiente en misma división; si no existe, primer grupo de división+1
+        let lowerSeries = null;
+        const nextGroupResult = await pool.query(
+            'SELECT series_id, division, group_number, region_id, season, parent_series_id FROM series WHERE region_id = $1 AND division = $2 AND group_number = $3',
+            [current.region_id, current.division, current.group_number + 1]
         );
-        const lowerSeries = lowerResult.rows[0] || null;
+        if (nextGroupResult.rows[0]) {
+            lowerSeries = nextGroupResult.rows[0];
+        } else {
+            const r = await pool.query(
+                'SELECT series_id, division, group_number, region_id, season, parent_series_id FROM series WHERE region_id = $1 AND division = $2 ORDER BY group_number ASC LIMIT 1',
+                [current.region_id, current.division + 1]
+            );
+            lowerSeries = r.rows[0] || null;
+        }
 
         res.json({
             success: true,
