@@ -22,6 +22,7 @@ type SeriesTeamStats = {
 
 type SeriesStandingsTableProps = {
   teams: SeriesTeamStats[];
+  division?: number;
 };
 
 const TeamIcon = ({ team }: { team: SeriesTeamStats }) => {
@@ -35,8 +36,8 @@ const TeamIcon = ({ team }: { team: SeriesTeamStats }) => {
 
   if (team.team_logo) {
     return (
-      <img 
-        src={team.team_logo} 
+      <img
+        src={team.team_logo}
         alt={`${team.team_name} logo`}
         className="w-5 h-5 rounded-full object-contain"
       />
@@ -50,8 +51,19 @@ const TeamIcon = ({ team }: { team: SeriesTeamStats }) => {
   );
 };
 
-const SeriesStandingsTable = ({ teams }: SeriesStandingsTableProps) => {
+const SeriesStandingsTable = ({ teams, division }: SeriesStandingsTableProps) => {
   const [hoveredTeam, setHoveredTeam] = useState<number | null>(null);
+  const displayed = teams.slice(0, 8);
+  const isDiv1 = division === 1;
+
+  const getDot = (pos: number) => {
+    if (!isDiv1) return null;
+    if (pos === 1) return <div className="w-1.5 h-1.5 rounded-full bg-green-500" title="Campeón" />;
+    if (pos === 2) return <div className="w-1.5 h-1.5 rounded-full bg-blue-500" title="Ascenso" />;
+    if (pos === 5 || pos === 6) return <div className="w-1.5 h-1.5 rounded-full bg-orange-500" title="Playoff" />;
+    if (pos === 7 || pos === 8) return <div className="w-1.5 h-1.5 rounded-full bg-red-500" title="Descenso" />;
+    return null;
+  };
 
   return (
     <div className="border rounded-md">
@@ -72,9 +84,9 @@ const SeriesStandingsTable = ({ teams }: SeriesStandingsTableProps) => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {teams.map((team, i) => (
-            <TableRow 
-              key={team.team_id} 
+          {displayed.map((team, i) => (
+            <TableRow
+              key={team.team_id}
               className={`cursor-pointer hover:bg-accent/50`}
               onMouseEnter={() => setHoveredTeam(team.team_id)}
               onMouseLeave={() => setHoveredTeam(null)}
@@ -82,8 +94,7 @@ const SeriesStandingsTable = ({ teams }: SeriesStandingsTableProps) => {
               <TableCell className="py-2">
                 <div className="flex items-center gap-1">
                   {i + 1}
-                  {i < 2 && <div className="w-1.5 h-1.5 rounded-full bg-green-500" title="Promotion" />}
-                  {i > teams.length - 4 && <div className="w-1.5 h-1.5 rounded-full bg-red-500" title="Relegation" />}
+                  {getDot(i + 1)}
                 </div>
               </TableCell>
               <TableCell className="py-2">
@@ -109,13 +120,12 @@ const SeriesStandingsTable = ({ teams }: SeriesStandingsTableProps) => {
                   {team.form.map((result, i) => (
                     <div
                       key={i}
-                      className={`w-4 h-4 flex items-center justify-center rounded text-[10px] font-medium ${
-                        result === "W"
+                      className={`w-4 h-4 flex items-center justify-center rounded text-[10px] font-medium ${result === "W"
                           ? "bg-green-500 text-white"
                           : result === "D"
-                          ? "bg-yellow-500 text-black"
-                          : "bg-red-500 text-white"
-                      }`}
+                            ? "bg-yellow-500 text-black"
+                            : "bg-red-500 text-white"
+                        }`}
                     >
                       {result}
                     </div>

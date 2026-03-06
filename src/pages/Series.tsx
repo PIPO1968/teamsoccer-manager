@@ -88,7 +88,7 @@ const Series = () => {
               higherSeries={higherSeries}
               lowerSeries={lowerSeries}
             />
-            <SeriesStandingsTable teams={league.teams} />
+            <SeriesStandingsTable teams={league.teams} division={league.division} />
           </CardContent>
         </div>
 
