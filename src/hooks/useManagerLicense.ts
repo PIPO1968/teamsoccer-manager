@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch } from '@/services/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -140,9 +140,12 @@ export const useManagerLicense = () => {
 export const useCompleteCarnetTest = (testKey: string, enabled = true) => {
   const { manager } = useAuth();
   const { toast } = useToast();
+  const firedRef = useRef(false);
 
   useEffect(() => {
     if (!manager?.user_id || manager?.status !== 'carnet_pending' || !enabled) return;
+    if (firedRef.current) return;
+    firedRef.current = true;
 
     apiFetch<{ success: boolean; reward?: number; premiumActivated?: boolean; alreadyCompleted?: boolean }>(
       `/manager-license/complete/${testKey}`,
@@ -164,6 +167,5 @@ export const useCompleteCarnetTest = (testKey: string, enabled = true) => {
     }).catch(err => {
       console.error('Error completing carnet test:', err);
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled]);
+  }, [enabled, manager?.user_id, manager?.status]);
 };
