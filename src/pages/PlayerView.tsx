@@ -171,13 +171,21 @@ const PlayerView = () => {
           stamina: player.stamina,
           goalkeeper: player.goalkeeper,
           crosses: player.crosses,
-          id: player.player_id,
-          name: `${player.first_name} ${player.last_name}`,
-          position: player.position,
-          rating: player.rating,
-          value: player.value
         }}
       />
+
+      {isPlayerOnOwnTeam && (
+        <ListPlayerDialog
+          open={isListPlayerDialogOpen}
+          onOpenChange={setIsListPlayerDialogOpen}
+          player={{
+            id: player.player_id,
+            name: `${player.first_name} ${player.last_name}`,
+            position: player.position,
+            rating: player.rating,
+            value: player.value
+          }}
+        />
       )}
     </div>
   );
