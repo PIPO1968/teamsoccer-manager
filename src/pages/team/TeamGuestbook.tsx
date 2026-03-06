@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeamGuestbook } from "@/hooks/useTeamGuestbook";
 import { formatDistanceToNow } from "date-fns";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface TeamGuestbookProps {
   teamId: string | undefined;
@@ -18,6 +19,7 @@ export default function TeamGuestbook({ teamId }: TeamGuestbookProps) {
   const [message, setMessage] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const { manager } = useAuth();
+  const { t } = useLanguage();
   
   // Determine if the current team is the manager's own team
   const isOwnTeam = manager?.team_id === parseInt(teamId || '0');
@@ -38,7 +40,7 @@ export default function TeamGuestbook({ teamId }: TeamGuestbookProps) {
     return (
       <Card>
         <CardContent className="p-4">
-          <h2 className="font-semibold mb-3">Guestbook</h2>
+          <h2 className="font-semibold mb-3">{t('team.guestbook')}</h2>
           <Skeleton className="h-14 w-full mb-4" />
           <Skeleton className="h-4 w-3/4 mb-2" />
           <Skeleton className="h-4 w-1/2" />
@@ -51,12 +53,12 @@ export default function TeamGuestbook({ teamId }: TeamGuestbookProps) {
     <Card>
       <CardContent className="p-4">
         <div className="flex justify-between items-center mb-3">
-          <h2 className="font-semibold">Guestbook</h2>
+          <h2 className="font-semibold">{t('team.guestbook')}</h2>
           <Link 
             to={`/guestbook/${teamId}`} 
             className="text-xs text-green-700 hover:underline"
           >
-            View all
+            {t('team.viewAll')}
           </Link>
         </div>
         
@@ -78,14 +80,14 @@ export default function TeamGuestbook({ teamId }: TeamGuestbookProps) {
           </div>
         ) : (
           <div className="mb-4 bg-slate-50 p-3 rounded-md text-sm text-muted-foreground">
-            No messages yet. Be the first to write in the guestbook!
+            {t('team.noGuestbookMessages')}
           </div>
         )}
         
         {!isOwnTeam && manager && !hasPosted && (
           <form onSubmit={handleSubmit}>
-            <Textarea 
-              placeholder="Leave a message..." 
+            <Textarea
+              placeholder={t('team.guestbookPlaceholder')}
               className="mb-2 resize-none"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
@@ -97,7 +99,7 @@ export default function TeamGuestbook({ teamId }: TeamGuestbookProps) {
                 size="sm"
                 disabled={isSubmitting || !message.trim()}
               >
-                Post message
+                {t('team.postMessage')}
               </Button>
             </div>
           </form>
@@ -105,19 +107,19 @@ export default function TeamGuestbook({ teamId }: TeamGuestbookProps) {
         
         {!isOwnTeam && manager && hasPosted && (
           <div className="text-sm text-muted-foreground">
-            You have already posted a message in this guestbook.
+            {t('team.alreadyPosted')}
           </div>
         )}
         
         {isOwnTeam && (
           <div className="text-sm text-muted-foreground">
-            You cannot leave messages on your own team's guestbook.
+            {t('team.ownGuestbook')}
           </div>
         )}
         
         {!manager && (
           <div className="text-sm text-muted-foreground">
-            You must be logged in to post messages.
+            {t('team.loginToPost')}
           </div>
         )}
       </CardContent>

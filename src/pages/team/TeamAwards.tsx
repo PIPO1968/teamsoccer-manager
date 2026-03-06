@@ -6,7 +6,7 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 import { useEffect, useState } from "react";
-// import { supabase } from "@/integrations/supabase/client";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type TeamTrophy = {
   trophy_id: number;
@@ -25,6 +25,7 @@ interface TeamAwardsProps {
 export function TeamAwards({ teamId }: TeamAwardsProps) {
   const [trophies, setTrophies] = useState<TeamTrophy[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { t } = useLanguage();
 
   useEffect(() => {
     async function fetchTeamTrophies() {
@@ -68,9 +69,9 @@ export function TeamAwards({ teamId }: TeamAwardsProps) {
   return (
     <Card>
       <CardContent className="p-4">
-        <h2 className="font-semibold mb-3">Awards</h2>
+        <h2 className="font-semibold mb-3">{t('team.awards')}</h2>
         {trophies.length === 0 ? (
-          <p className="text-sm text-muted-foreground">This team has no awards yet.</p>
+          <p className="text-sm text-muted-foreground">{t('team.noAwards')}</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {trophies.map((trophy) => {
