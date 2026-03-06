@@ -100,7 +100,7 @@ const translations = {
     // Stadium
     'stadium.error': 'Error', 'stadium.notFound': 'Stadium not found', 'stadium.notFoundDesc': 'The requested stadium could not be found.', 'stadium.recentMatchesFor': 'Recent matches for', 'stadium.noRecentMatches': 'No recent matches found', 'stadium.upcomingMatches': 'Upcoming matches', 'stadium.noUpcomingMatches': 'No upcoming matches scheduled',
     // Matches
-    'matches.title': 'Matches', 'matches.loading': 'Loading matches...', 'matches.currentMatches': 'Current matches', 'matches.teamSchedule': 'Team match schedule', 'matches.viewMyTeam': "View My Team's Matches", 'matches.upcoming': 'Upcoming matches', 'matches.noUpcoming': 'No upcoming matches scheduled', 'matches.played': 'Played matches', 'matches.noPast': 'No past matches found',
+    'matches.title': 'Matches', 'matches.loading': 'Loading matches...', 'matches.currentMatches': 'Current matches', 'matches.teamSchedule': 'Team match schedule', 'matches.viewMyTeam': "View My Team's Matches", 'matches.upcoming': 'Upcoming matches', 'matches.noUpcoming': 'No upcoming matches scheduled', 'matches.played': 'Played matches', 'matches.noPast': 'No past matches found', 'matches.latestMatch': 'Latest Match', 'matches.noRecentMatches': 'No recent matches found', 'matches.nextMatch': 'Next Match',
     // Shop
     'shop.loginRequired': 'You must be logged in to purchase premium.', 'shop.checkoutError': 'Failed to initiate checkout. Please try again.', 'shop.manageAccess': 'Manage your premium access', 'shop.upgradeDesc': 'Upgrade your manager experience with premium features',
     // Transfer Market
@@ -187,7 +187,7 @@ const translations = {
     // Stadium
     'stadium.error': 'Error', 'stadium.notFound': 'Estadio no encontrado', 'stadium.notFoundDesc': 'El estadio solicitado no pudo encontrarse.', 'stadium.recentMatchesFor': 'Partidos recientes de', 'stadium.noRecentMatches': 'No se encontraron partidos recientes', 'stadium.upcomingMatches': 'Próximos partidos', 'stadium.noUpcomingMatches': 'No hay próximos partidos programados',
     // Matches
-    'matches.title': 'Partidos', 'matches.loading': 'Cargando partidos...', 'matches.currentMatches': 'Partidos actuales', 'matches.teamSchedule': 'Calendario del equipo', 'matches.viewMyTeam': 'Ver partidos de mi equipo', 'matches.upcoming': 'Próximos partidos', 'matches.noUpcoming': 'No hay próximos partidos programados', 'matches.played': 'Partidos jugados', 'matches.noPast': 'No se encontraron partidos pasados',
+    'matches.title': 'Partidos', 'matches.loading': 'Cargando partidos...', 'matches.currentMatches': 'Partidos actuales', 'matches.teamSchedule': 'Calendario del equipo', 'matches.viewMyTeam': 'Ver partidos de mi equipo', 'matches.upcoming': 'Próximos partidos', 'matches.noUpcoming': 'No hay próximos partidos programados', 'matches.played': 'Partidos jugados', 'matches.noPast': 'No se encontraron partidos pasados', 'matches.latestMatch': 'Último Partido', 'matches.noRecentMatches': 'No se encontraron partidos recientes', 'matches.nextMatch': 'Próximo Partido',
     // Shop
     'shop.loginRequired': 'Debes iniciar sesión para comprar premium.', 'shop.checkoutError': 'Error al iniciar el pago. Inténtalo de nuevo.', 'shop.manageAccess': 'Gestiona tu acceso premium', 'shop.upgradeDesc': 'Mejora tu experiencia como manager con funciones premium',
     // Transfer Market
@@ -274,7 +274,7 @@ const translations = {
     // Stadium
     'stadium.error': 'Errore', 'stadium.notFound': 'Stadio non trovato', 'stadium.notFoundDesc': 'Lo stadio richiesto non è stato trovato.', 'stadium.recentMatchesFor': 'Partite recenti di', 'stadium.noRecentMatches': 'Nessuna partita recente trovata', 'stadium.upcomingMatches': 'Prossime partite', 'stadium.noUpcomingMatches': 'Nessuna partita in programma',
     // Matches
-    'matches.title': 'Partite', 'matches.loading': 'Caricamento partite...', 'matches.currentMatches': 'Partite attuali', 'matches.teamSchedule': 'Calendario partite', 'matches.viewMyTeam': 'Vedi le partite della mia squadra', 'matches.upcoming': 'Prossime partite', 'matches.noUpcoming': 'Nessuna partita in programma', 'matches.played': 'Partite giocate', 'matches.noPast': 'Nessuna partita passata trovata',
+    'matches.title': 'Partite', 'matches.loading': 'Caricamento partite...', 'matches.currentMatches': 'Partite attuali', 'matches.teamSchedule': 'Calendario partite', 'matches.viewMyTeam': 'Vedi le partite della mia squadra', 'matches.upcoming': 'Prossime partite', 'matches.noUpcoming': 'Nessuna partita in programma', 'matches.played': 'Partite giocate', 'matches.noPast': 'Nessuna partita passata trovata', 'matches.latestMatch': 'Ultima Partita', 'matches.noRecentMatches': 'Nessuna partita recente trovata', 'matches.nextMatch': 'Prossima Partita',
     // Shop
     'shop.loginRequired': 'Devi accedere per acquistare premium.', 'shop.checkoutError': 'Impossibile avviare il pagamento. Riprova.', 'shop.manageAccess': 'Gestisci il tuo accesso premium', 'shop.upgradeDesc': 'Migliora la tua esperienza da manager con funzionalità premium',
     // Transfer Market
@@ -361,7 +361,7 @@ const translations = {
     // Stadium
     'stadium.error': 'Fehler', 'stadium.notFound': 'Stadion nicht gefunden', 'stadium.notFoundDesc': 'Das angeforderte Stadion wurde nicht gefunden.', 'stadium.recentMatchesFor': 'Letzte Spiele von', 'stadium.noRecentMatches': 'Keine aktuellen Spiele gefunden', 'stadium.upcomingMatches': 'Bevorstehende Spiele', 'stadium.noUpcomingMatches': 'Keine bevorstehenden Spiele geplant',
     // Matches
-    'matches.title': 'Spiele', 'matches.loading': 'Lade Spiele...', 'matches.currentMatches': 'Aktuelle Spiele', 'matches.teamSchedule': 'Spielplan des Teams', 'matches.viewMyTeam': 'Spiele meines Teams anzeigen', 'matches.upcoming': 'Bevorstehende Spiele', 'matches.noUpcoming': 'Keine bevorstehenden Spiele geplant', 'matches.played': 'Gespielte Spiele', 'matches.noPast': 'Keine vergangenen Spiele gefunden',
+    'matches.title': 'Spiele', 'matches.loading': 'Lade Spiele...', 'matches.currentMatches': 'Aktuelle Spiele', 'matches.teamSchedule': 'Spielplan des Teams', 'matches.viewMyTeam': 'Spiele meines Teams anzeigen', 'matches.upcoming': 'Bevorstehende Spiele', 'matches.noUpcoming': 'Keine bevorstehenden Spiele geplant', 'matches.played': 'Gespielte Spiele', 'matches.noPast': 'Keine vergangenen Spiele gefunden', 'matches.latestMatch': 'Letztes Spiel', 'matches.noRecentMatches': 'Keine aktuellen Spiele gefunden', 'matches.nextMatch': 'Nächstes Spiel',
     // Shop
     'shop.loginRequired': 'Du musst eingeloggt sein, um Premium zu kaufen.', 'shop.checkoutError': 'Checkout konnte nicht gestartet werden. Bitte erneut versuchen.', 'shop.manageAccess': 'Verwalte deinen Premium-Zugang', 'shop.upgradeDesc': 'Verbessere dein Manager-Erlebnis mit Premium-Funktionen',
     // Transfer Market
@@ -448,7 +448,7 @@ const translations = {
     // Stadium
     'stadium.error': 'Błąd', 'stadium.notFound': 'Stadion nie znaleziony', 'stadium.notFoundDesc': 'Nie można znaleźć żądanego stadionu.', 'stadium.recentMatchesFor': 'Ostatnie mecze', 'stadium.noRecentMatches': 'Brak ostatnich meczów', 'stadium.upcomingMatches': 'Nadchodzące mecze', 'stadium.noUpcomingMatches': 'Brak zaplanowanych meczów',
     // Matches
-    'matches.title': 'Mecze', 'matches.loading': 'Ładowanie meczów...', 'matches.currentMatches': 'Aktualne mecze', 'matches.teamSchedule': 'Terminarz meczów', 'matches.viewMyTeam': 'Pokaż mecze mojego zespołu', 'matches.upcoming': 'Nadchodzące mecze', 'matches.noUpcoming': 'Brak zaplanowanych meczów', 'matches.played': 'Rozegrane mecze', 'matches.noPast': 'Brak poprzednich meczów',
+    'matches.title': 'Mecze', 'matches.loading': 'Ładowanie meczów...', 'matches.currentMatches': 'Aktualne mecze', 'matches.teamSchedule': 'Terminarz meczów', 'matches.viewMyTeam': 'Pokaż mecze mojego zespołu', 'matches.upcoming': 'Nadchodzące mecze', 'matches.noUpcoming': 'Brak zaplanowanych meczów', 'matches.played': 'Rozegrane mecze', 'matches.noPast': 'Brak poprzednich meczów', 'matches.latestMatch': 'Ostatni Mecz', 'matches.noRecentMatches': 'Nie znaleziono ostatnich meczów', 'matches.nextMatch': 'Następny Mecz',
     // Shop
     'shop.loginRequired': 'Musisz być zalogowany, aby kupić premium.', 'shop.checkoutError': 'Nie można uruchomić płatności. Spróbuj ponownie.', 'shop.manageAccess': 'Zarządzaj swoim dostępem premium', 'shop.upgradeDesc': 'Ulepsz swoje doświadczenie menedżera dzięki funkcjom premium',
     // Transfer Market
@@ -535,7 +535,7 @@ const translations = {
     // Stadium
     'stadium.error': 'Erro', 'stadium.notFound': 'Estádio não encontrado', 'stadium.notFoundDesc': 'O estádio solicitado não pôde ser encontrado.', 'stadium.recentMatchesFor': 'Jogos recentes de', 'stadium.noRecentMatches': 'Nenhum jogo recente encontrado', 'stadium.upcomingMatches': 'Próximos jogos', 'stadium.noUpcomingMatches': 'Nenhum próximo jogo agendado',
     // Matches
-    'matches.title': 'Jogos', 'matches.loading': 'Carregando jogos...', 'matches.currentMatches': 'Jogos atuais', 'matches.teamSchedule': 'Calendário do time', 'matches.viewMyTeam': 'Ver jogos do meu time', 'matches.upcoming': 'Próximos jogos', 'matches.noUpcoming': 'Nenhum próximo jogo agendado', 'matches.played': 'Jogos disputados', 'matches.noPast': 'Nenhum jogo anterior encontrado',
+    'matches.title': 'Jogos', 'matches.loading': 'Carregando jogos...', 'matches.currentMatches': 'Jogos atuais', 'matches.teamSchedule': 'Calendário do time', 'matches.viewMyTeam': 'Ver jogos do meu time', 'matches.upcoming': 'Próximos jogos', 'matches.noUpcoming': 'Nenhum próximo jogo agendado', 'matches.played': 'Jogos disputados', 'matches.noPast': 'Nenhum jogo anterior encontrado', 'matches.latestMatch': 'Último Jogo', 'matches.noRecentMatches': 'Nenhum jogo recente encontrado', 'matches.nextMatch': 'Próximo Jogo',
     // Shop
     'shop.loginRequired': 'Você deve estar logado para comprar premium.', 'shop.checkoutError': 'Falha ao iniciar o pagamento. Tente novamente.', 'shop.manageAccess': 'Gerencie seu acesso premium', 'shop.upgradeDesc': 'Aprimore sua experiência de gerente com recursos premium',
     // Transfer Market
@@ -622,7 +622,7 @@ const translations = {
     // Stadium
     'stadium.error': 'Erreur', 'stadium.notFound': 'Stade introuvable', 'stadium.notFoundDesc': 'Le stade demandé est introuvable.', 'stadium.recentMatchesFor': 'Matchs récents de', 'stadium.noRecentMatches': 'Aucun match récent trouvé', 'stadium.upcomingMatches': 'Prochains matchs', 'stadium.noUpcomingMatches': 'Aucun prochain match prévu',
     // Matches
-    'matches.title': 'Matchs', 'matches.loading': 'Chargement des matchs...', 'matches.currentMatches': 'Matchs actuels', 'matches.teamSchedule': "Calendrier de l'équipe", 'matches.viewMyTeam': 'Voir les matchs de mon équipe', 'matches.upcoming': 'Prochains matchs', 'matches.noUpcoming': 'Aucun prochain match prévu', 'matches.played': 'Matchs joués', 'matches.noPast': 'Aucun match passé trouvé',
+    'matches.title': 'Matchs', 'matches.loading': 'Chargement des matchs...', 'matches.currentMatches': 'Matchs actuels', 'matches.teamSchedule': "Calendrier de l'équipe", 'matches.viewMyTeam': 'Voir les matchs de mon équipe', 'matches.upcoming': 'Prochains matchs', 'matches.noUpcoming': 'Aucun prochain match prévu', 'matches.played': 'Matchs joués', 'matches.noPast': 'Aucun match passé trouvé', 'matches.latestMatch': 'Dernier Match', 'matches.noRecentMatches': 'Aucun match récent trouvé', 'matches.nextMatch': 'Prochain Match',
     // Shop
     'shop.loginRequired': 'Vous devez être connecté pour acheter le premium.', 'shop.checkoutError': 'Impossible de lancer le paiement. Veuillez réessayer.', 'shop.manageAccess': 'Gérez votre accès premium', 'shop.upgradeDesc': 'Améliorez votre expérience de manager avec les fonctionnalités premium',
     // Transfer Market
@@ -709,7 +709,7 @@ const translations = {
     // Stadium
     'stadium.error': '错误', 'stadium.notFound': '未找到球场', 'stadium.notFoundDesc': '找不到所请求的球场。', 'stadium.recentMatchesFor': '近期比赛 -', 'stadium.noRecentMatches': '未找到最近的比赛', 'stadium.upcomingMatches': '即将到来的比赛', 'stadium.noUpcomingMatches': '没有即将到来的比赛',
     // Matches
-    'matches.title': '比赛', 'matches.loading': '正在加载比赛...', 'matches.currentMatches': '当前比赛', 'matches.teamSchedule': '球队赛程', 'matches.viewMyTeam': '查看我的球队比赛', 'matches.upcoming': '即将到来的比赛', 'matches.noUpcoming': '没有即将到来的比赛', 'matches.played': '已进行的比赛', 'matches.noPast': '未找到过去的比赛',
+    'matches.title': '比赛', 'matches.loading': '正在加载比赛...', 'matches.currentMatches': '当前比赛', 'matches.teamSchedule': '球队赛程', 'matches.viewMyTeam': '查看我的球队比赛', 'matches.upcoming': '即将到来的比赛', 'matches.noUpcoming': '没有即将到来的比赛', 'matches.played': '已进行的比赛', 'matches.noPast': '未找到过去的比赛', 'matches.latestMatch': '最近比赛', 'matches.noRecentMatches': '未找到最近的比赛', 'matches.nextMatch': '下场比赛',
     // Shop
     'shop.loginRequired': '您必须登录才能购买高级版。', 'shop.checkoutError': '无法启动结账流程。请重试。', 'shop.manageAccess': '管理您的高级访问权限', 'shop.upgradeDesc': '通过高级功能提升您的管理体验',
     // Transfer Market
@@ -787,7 +787,7 @@ const translations = {
     // Stadium
     'stadium.error': 'Ошибка', 'stadium.notFound': 'Стадион не найден', 'stadium.notFoundDesc': 'Запрошенный стадион не найден.', 'stadium.recentMatchesFor': 'Недавние матчи', 'stadium.noRecentMatches': 'Недавних матчей не найдено', 'stadium.upcomingMatches': 'Предстоящие матчи', 'stadium.noUpcomingMatches': 'Предстоящих матчей нет',
     // Matches
-    'matches.title': 'Матчи', 'matches.loading': 'Загрузка матчей...', 'matches.currentMatches': 'Текущие матчи', 'matches.teamSchedule': 'Расписание матчей', 'matches.viewMyTeam': 'Матчи моей команды', 'matches.upcoming': 'Предстоящие матчи', 'matches.noUpcoming': 'Предстоящих матчей нет', 'matches.played': 'Сыгранные матчи', 'matches.noPast': 'Прошедших матчей не найдено',
+    'matches.title': 'Матчи', 'matches.loading': 'Загрузка матчей...', 'matches.currentMatches': 'Текущие матчи', 'matches.teamSchedule': 'Расписание матчей', 'matches.viewMyTeam': 'Матчи моей команды', 'matches.upcoming': 'Предстоящие матчи', 'matches.noUpcoming': 'Предстоящих матчей нет', 'matches.played': 'Сыгранные матчи', 'matches.noPast': 'Прошедших матчей не найдено', 'matches.latestMatch': 'Последний Матч', 'matches.noRecentMatches': 'Последних матчей не найдено', 'matches.nextMatch': 'Следующий Матч',
     // Shop
     'shop.loginRequired': 'Войдите в систему, чтобы купить premium.', 'shop.checkoutError': 'Не удалось начать оформление заказа. Попробуйте снова.', 'shop.manageAccess': 'Управляйте доступом к premium', 'shop.upgradeDesc': 'Улучшите свой опыт менеджера с premium функциями',
     // Transfer Market
@@ -865,7 +865,7 @@ const translations = {
     // Stadium
     'stadium.error': 'Fout', 'stadium.notFound': 'Stadion niet gevonden', 'stadium.notFoundDesc': 'Het gevraagde stadion kon niet worden gevonden.', 'stadium.recentMatchesFor': 'Recente wedstrijden van', 'stadium.noRecentMatches': 'Geen recente wedstrijden gevonden', 'stadium.upcomingMatches': 'Aankomende wedstrijden', 'stadium.noUpcomingMatches': 'Geen aankomende wedstrijden gepland',
     // Matches
-    'matches.title': 'Wedstrijden', 'matches.loading': 'Wedstrijden laden...', 'matches.currentMatches': 'Huidige wedstrijden', 'matches.teamSchedule': 'Wedstrijdschema', 'matches.viewMyTeam': 'Wedstrijden van mijn team', 'matches.upcoming': 'Aankomende wedstrijden', 'matches.noUpcoming': 'Geen aankomende wedstrijden gepland', 'matches.played': 'Gespeelde wedstrijden', 'matches.noPast': 'Geen vorige wedstrijden gevonden',
+    'matches.title': 'Wedstrijden', 'matches.loading': 'Wedstrijden laden...', 'matches.currentMatches': 'Huidige wedstrijden', 'matches.teamSchedule': 'Wedstrijdschema', 'matches.viewMyTeam': 'Wedstrijden van mijn team', 'matches.upcoming': 'Aankomende wedstrijden', 'matches.noUpcoming': 'Geen aankomende wedstrijden gepland', 'matches.played': 'Gespeelde wedstrijden', 'matches.noPast': 'Geen vorige wedstrijden gevonden', 'matches.latestMatch': 'Laatste Wedstrijd', 'matches.noRecentMatches': 'Geen recente wedstrijden gevonden', 'matches.nextMatch': 'Volgende Wedstrijd',
     // Shop
     'shop.loginRequired': 'Je moet ingelogd zijn om premium te kopen.', 'shop.checkoutError': 'Afrekenen mislukt. Probeer het opnieuw.', 'shop.manageAccess': 'Beheer uw premium toegang', 'shop.upgradeDesc': 'Verbeter uw manager-ervaring met premium functies',
     // Transfer Market
@@ -943,7 +943,7 @@ const translations = {
     // Stadium
     'stadium.error': 'Hata', 'stadium.notFound': 'Stadyum bulunamadı', 'stadium.notFoundDesc': 'İstenen stadyum bulunamadı.', 'stadium.recentMatchesFor': 'Son maçlar -', 'stadium.noRecentMatches': 'Son maç bulunamadı', 'stadium.upcomingMatches': 'Yaklaşan maçlar', 'stadium.noUpcomingMatches': 'Planlanmış yaklaşan maç yok',
     // Matches
-    'matches.title': 'Maçlar', 'matches.loading': 'Maçlar yükleniyor...', 'matches.currentMatches': 'Güncel maçlar', 'matches.teamSchedule': 'Takım maç takvimi', 'matches.viewMyTeam': 'Takımımın maçlarını gör', 'matches.upcoming': 'Yaklaşan maçlar', 'matches.noUpcoming': 'Planlanmış yaklaşan maç yok', 'matches.played': 'Oynanan maçlar', 'matches.noPast': 'Geçmiş maç bulunamadı',
+    'matches.title': 'Maçlar', 'matches.loading': 'Maçlar yükleniyor...', 'matches.currentMatches': 'Güncel maçlar', 'matches.teamSchedule': 'Takım maç takvimi', 'matches.viewMyTeam': 'Takımımın maçlarını gör', 'matches.upcoming': 'Yaklaşan maçlar', 'matches.noUpcoming': 'Planlanmış yaklaşan maç yok', 'matches.played': 'Oynanan maçlar', 'matches.noPast': 'Geçmiş maç bulunamadı', 'matches.latestMatch': 'Son Maç', 'matches.noRecentMatches': 'Son maç bulunamadı', 'matches.nextMatch': 'Sonraki Maç',
     // Shop
     'shop.loginRequired': 'Premium satın almak için giriş yapmalısınız.', 'shop.checkoutError': 'Ödeme başlatılamadı. Lütfen tekrar deneyin.', 'shop.manageAccess': 'Premium erişiminizi yönetin', 'shop.upgradeDesc': 'Premium özelliklerle yönetici deneyiminizi geliştirin',
     // Transfer Market
@@ -1021,7 +1021,7 @@ const translations = {
     // Stadium
     'stadium.error': 'エラー', 'stadium.notFound': 'スタジアムが見つかりません', 'stadium.notFoundDesc': 'リクエストされたスタジアムが見つかりませんでした。', 'stadium.recentMatchesFor': '最近の試合 -', 'stadium.noRecentMatches': '最近の試合が見つかりません', 'stadium.upcomingMatches': '今後の試合', 'stadium.noUpcomingMatches': '予定されている試合はありません',
     // Matches
-    'matches.title': '試合', 'matches.loading': '試合を読み込み中...', 'matches.currentMatches': '現在の試合', 'matches.teamSchedule': 'チームの試合スケジュール', 'matches.viewMyTeam': '自チームの試合を見る', 'matches.upcoming': '今後の試合', 'matches.noUpcoming': '予定されている試合はありません', 'matches.played': 'プレイ済み試合', 'matches.noPast': '過去の試合が見つかりません',
+    'matches.title': '試合', 'matches.loading': '試合を読み込み中...', 'matches.currentMatches': '現在の試合', 'matches.teamSchedule': 'チームの試合スケジュール', 'matches.viewMyTeam': '自チームの試合を見る', 'matches.upcoming': '今後の試合', 'matches.noUpcoming': '予定されている試合はありません', 'matches.played': 'プレイ済み試合', 'matches.noPast': '過去の試合が見つかりません', 'matches.latestMatch': '最新試合', 'matches.noRecentMatches': '最近の試合は見つかりませんでした', 'matches.nextMatch': '次の試合',
     // Shop
     'shop.loginRequired': 'プレミアムを購入するにはログインが必要です。', 'shop.checkoutError': 'チェックアウトを開始できませんでした。もう一度お試しください。', 'shop.manageAccess': 'プレミアムアクセスを管理', 'shop.upgradeDesc': 'プレミアム機能でマネージャー体験をアップグレード',
     // Transfer Market
@@ -1099,7 +1099,7 @@ const translations = {
     // Stadium
     'stadium.error': '오류', 'stadium.notFound': '경기장을 찾을 수 없습니다', 'stadium.notFoundDesc': '요청한 경기장을 찾을 수 없습니다.', 'stadium.recentMatchesFor': '최근 경기 -', 'stadium.noRecentMatches': '최근 경기를 찾을 수 없습니다', 'stadium.upcomingMatches': '예정된 경기', 'stadium.noUpcomingMatches': '예정된 경기가 없습니다',
     // Matches
-    'matches.title': '경기', 'matches.loading': '경기 불러오는 중...', 'matches.currentMatches': '현재 경기', 'matches.teamSchedule': '팀 경기 일정', 'matches.viewMyTeam': '내 팀 경기 보기', 'matches.upcoming': '예정된 경기', 'matches.noUpcoming': '예정된 경기가 없습니다', 'matches.played': '진행된 경기', 'matches.noPast': '과거 경기를 찾을 수 없습니다',
+    'matches.title': '경기', 'matches.loading': '경기 불러오는 중...', 'matches.currentMatches': '현재 경기', 'matches.teamSchedule': '팀 경기 일정', 'matches.viewMyTeam': '내 팀 경기 보기', 'matches.upcoming': '예정된 경기', 'matches.noUpcoming': '예정된 경기가 없습니다', 'matches.played': '진행된 경기', 'matches.noPast': '과거 경기를 찾을 수 없습니다', 'matches.latestMatch': '최근 경기', 'matches.noRecentMatches': '최근 경기를 찾을 수 없습니다', 'matches.nextMatch': '다음 경기',
     // Shop
     'shop.loginRequired': '프리미엄을 구매하려면 로그인해야 합니다.', 'shop.checkoutError': '결제를 시작하지 못했습니다. 다시 시도하세요.', 'shop.manageAccess': '프리미엄 접근 관리', 'shop.upgradeDesc': '프리미엄 기능으로 매니저 경험을 향상시키세요',
     // Transfer Market
@@ -1177,7 +1177,7 @@ const translations = {
     // Stadium
     'stadium.error': 'Грешка', 'stadium.notFound': 'Стадионът не е намерен', 'stadium.notFoundDesc': 'Исканият стадион не може да бъде намерен.', 'stadium.recentMatchesFor': 'Последни мачове на', 'stadium.noRecentMatches': 'Не са намерени скорошни мачове', 'stadium.upcomingMatches': 'Предстоящи мачове', 'stadium.noUpcomingMatches': 'Няма предстоящи мачове',
     // Matches
-    'matches.title': 'Мачове', 'matches.loading': 'Зареждане на мачове...', 'matches.currentMatches': 'Текущи мачове', 'matches.teamSchedule': 'График на мачовете', 'matches.viewMyTeam': 'Виж мачовете на моя отбор', 'matches.upcoming': 'Предстоящи мачове', 'matches.noUpcoming': 'Няма предстоящи мачове', 'matches.played': 'Изиграни мачове', 'matches.noPast': 'Не са намерени минали мачове',
+    'matches.title': 'Мачове', 'matches.loading': 'Зареждане на мачове...', 'matches.currentMatches': 'Текущи мачове', 'matches.teamSchedule': 'График на мачовете', 'matches.viewMyTeam': 'Виж мачовете на моя отбор', 'matches.upcoming': 'Предстоящи мачове', 'matches.noUpcoming': 'Няма предстоящи мачове', 'matches.played': 'Изиграни мачове', 'matches.noPast': 'Не са намерени минали мачове', 'matches.latestMatch': 'Последен Мач', 'matches.noRecentMatches': 'Не са намерени скорошни мачове', 'matches.nextMatch': 'Следващ Мач',
     // Shop
     'shop.loginRequired': 'Трябва да влезете в профила си, за да закупите премиум.', 'shop.checkoutError': 'Неуспешно стартиране на плащане. Моля, опитайте отново.', 'shop.manageAccess': 'Управлявайте своя премиум достъп', 'shop.upgradeDesc': 'Подобрете опита си като мениджър с премиум функции',
     // Transfer Market
@@ -1255,7 +1255,7 @@ const translations = {
     // Stadium
     'stadium.error': 'Eroare', 'stadium.notFound': 'Stadionul nu a fost găsit', 'stadium.notFoundDesc': 'Stadionul solicitat nu a putut fi găsit.', 'stadium.recentMatchesFor': 'Meciuri recente pentru', 'stadium.noRecentMatches': 'Nu au fost găsite meciuri recente', 'stadium.upcomingMatches': 'Meciuri viitoare', 'stadium.noUpcomingMatches': 'Nu există meciuri viitoare programate',
     // Matches
-    'matches.title': 'Meciuri', 'matches.loading': 'Se încarcă meciurile...', 'matches.currentMatches': 'Meciuri curente', 'matches.teamSchedule': 'Programul meciurilor', 'matches.viewMyTeam': 'Vezi meciurile echipei mele', 'matches.upcoming': 'Meciuri viitoare', 'matches.noUpcoming': 'Nu există meciuri viitoare programate', 'matches.played': 'Meciuri jucate', 'matches.noPast': 'Nu au fost găsite meciuri anterioare',
+    'matches.title': 'Meciuri', 'matches.loading': 'Se încarcă meciurile...', 'matches.currentMatches': 'Meciuri curente', 'matches.teamSchedule': 'Programul meciurilor', 'matches.viewMyTeam': 'Vezi meciurile echipei mele', 'matches.upcoming': 'Meciuri viitoare', 'matches.noUpcoming': 'Nu există meciuri viitoare programate', 'matches.played': 'Meciuri jucate', 'matches.noPast': 'Nu au fost găsite meciuri anterioare', 'matches.latestMatch': 'Ultimul Meci', 'matches.noRecentMatches': 'Nu au fost găsite meciuri recente', 'matches.nextMatch': 'Meciul Următor',
     // Shop
     'shop.loginRequired': 'Trebuie să fiți conectat pentru a cumpăra premium.', 'shop.checkoutError': 'Eroare la inițierea plății. Vă rugăm să încercați din nou.', 'shop.manageAccess': 'Gestionați accesul dvs. premium', 'shop.upgradeDesc': 'Îmbunătățiți experiența dvs. de manager cu funcții premium',
     // Transfer Market

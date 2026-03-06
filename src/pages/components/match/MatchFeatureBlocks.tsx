@@ -5,6 +5,7 @@ import { format, parseISO, isValid } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { FileText, Eye, Clock, Settings } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface MatchFeatureBlocksProps {
   latestMatch: TeamMatch | null;
@@ -13,6 +14,7 @@ interface MatchFeatureBlocksProps {
 
 export const MatchFeatureBlocks = ({ latestMatch, upcomingMatch }: MatchFeatureBlocksProps) => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const formatMatchDate = (dateString: string) => {
     try {
@@ -54,7 +56,7 @@ export const MatchFeatureBlocks = ({ latestMatch, upcomingMatch }: MatchFeatureB
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center">
             <span className="mr-2">⚽</span>
-            Latest Match
+            {t('matches.latestMatch')}
           </CardTitle>
         </CardHeader>
         <CardContent className="flex-1 flex flex-col justify-between">
@@ -79,17 +81,16 @@ export const MatchFeatureBlocks = ({ latestMatch, upcomingMatch }: MatchFeatureB
               </div>
               {latestMatch.result && (
                 <div className="text-center">
-                  <span className={`text-sm font-medium ${
-                    latestMatch.result === "Win" ? "text-green-600" :
-                    latestMatch.result === "Draw" ? "text-yellow-600" : "text-red-600"
-                  }`}>
+                  <span className={`text-sm font-medium ${latestMatch.result === "Win" ? "text-green-600" :
+                      latestMatch.result === "Draw" ? "text-yellow-600" : "text-red-600"
+                    }`}>
                     {latestMatch.result}
                   </span>
                 </div>
               )}
               <div className="flex justify-center pt-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => navigate(`/match/${latestMatch.match_id}`)}
                   className="h-8 w-8 p-0"
@@ -100,7 +101,7 @@ export const MatchFeatureBlocks = ({ latestMatch, upcomingMatch }: MatchFeatureB
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500 flex-1 flex items-center justify-center">
-              No recent matches found
+              {t('matches.noRecentMatches')}
             </div>
           )}
         </CardContent>
@@ -111,7 +112,7 @@ export const MatchFeatureBlocks = ({ latestMatch, upcomingMatch }: MatchFeatureB
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center">
             <Clock className="w-5 h-5 mr-2" />
-            Next Match
+            {t('matches.nextMatch')}
           </CardTitle>
         </CardHeader>
         <CardContent className="flex-1 flex flex-col justify-between">
@@ -133,16 +134,16 @@ export const MatchFeatureBlocks = ({ latestMatch, upcomingMatch }: MatchFeatureB
                 </div>
               </div>
               <div className="flex justify-center space-x-2 pt-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => navigate(`/match/${upcomingMatch.match_id}/lineup`)}
                   className="h-8 w-8 p-0"
                 >
                   <Settings className="h-4 w-4" />
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={() => navigate(`/match/${upcomingMatch.match_id}`)}
                   className="h-8 w-8 p-0"
@@ -153,7 +154,7 @@ export const MatchFeatureBlocks = ({ latestMatch, upcomingMatch }: MatchFeatureB
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500 flex-1 flex items-center justify-center">
-              No upcoming matches scheduled
+              {t('matches.noUpcoming')}
             </div>
           )}
         </CardContent>
