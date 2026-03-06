@@ -6,24 +6,26 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { Inbox, Mail, Trash2, Reply } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Link } from "react-router-dom";
 import { NewMessageDialog } from "@/components/messages/NewMessageDialog";
 
 const Messages = () => {
   const { messages, isLoading, markAsRead, deleteMessage } = useMessages();
   const { manager } = useAuth();
+  const { t } = useLanguage();
 
   const handleMarkAsRead = async (message: Message) => {
     const success = await markAsRead(message.id);
     if (success) {
-      toast.success("Message marked as read");
+      toast.success(t('messages.markedAsRead'));
     }
   };
 
   const handleDelete = async (message: Message) => {
     const success = await deleteMessage(message.id);
     if (success) {
-      toast.success("Message deleted");
+      toast.success(t('messages.deleted'));
     }
   };
 
@@ -38,15 +40,15 @@ const Messages = () => {
     <div className="container mx-auto py-8">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Messages</CardTitle>
+          <CardTitle className="text-2xl">{t('messages.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div>Loading messages...</div>
+            <div>{t('messages.loading')}</div>
           ) : messages.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Inbox className="mx-auto h-12 w-12 mb-4 opacity-50" />
-              <p>No messages found</p>
+              <p>{t('messages.empty')}</p>
             </div>
           ) : (
             <div className="space-y-4">

@@ -4,20 +4,22 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Flag } from "@/components/ui/flag";
 import { Link } from "react-router-dom";
 import { useWorldStats } from "@/hooks/useWorldStats";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const World = () => {
   const { stats, isLoading, error } = useWorldStats();
+  const { t } = useLanguage();
 
-  if (isLoading) return <div>Loading world statistics...</div>;
-  if (error) return <div>Error: {error}</div>;
-  if (!stats) return <div>No data available</div>;
+  if (isLoading) return <div>{t('world.loading')}</div>;
+  if (error) return <div>{t('world.error')}: {error}</div>;
+  if (!stats) return <div>{t('world.noData')}</div>;
 
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Regions</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('world.totalRegions')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalRegions}</div>
@@ -25,7 +27,7 @@ const World = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Managers</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('world.totalManagers')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalManagers}</div>
@@ -33,7 +35,7 @@ const World = () => {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Teams</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('world.totalTeams')}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalTeams}</div>
@@ -43,22 +45,22 @@ const World = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>World Leagues</CardTitle>
+          <CardTitle>{t('world.leagues')}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Country</TableHead>
-                <TableHead className="text-right">Teams</TableHead>
+                <TableHead>{t('world.colCountry')}</TableHead>
+                <TableHead className="text-right">{t('world.colTeams')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {stats.leagues.map((league) => (
                 <TableRow key={league.league_id}>
                   <TableCell>
-                    <Link 
-                      to={`/league/${league.league_id}`} 
+                    <Link
+                      to={`/league/${league.league_id}`}
                       className="flex items-center gap-2 hover:underline"
                     >
                       <Flag countryId={league.region_id} />
