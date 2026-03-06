@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/services/apiClient";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { User, Search, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -63,6 +64,7 @@ const PlayerAdminTool = () => {
   const [loading, setLoading] = useState(true);
   const [fields, setFields] = useState<FieldConfig[]>([]);
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   useEffect(() => {
     loadPlayers();
@@ -89,7 +91,7 @@ const PlayerAdminTool = () => {
         setFields(dynamicFields);
       }
     } catch (error) {
-      toast({ title: "Error", description: "Failed to load players", variant: "destructive" });
+      toast({ title: t('common.error'), description: t('common.failedLoadPlayers'), variant: "destructive" });
     } finally {
       setLoading(false);
     }

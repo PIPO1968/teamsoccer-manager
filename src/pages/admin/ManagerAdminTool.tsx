@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/services/apiClient";
 import { UserCog, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface Manager {
   user_id: number;
@@ -39,6 +40,7 @@ const ManagerAdminTool = () => {
   const [loading, setLoading] = useState(true);
   const [fields, setFields] = useState<FieldConfig[]>([]);
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   // Define which fields should be editable
   const editableFields = [
@@ -72,8 +74,8 @@ const ManagerAdminTool = () => {
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to load managers",
+        title: t('common.error'),
+        description: t('common.failedLoadManagers'),
         variant: "destructive",
       });
     } finally {
@@ -122,9 +124,9 @@ const ManagerAdminTool = () => {
       sortable: true,
       render: (status: string) => (
         <span className={`px-2 py-1 rounded text-xs ${status === 'active' ? 'bg-green-100 text-green-800' :
-            status === 'waiting_list' ? 'bg-yellow-100 text-yellow-800' :
-              status === 'carnet_pending' ? 'bg-blue-100 text-blue-800' :
-                'bg-red-100 text-red-800'
+          status === 'waiting_list' ? 'bg-yellow-100 text-yellow-800' :
+            status === 'carnet_pending' ? 'bg-blue-100 text-blue-800' :
+              'bg-red-100 text-red-800'
           }`}>
           {status === 'carnet_pending' ? 'Carnet pendiente' : status}
         </span>

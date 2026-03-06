@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/services/apiClient";
 import { Building, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface Team {
   team_id: number;
@@ -41,6 +42,7 @@ const TeamAdminTool = () => {
   const [loading, setLoading] = useState(true);
   const [fields, setFields] = useState<FieldConfig[]>([]);
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   // Define which fields should be editable
   const editableFields = [
@@ -74,8 +76,8 @@ const TeamAdminTool = () => {
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to load teams",
+        title: t('common.error'),
+        description: t('common.failedLoadTeams'),
         variant: "destructive",
       });
     } finally {
@@ -139,13 +141,13 @@ const TeamAdminTool = () => {
       key: 'manager',
       label: 'Manager',
       sortable: true,
-      render: (_: any, team: any) => team.managers?.username || 'No Manager'
+      render: (_: any, team: any) => team.manager_username || 'No Manager'
     },
     {
       key: 'country',
       label: 'Country',
       sortable: true,
-      render: (_: any, team: any) => team.leagues_regions?.name || 'Unknown'
+      render: (_: any, team: any) => team.country_name || 'Unknown'
     },
     { key: 'team_rating', label: 'Rating', sortable: true },
     {
@@ -218,8 +220,27 @@ const TeamAdminTool = () => {
             )}
           </CardContent>
         </Card>
-      </div>
-    </AdminGuard>
+                {[500000, 1000000, 2000000, 5000000].map((amount) => (
+                  <Button
+                    key={amount}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setNewBalance(String(amount))}
+                  >
+                    €{(amount / 1000000).toFixed(1)}M
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setFinanceTeam(null)}>Cancelar</Button>
+              <Button onClick={handleSaveFinance} disabled={savingFinance}>
+                {savingFinance ? "Guardando..." : "Guardar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent >
+      </div >
+    </AdminGuard >
   );
 };
 

@@ -10,10 +10,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { Newspaper, Plus, Edit, Trash2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const NewsManagement = () => {
   const { manager } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -44,12 +46,12 @@ const NewsManagement = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-news'] });
       queryClient.invalidateQueries({ queryKey: ['community-news'] });
-      toast({ title: "News article created successfully!" });
+      toast({ title: t('news.articleCreated') });
       setIsCreating(false);
       setFormData({ title: '', content: '' });
     },
     onError: (error: any) => {
-      toast({ title: "Error creating article", description: error.message, variant: "destructive" });
+      toast({ title: t('news.errorCreating'), description: error.message, variant: "destructive" });
     }
   });
 
@@ -63,12 +65,12 @@ const NewsManagement = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-news'] });
       queryClient.invalidateQueries({ queryKey: ['community-news'] });
-      toast({ title: "News article updated successfully!" });
+      toast({ title: t('news.articleUpdated') });
       setEditingId(null);
       setFormData({ title: '', content: '' });
     },
     onError: (error: any) => {
-      toast({ title: "Error updating article", description: error.message, variant: "destructive" });
+      toast({ title: t('news.errorUpdating'), description: error.message, variant: "destructive" });
     }
   });
 
@@ -82,7 +84,7 @@ const NewsManagement = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-news'] });
       queryClient.invalidateQueries({ queryKey: ['community-news'] });
-      toast({ title: "Publication status updated!" });
+      toast({ title: t('news.publishUpdated') });
     }
   });
 
@@ -93,14 +95,14 @@ const NewsManagement = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-news'] });
       queryClient.invalidateQueries({ queryKey: ['community-news'] });
-      toast({ title: "News article deleted successfully!" });
+      toast({ title: t('news.articleDeleted') });
     }
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title.trim() || !formData.content.trim()) {
-      toast({ title: "Please fill in all fields", variant: "destructive" });
+      toast({ title: t('news.fillFields'), variant: "destructive" });
       return;
     }
     if (editingId) {
@@ -127,23 +129,23 @@ const NewsManagement = () => {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Newspaper className="h-6 w-6 text-blue-600" />
-          <h1 className="text-2xl font-bold">News Management</h1>
+          <h1 className="text-2xl font-bold">{t('news.management')}</h1>
         </div>
         <Button onClick={() => setIsCreating(true)} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
-          Create News Article
+          {t('news.createBtn')}
         </Button>
       </div>
 
       {isCreating && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>{editingId ? 'Edit Article' : 'Create New Article'}</CardTitle>
+            <CardTitle>{editingId ? t('news.editTitle') : t('news.createTitle')}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Title</label>
+                <label className="block text-sm font-medium mb-2">{t('news.labelTitle')}</label>
                 <Input
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -152,7 +154,7 @@ const NewsManagement = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Content</label>
+                <label className="block text-sm font-medium mb-2">{t('news.labelContent')}</label>
                 <Textarea
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
@@ -163,9 +165,9 @@ const NewsManagement = () => {
               </div>
               <div className="flex gap-2">
                 <Button type="submit" disabled={createNewsMutation.isPending || updateNewsMutation.isPending}>
-                  {editingId ? 'Update Article' : 'Create Article'}
+                  {editingId ? t('news.updateBtn') : t('news.createArticle')}
                 </Button>
-                <Button type="button" variant="outline" onClick={cancelEdit}>Cancel</Button>
+                <Button type="button" variant="outline" onClick={cancelEdit}>{t('news.cancel')}</Button>
               </div>
             </form>
           </CardContent>
@@ -174,7 +176,7 @@ const NewsManagement = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>News Articles</CardTitle>
+          <CardTitle>{t('news.articlesTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -201,7 +203,7 @@ const NewsManagement = () => {
                       </p>
                       <div className="flex items-center gap-2">
                         <span className={`px-2 py-1 text-xs rounded ${article.is_published ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                          {article.is_published ? 'Published' : 'Draft'}
+                          {article.is_published ? t('news.published') : t('news.draft')}
                         </span>
                       </div>
                     </div>
@@ -221,7 +223,7 @@ const NewsManagement = () => {
               ))}
             </div>
           ) : (
-            <p className="text-gray-500">No news articles found.</p>
+            <p className="text-gray-500">{t('news.noArticles')}</p>
           )}
         </CardContent>
       </Card>
