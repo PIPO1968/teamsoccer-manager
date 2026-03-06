@@ -100,6 +100,20 @@ const initDb = async () => {
         await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS crosses INTEGER DEFAULT 30`);
         await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS image_url TEXT`);
         await client.query(`ALTER TABLE manager_license_tests ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE`);
+        // Tabla series (liga competitiva)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS series (
+                series_id SERIAL PRIMARY KEY,
+                division INTEGER NOT NULL DEFAULT 1,
+                group_number INTEGER NOT NULL DEFAULT 1,
+                region_id INTEGER REFERENCES leagues_regions(region_id) ON DELETE SET NULL,
+                season INTEGER NOT NULL DEFAULT 1,
+                parent_series_id INTEGER REFERENCES series(series_id) ON DELETE SET NULL,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+        // Añadir coach_level a equipos si no existe
+        await client.query(`ALTER TABLE teams ADD COLUMN IF NOT EXISTS coach_level TEXT DEFAULT 'poor'`);
         console.log('✅ Tablas verificadas/creadas correctamente');
     } catch (err) {
         console.error('❌ Error creando tablas:', err.message);
