@@ -7,7 +7,7 @@ import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTeamData } from "@/hooks/useTeamData";
 import { useCompleteCarnetTest } from '@/hooks/useManagerLicense';
-import { useAuth } from '@/contexts/AuthContext';
+import { useUserTeam } from '@/hooks/useUserTeam';
 
 const sortOptions = [
   { value: "firstName", label: "First Name" },
@@ -26,8 +26,8 @@ const sortOptions = [
 
 const Players = () => {
   const { teamId } = useParams<{ teamId: string }>();
-  const { manager } = useAuth();
-  useCompleteCarnetTest('visit_players', !!teamId && teamId === String(manager?.team_id));
+  const { team: ownTeam } = useUserTeam();
+  useCompleteCarnetTest('visit_players', !!teamId && teamId === String(ownTeam?.team_id));
   const [sortBy, setSortBy] = useState<string>("firstName");
   const { players, isLoading, error } = useTeamPlayers(teamId);
   const { team, isLoading: isTeamLoading } = useTeamData(teamId);
