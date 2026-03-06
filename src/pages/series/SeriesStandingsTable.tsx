@@ -60,8 +60,10 @@ const SeriesStandingsTable = ({ teams, division }: SeriesStandingsTableProps) =>
     if (!isDiv1) return null;
     if (pos === 1) return <div className="w-1.5 h-1.5 rounded-full bg-green-500" title="Champions Cup (next season)" />;
     if (pos === 2) return <div className="w-1.5 h-1.5 rounded-full bg-blue-500" title="TS Cup (next season)" />;
-    if (pos === 5 || pos === 6) return <div className="w-1.5 h-1.5 rounded-full bg-orange-500" title="Playoff" />;
-    if (pos === 7 || pos === 8) return <div className="w-1.5 h-1.5 rounded-full bg-red-500" title="Relegation to Div II" />;
+    if (pos === 5) return <div className="w-1.5 h-1.5 rounded-full bg-orange-500" title="Playoff vs 2nd Div II.2" />;
+    if (pos === 6) return <div className="w-1.5 h-1.5 rounded-full bg-orange-500" title="Playoff vs 2nd Div II.1" />;
+    if (pos === 7) return <div className="w-1.5 h-1.5 rounded-full bg-red-500" title="Relegation to Div II.1" />;
+    if (pos === 8) return <div className="w-1.5 h-1.5 rounded-full bg-red-500" title="Relegation to Div II.2" />;
     return null;
   };
 
