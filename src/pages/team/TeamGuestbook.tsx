@@ -20,14 +20,14 @@ export default function TeamGuestbook({ teamId }: TeamGuestbookProps) {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const { manager } = useAuth();
   const { t } = useLanguage();
-  
+
   // Determine if the current team is the manager's own team
   const isOwnTeam = manager?.team_id === parseInt(teamId || '0');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!message.trim()) return;
-    
+
     setIsSubmitting(true);
     const success = await addEntry(message);
     if (success) {
@@ -54,14 +54,14 @@ export default function TeamGuestbook({ teamId }: TeamGuestbookProps) {
       <CardContent className="p-4">
         <div className="flex justify-between items-center mb-3">
           <h2 className="font-semibold">{t('team.guestbook')}</h2>
-          <Link 
-            to={`/guestbook/${teamId}`} 
+          <Link
+            to={`/guestbook/${teamId}`}
             className="text-xs text-green-700 hover:underline"
           >
             {t('team.viewAll')}
           </Link>
         </div>
-        
+
         {latestEntries.length > 0 ? (
           <div className="space-y-3 mb-4">
             {latestEntries.map((entry) => (
@@ -83,7 +83,7 @@ export default function TeamGuestbook({ teamId }: TeamGuestbookProps) {
             {t('team.noGuestbookMessages')}
           </div>
         )}
-        
+
         {!isOwnTeam && manager && !hasPosted && (
           <form onSubmit={handleSubmit}>
             <Textarea
@@ -94,8 +94,8 @@ export default function TeamGuestbook({ teamId }: TeamGuestbookProps) {
               maxLength={500}
             />
             <div className="text-right">
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 size="sm"
                 disabled={isSubmitting || !message.trim()}
               >
@@ -104,19 +104,19 @@ export default function TeamGuestbook({ teamId }: TeamGuestbookProps) {
             </div>
           </form>
         )}
-        
+
         {!isOwnTeam && manager && hasPosted && (
           <div className="text-sm text-muted-foreground">
             {t('team.alreadyPosted')}
           </div>
         )}
-        
+
         {isOwnTeam && (
           <div className="text-sm text-muted-foreground">
             {t('team.ownGuestbook')}
           </div>
         )}
-        
+
         {!manager && (
           <div className="text-sm text-muted-foreground">
             {t('team.loginToPost')}

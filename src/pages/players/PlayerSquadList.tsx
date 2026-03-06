@@ -108,13 +108,13 @@ export default function PlayerSquadList({ players }: PlayerSquadListProps) {
 
               <div className="flex-1">
                 <div className="flex items-center gap-1 text-xs text-gray-500">
-                  <span>{player.nationality || 'Unknown'}</span>
+                  <span>{player.nationality || t('player.unknown')}</span>
                   <span>•</span>
                   <span>{player.age} {t('player.age').toLowerCase()}</span>
                   <span>•</span>
-                  <span>{formatMoney(player.wage)}/week</span>
+                  <span>{formatMoney(player.wage)}/{t('player.week')}</span>
                   <span>•</span>
-                  <span>{player.matches_played} matches</span>
+                  <span>{player.matches_played} {t('player.matches')}</span>
                 </div>
 
                 <div className="flex flex-wrap gap-1 mt-2">
@@ -144,6 +144,7 @@ export default function PlayerSquadList({ players }: PlayerSquadListProps) {
                   { skill: "defense", value: player.defense },
                   { skill: "dribbling", value: player.dribbling },
                   { skill: "heading", value: player.heading },
+                  { skill: "crosses", value: (player as any).crosses },
                   { skill: "goalkeeper", value: (player as any).goalkeeper },
                 ].map(({ skill, value }) => (
                   <div key={skill} className="flex items-center gap-2">

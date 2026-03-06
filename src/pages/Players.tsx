@@ -32,6 +32,7 @@ const Players = () => {
     { value: "dribbling", label: t('players.sort.dribbling') },
     { value: "heading", label: t('players.sort.heading') },
     { value: "stamina", label: t('players.sort.stamina') },
+    { value: "crosses", label: t('players.sort.crosses') },
   ];
 
   const sortPlayers = (players: any[]) => {

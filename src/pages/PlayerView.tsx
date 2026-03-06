@@ -13,12 +13,14 @@ import { useState } from "react";
 import { ListPlayerDialog } from "./transfer-market/components/ListPlayerDialog";
 import { useUserTeam } from "@/hooks/useUserTeam";
 import { PlayerAvatar } from "@/components/avatar/PlayerAvatar";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const PlayerView = () => {
   const { playerId } = useParams<{ playerId: string }>();
   const { player, isLoading, error } = usePlayerData(playerId);
   const { team } = useUserTeam();
   const [isListPlayerDialogOpen, setIsListPlayerDialogOpen] = useState(false);
+  const { t } = useLanguage();
 
   const formatValue = (value: number) => {
     if (value >= 1000000) {
@@ -63,8 +65,8 @@ const PlayerView = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <h2 className="text-xl font-semibold">Player Not Found</h2>
-          <p className="mt-2 text-muted-foreground">Could not retrieve player data.</p>
+          <h2 className="text-xl font-semibold">{t('player.notFound')}</h2>
+          <p className="mt-2 text-muted-foreground">{t('player.notFoundDesc')}</p>
         </div>
       </div>
     );
@@ -74,23 +76,23 @@ const PlayerView = () => {
     <div className="space-y-6">
       <Card>
         <CardHeader className="flex flex-row items-start justify-between">
-          <CardTitle className="text-base font-semibold">Player Info</CardTitle>
+          <CardTitle className="text-base font-semibold">{t('player.info')}</CardTitle>
           {isPlayerOnOwnTeam && (
-            <Button 
-              size="sm" 
+            <Button
+              size="sm"
               variant="outline"
               onClick={() => setIsListPlayerDialogOpen(true)}
             >
               <Tag className="h-4 w-4 mr-1" />
-              List for Transfer
+              {t('player.listForTransfer')}
             </Button>
           )}
         </CardHeader>
         <CardContent>
           <div className="flex items-start gap-6">
-            <PlayerAvatar 
-              player={player} 
-              size="lg" 
+            <PlayerAvatar
+              player={player}
+              size="lg"
               className="w-24 h-24"
             />
             <div className="space-y-4">
@@ -103,7 +105,7 @@ const PlayerView = () => {
                     player.nationality && <Flag country={player.nationality} />
                   )}
                 </h2>
-                <p className="text-lg text-muted-foreground">{player.position} | {player.age} years old</p>
+                <p className="text-lg text-muted-foreground">{player.position} | {player.age} {t('player.yearsOld')}</p>
                 <div className="mt-2">
                   <PlayerTraits
                     personality={player.personality}
@@ -113,30 +115,30 @@ const PlayerView = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Nationality:</span>
-                  <span>{player.nationality || 'Unknown'}</span>
+                  <span className="text-muted-foreground">{t('player.nationality')}:</span>
+                  <span>{player.nationality || t('player.unknown')}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Value:</span>
+                  <span className="text-muted-foreground">{t('player.value')}:</span>
                   <span>{formatValue(player.value)}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Wage:</span>
-                  <span>{formatValue(player.wage)}/week</span>
+                  <span className="text-muted-foreground">{t('player.wage')}:</span>
+                  <span>{formatValue(player.wage)}/{t('player.week')}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Fitness:</span>
+                  <span className="text-muted-foreground">{t('player.fitness')}:</span>
                   <span>{player.fitness}%</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Matches:</span>
+                  <span className="text-muted-foreground">{t('player.matchesLabel')}:</span>
                   <span>{player.matches_played}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground">Form:</span>
+                  <span className="text-muted-foreground">{t('player.formLabel')}:</span>
                   <Badge variant="secondary">{player.form}</Badge>
                 </div>
               </div>
@@ -144,12 +146,12 @@ const PlayerView = () => {
               {player.team_id && (
                 <div className="flex items-center gap-2 pt-2 border-t">
                   <Building className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Owner: </span>
-                  <Link 
-                    to={`/team/${player.team_id}`} 
+                  <span className="text-sm text-muted-foreground">{t('player.owner')}: </span>
+                  <Link
+                    to={`/team/${player.team_id}`}
                     className="text-sm text-primary hover:underline"
                   >
-                    {player.team?.name || "Unknown Team"}
+                    {player.team?.name || t('player.unknownTeam')}
                   </Link>
                 </div>
               )}
@@ -158,7 +160,7 @@ const PlayerView = () => {
         </CardContent>
       </Card>
 
-      <PlayerStats 
+      <PlayerStats
         stats={{
           finishing: player.finishing,
           pace: player.pace,
@@ -166,22 +168,16 @@ const PlayerView = () => {
           defense: player.defense,
           dribbling: player.dribbling,
           heading: player.heading,
-          stamina: player.stamina
+          stamina: player.stamina,
+          goalkeeper: player.goalkeeper,
+          crosses: player.crosses,
+          id: player.player_id,
+          name: `${player.first_name} ${player.last_name}`,
+          position: player.position,
+          rating: player.rating,
+          value: player.value
         }}
       />
-
-      {isPlayerOnOwnTeam && (
-        <ListPlayerDialog
-          open={isListPlayerDialogOpen}
-          onOpenChange={setIsListPlayerDialogOpen}
-          player={{
-            id: player.player_id,
-            name: `${player.first_name} ${player.last_name}`,
-            position: player.position, 
-            rating: player.rating,
-            value: player.value
-          }}
-        />
       )}
     </div>
   );

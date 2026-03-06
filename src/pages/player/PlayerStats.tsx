@@ -13,6 +13,7 @@ interface PlayerStatsProps {
     heading: number;
     stamina: number;
     goalkeeper?: number;
+    crosses?: number;
   }
 }
 
@@ -22,7 +23,7 @@ const PlayerStats = ({ stats }: PlayerStatsProps) => {
   return (
     <Card className="mt-6">
       <CardHeader>
-        <CardTitle className="text-base font-semibold">Player Stats</CardTitle>
+        <CardTitle className="text-base font-semibold">{t('player.statsTitle')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {Object.entries(stats).map(([stat, value]) => (

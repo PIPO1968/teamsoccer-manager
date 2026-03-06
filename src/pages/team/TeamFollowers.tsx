@@ -17,7 +17,7 @@ export default function TeamFollowers({ teamId }: TeamFollowersProps) {
   const { followers, followerCount, isFollowing, isLoading, toggleFollow } = useTeamFollowers(teamId);
   const { manager } = useAuth();
   const { t } = useLanguage();
-  
+
   // Determine if the current team is the manager's own team
   const isOwnTeam = manager?.team_id === parseInt(teamId || '0');
 
@@ -45,9 +45,9 @@ export default function TeamFollowers({ teamId }: TeamFollowersProps) {
         <div className="text-sm text-muted-foreground mb-4">
           {t('team.followersCount').replace('{count}', String(followerCount))}
         </div>
-        
+
         {!isOwnTeam && manager && (
-          <Button 
+          <Button
             onClick={toggleFollow}
             className="w-full mb-4"
             variant={isFollowing ? "outline" : "default"}

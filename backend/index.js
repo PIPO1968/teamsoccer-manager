@@ -97,6 +97,7 @@ const initDb = async () => {
             )
         `);
         await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS goalkeeper INTEGER DEFAULT 30`);
+        await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS crosses INTEGER DEFAULT 30`);
         await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS image_url TEXT`);
         await client.query(`ALTER TABLE manager_license_tests ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE`);
         console.log('✅ Tablas verificadas/creadas correctamente');
@@ -174,12 +175,12 @@ const randFrom = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const calcPlayerValue = (rating, age) => {
     const base = Math.pow(rating / 60, 3.5) * 2000000;
     let ageFactor;
-    if (age <= 21)       ageFactor = 1.25;
-    else if (age <= 25)  ageFactor = 1.05;
-    else if (age <= 28)  ageFactor = 1.00;
-    else if (age <= 31)  ageFactor = 0.75;
-    else if (age <= 34)  ageFactor = 0.50;
-    else                 ageFactor = 0.30;
+    if (age <= 21) ageFactor = 1.25;
+    else if (age <= 25) ageFactor = 1.05;
+    else if (age <= 28) ageFactor = 1.00;
+    else if (age <= 31) ageFactor = 0.75;
+    else if (age <= 34) ageFactor = 0.50;
+    else ageFactor = 0.30;
     return Math.round(base * ageFactor / 50000) * 50000;
 };
 
@@ -201,21 +202,21 @@ const playerImage = (firstName, lastName, countryId) => {
 // Nombres por país
 const namesByCountry = {
     1: { // España
-        first: ['Alejandro','Carlos','David','Diego','Fernando','Francisco','Gonzalo','Hugo','Javier','Jorge','José','Juan','Luis','Marcos','Miguel','Pablo','Pedro','Rafael','Roberto','Sergio','Álvaro','Adrián','Armando','Bruno','Cristian','Daniel','Emilio','Enrique','Iván','Jesús','Nicolás','Óscar','Raúl','Rubén','Víctor'],
-        last:  ['García','Martínez','López','Sánchez','González','Pérez','Rodríguez','Fernández','Torres','Romero','Flores','Álvarez','Díaz','Reyes','Cruz','Morales','Ortega','Castro','Ramos','Herrera','Jiménez','Ruiz','Navarro','Vázquez','Serrano','Blanco','Molina','Moreno','Delgado','Ortiz']
+        first: ['Alejandro', 'Carlos', 'David', 'Diego', 'Fernando', 'Francisco', 'Gonzalo', 'Hugo', 'Javier', 'Jorge', 'José', 'Juan', 'Luis', 'Marcos', 'Miguel', 'Pablo', 'Pedro', 'Rafael', 'Roberto', 'Sergio', 'Álvaro', 'Adrián', 'Armando', 'Bruno', 'Cristian', 'Daniel', 'Emilio', 'Enrique', 'Iván', 'Jesús', 'Nicolás', 'Óscar', 'Raúl', 'Rubén', 'Víctor'],
+        last: ['García', 'Martínez', 'López', 'Sánchez', 'González', 'Pérez', 'Rodríguez', 'Fernández', 'Torres', 'Romero', 'Flores', 'Álvarez', 'Díaz', 'Reyes', 'Cruz', 'Morales', 'Ortega', 'Castro', 'Ramos', 'Herrera', 'Jiménez', 'Ruiz', 'Navarro', 'Vázquez', 'Serrano', 'Blanco', 'Molina', 'Moreno', 'Delgado', 'Ortiz']
     },
     2: { // England
-        first: ['James','Oliver','Harry','George','Jack','Charlie','Thomas','Edward','William','Henry','Alfie','Joshua','Samuel','Ethan','Matthew','Daniel','Liam','Noah','Jake','Ryan'],
-        last:  ['Smith','Johnson','Williams','Brown','Jones','Miller','Davis','Wilson','Anderson','Taylor','Thomas','Moore','Martin','Lewis','White','Harris','Clark','Robinson','Walker','Hall']
+        first: ['James', 'Oliver', 'Harry', 'George', 'Jack', 'Charlie', 'Thomas', 'Edward', 'William', 'Henry', 'Alfie', 'Joshua', 'Samuel', 'Ethan', 'Matthew', 'Daniel', 'Liam', 'Noah', 'Jake', 'Ryan'],
+        last: ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Miller', 'Davis', 'Wilson', 'Anderson', 'Taylor', 'Thomas', 'Moore', 'Martin', 'Lewis', 'White', 'Harris', 'Clark', 'Robinson', 'Walker', 'Hall']
     },
     3: { // France
-        first: ['Antoine','Baptiste','Clément','Damien','Etienne','François','Guillaume','Hugo','Julien','Kevin','Laurent','Mathieu','Nicolas','Olivier','Pierre','Quentin','Romain','Sébastien','Thomas','Vincent'],
-        last:  ['Martin','Bernard','Thomas','Petit','Robert','Richard','Durand','Dubois','Moreau','Laurent','Simon','Michel','Lefebvre','Leroy','Roux','David','Bertrand','Morel','Girard','Bonnet']
+        first: ['Antoine', 'Baptiste', 'Clément', 'Damien', 'Etienne', 'François', 'Guillaume', 'Hugo', 'Julien', 'Kevin', 'Laurent', 'Mathieu', 'Nicolas', 'Olivier', 'Pierre', 'Quentin', 'Romain', 'Sébastien', 'Thomas', 'Vincent'],
+        last: ['Martin', 'Bernard', 'Thomas', 'Petit', 'Robert', 'Richard', 'Durand', 'Dubois', 'Moreau', 'Laurent', 'Simon', 'Michel', 'Lefebvre', 'Leroy', 'Roux', 'David', 'Bertrand', 'Morel', 'Girard', 'Bonnet']
     }
 };
 const defaultNames = {
-    first: ['Alex','Brian','Carlos','David','Eric','Frank','George','Henry','Ivan','Jack','Kevin','Luis','Mario','Nico','Oscar','Paul','Rafa','Stefan','Thomas','Victor'],
-    last:  ['Smith','Johnson','Williams','Brown','Jones','Miller','Davis','Garcia','Martinez','Hernandez','Lopez','Gonzalez','Wilson','Anderson','Thomas','Taylor','Moore','Martin','Clark','Lewis']
+    first: ['Alex', 'Brian', 'Carlos', 'David', 'Eric', 'Frank', 'George', 'Henry', 'Ivan', 'Jack', 'Kevin', 'Luis', 'Mario', 'Nico', 'Oscar', 'Paul', 'Rafa', 'Stefan', 'Thomas', 'Victor'],
+    last: ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Miller', 'Davis', 'Garcia', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Martin', 'Clark', 'Lewis']
 };
 
 const createInitialPlayers = async (client, teamId, countryId) => {
@@ -225,28 +226,28 @@ const createInitialPlayers = async (client, teamId, countryId) => {
 
     for (let i = 0; i < positions.length; i += 1) {
         const firstName = randFrom(names.first);
-        const lastName  = randFrom(names.last);
-        const age       = randBetween(17, 34);
-        const rating    = randBetween(58, 82);
-        const value     = calcPlayerValue(rating, age);
-        const wage      = Math.round(value / 400 / 500) * 500;
-        const imageUrl  = playerImage(firstName, lastName, numericCountryId);
-        const isGK      = positions[i] === 'GK';
-        const gkStat    = isGK ? randBetween(55, 85) : randBetween(5, 25);
+        const lastName = randFrom(names.last);
+        const age = randBetween(17, 34);
+        const rating = randBetween(58, 82);
+        const value = calcPlayerValue(rating, age);
+        const wage = Math.round(value / 400 / 500) * 500;
+        const imageUrl = playerImage(firstName, lastName, numericCountryId);
+        const isGK = positions[i] === 'GK';
+        const gkStat = isGK ? randBetween(55, 85) : randBetween(5, 25);
 
         await client.query(
             `INSERT INTO players (
                 first_name, last_name, position, age, nationality_id, team_id,
                 value, wage, fitness, form, contract_until,
-                finishing, pace, passing, defense, dribbling, heading, stamina, goalkeeper,
+                finishing, pace, passing, defense, dribbling, heading, stamina, goalkeeper, crosses,
                 goals, assists, matches_played, minutes_played, rating,
                 personality, experience, leadership, loyalty, owned_since, image_url
             ) VALUES (
                 $1,$2,$3,$4,$5,$6,
                 $7,$8,$9,$10,$11,
-                $12,$13,$14,$15,$16,$17,$18,$19,
-                $20,$21,$22,$23,$24,
-                $25,$26,$27,$28,$29,$30
+                $12,$13,$14,$15,$16,$17,$18,$19,$20,
+                $21,$22,$23,$24,$25,
+                $26,$27,$28,$29,$30,$31
             )`,
             [
                 firstName, lastName, positions[i], age, numericCountryId, teamId,
@@ -254,6 +255,7 @@ const createInitialPlayers = async (client, teamId, countryId) => {
                 randBetween(75, 100), 'Good', '2027',
                 randBetween(40, 85), randBetween(40, 85), randBetween(40, 85),
                 randBetween(40, 85), randBetween(40, 85), randBetween(40, 85), randBetween(40, 85), gkStat,
+                randBetween(20, 80),
                 0, 0, 0, 0, rating,
                 randBetween(40, 80), randBetween(40, 80), randBetween(40, 80), randBetween(40, 80),
                 new Date(), imageUrl
@@ -1890,7 +1892,7 @@ app.get('/threads/:id', async (req, res) => {
              WHERE fp.thread_id = $1 ORDER BY fp.created_at LIMIT $2 OFFSET $3`,
             [threadId, perPage, offset]
         );
-        pool.query('UPDATE forum_threads SET view_count = COALESCE(view_count,0)+1 WHERE id=$1', [threadId]).catch(()=>{});
+        pool.query('UPDATE forum_threads SET view_count = COALESCE(view_count,0)+1 WHERE id=$1', [threadId]).catch(() => { });
         const total = countResult.rows[0].total;
         res.json({
             success: true, thread: threadResult.rows[0], posts: postsResult.rows,
@@ -3722,22 +3724,23 @@ app.post('/admin/players', async (req, res) => {
         const result = await pool.query(
             `INSERT INTO players (
                 first_name,last_name,position,age,nationality_id,team_id,
-                value,wage,rating,pace,finishing,passing,defense,dribbling,heading,stamina,goalkeeper,
+                value,wage,rating,pace,finishing,passing,defense,dribbling,heading,stamina,goalkeeper,crosses,
                 fitness,form,personality,experience,leadership,loyalty,image_url,
                 contract_until,goals,assists,matches_played,minutes_played,owned_since
             ) VALUES (
                 $1,$2,$3,$4,$5,$6,
-                $7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,
-                $18,$19,$20,$21,$22,$23,$24,
-                $25,$26,$27,$28,$29,$30
+                $7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
+                $19,$20,$21,$22,$23,$24,$25,
+                $26,$27,$28,$29,$30,$31
             ) RETURNING *`,
             [
-                p.first_name, p.last_name, p.position||'MID', p.age||20, p.nationality_id||1, p.team_id||null,
-                p.value||100000, p.wage||5000, p.rating||65, p.pace||10, p.finishing||10, p.passing||10,
-                p.defense||10, p.dribbling||10, p.heading||10, p.stamina||10,
-                p.position === 'GK' ? (p.goalkeeper||60) : (p.goalkeeper||10),
-                p.fitness||100, p.form||'Average', p.personality||5, p.experience||5, p.leadership||5, p.loyalty||5, p.image_url||null,
-                p.contract_until||'2027', 0, 0, 0, 0, new Date().toISOString().split('T')[0]
+                p.first_name, p.last_name, p.position || 'MID', p.age || 20, p.nationality_id || 1, p.team_id || null,
+                p.value || 100000, p.wage || 5000, p.rating || 65, p.pace || 10, p.finishing || 10, p.passing || 10,
+                p.defense || 10, p.dribbling || 10, p.heading || 10, p.stamina || 10,
+                p.position === 'GK' ? (p.goalkeeper || 60) : (p.goalkeeper || 10),
+                p.crosses || 30,
+                p.fitness || 100, p.form || 'Average', p.personality || 5, p.experience || 5, p.leadership || 5, p.loyalty || 5, p.image_url || null,
+                p.contract_until || '2027', 0, 0, 0, 0, new Date().toISOString().split('T')[0]
             ]
         );
         res.json({ success: true, player: result.rows[0] });
@@ -3754,7 +3757,7 @@ app.post('/admin/players/batch', async (req, res) => {
         for (const p of players) {
             const r = await client.query(
                 'INSERT INTO players (first_name,last_name,position,age,nationality,value,team_id) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *',
-                [p.first_name,p.last_name,p.position,p.age,p.nationality,p.value,p.team_id||null]
+                [p.first_name, p.last_name, p.position, p.age, p.nationality, p.value, p.team_id || null]
             );
             inserted.push(r.rows[0]);
         }
@@ -3769,7 +3772,7 @@ app.post('/admin/players/batch', async (req, res) => {
 app.put('/admin/players/:id', async (req, res) => {
     const { id } = req.params;
     const fields = req.body;
-    const allowed = ['first_name','last_name','position','age','nationality_id','team_id','value','wage','rating','pace','finishing','passing','defense','dribbling','heading','stamina','goalkeeper','fitness','form','personality','experience','leadership','loyalty','image_url'];
+    const allowed = ['first_name', 'last_name', 'position', 'age', 'nationality_id', 'team_id', 'value', 'wage', 'rating', 'pace', 'finishing', 'passing', 'defense', 'dribbling', 'heading', 'stamina', 'goalkeeper', 'crosses', 'fitness', 'form', 'personality', 'experience', 'leadership', 'loyalty', 'image_url'];
     const updates = Object.entries(fields).filter(([k]) => allowed.includes(k));
     if (!updates.length) return res.status(400).json({ error: 'Sin campos validos' });
     const setClauses = updates.map(([k], i) => k + ' = $' + (i + 1)).join(', ');
@@ -3810,16 +3813,16 @@ app.get('/manager-license', async (req, res) => {
 // Recompensas hardcodeadas — independiente del estado de la tabla manager_license_tests
 // visit_dashboard = null → activa 30 días Premium en lugar de dar dinero
 const CARNET_REWARDS = {
-    visit_dashboard:       null,   // 30 días Premium
-    visit_team:            25000,
-    visit_players:         25000,
+    visit_dashboard: null,   // 30 días Premium
+    visit_team: 25000,
+    visit_players: 25000,
     visit_transfer_market: 25000,
-    visit_matches:         25000,
-    visit_finances:        25000,
-    visit_stadium:         25000,
-    visit_training:        25000,
-    visit_forums:          25000,
-    visit_community:       25000,
+    visit_matches: 25000,
+    visit_finances: 25000,
+    visit_stadium: 25000,
+    visit_training: 25000,
+    visit_forums: 25000,
+    visit_community: 25000,
 };
 const TOTAL_CARNET_TESTS = Object.keys(CARNET_REWARDS).length; // 10
 
