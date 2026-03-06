@@ -121,12 +121,11 @@ const ManagerAdminTool = () => {
       label: 'Status',
       sortable: true,
       render: (status: string) => (
-        <span className={`px-2 py-1 rounded text-xs ${
-          status === 'active' ? 'bg-green-100 text-green-800' :
-          status === 'waiting_list' ? 'bg-yellow-100 text-yellow-800' :
-          status === 'carnet_pending' ? 'bg-blue-100 text-blue-800' :
-          'bg-red-100 text-red-800'
-        }`}>
+        <span className={`px-2 py-1 rounded text-xs ${status === 'active' ? 'bg-green-100 text-green-800' :
+            status === 'waiting_list' ? 'bg-yellow-100 text-yellow-800' :
+              status === 'carnet_pending' ? 'bg-blue-100 text-blue-800' :
+                'bg-red-100 text-red-800'
+          }`}>
           {status === 'carnet_pending' ? 'Carnet pendiente' : status}
         </span>
       )

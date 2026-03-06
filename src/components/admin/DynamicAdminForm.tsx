@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -33,11 +33,11 @@ interface DynamicAdminFormProps {
   series?: Array<{ series_id: number; name: string; division: number; group_number: number }>;
 }
 
-export const DynamicAdminForm = ({ 
-  title, 
-  data, 
-  fields, 
-  onSave, 
+export const DynamicAdminForm = ({
+  title,
+  data,
+  fields,
+  onSave,
   onCancel,
   countries = [],
   teams = [],
@@ -76,7 +76,7 @@ export const DynamicAdminForm = ({
 
     const value = formData[field.name];
     console.log(`Rendering field ${field.name} with value:`, value);
-    
+
     // Special handling for nationality_id with countries
     if (field.name === 'nationality_id' && countries.length > 0) {
       return (
@@ -334,7 +334,7 @@ export const DynamicAdminForm = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {fields.map(renderField)}
         </div>
-        
+
         <div className="flex gap-2 pt-4">
           <Button onClick={handleSave} disabled={loading}>
             {loading ? "Saving..." : "Save Changes"}

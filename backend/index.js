@@ -98,6 +98,7 @@ const initDb = async () => {
         `);
         await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS goalkeeper INTEGER DEFAULT 30`);
         await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS image_url TEXT`);
+        await client.query(`ALTER TABLE manager_license_tests ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE`);
         console.log('✅ Tablas verificadas/creadas correctamente');
     } catch (err) {
         console.error('❌ Error creando tablas:', err.message);
