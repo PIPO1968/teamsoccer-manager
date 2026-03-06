@@ -177,16 +177,15 @@ const CarnetDeManager = () => {
         <div className="text-center">
           <Button
             size="lg"
-            disabled={!isAllCompleted}
             onClick={handleClaim}
-            className="px-10 bg-yellow-500 hover:bg-yellow-600 text-white font-bold disabled:opacity-40"
+            className="px-10 bg-yellow-500 hover:bg-yellow-600 text-white font-bold"
           >
             <Award className="h-5 w-5 mr-2" />
             Obtener Carnet de Manager
           </Button>
           {!isAllCompleted && total > 0 && (
             <p className="text-xs text-gray-500 mt-2">
-              Completa las {total - completed} pruebas restantes para desbloquear el botón.
+              Completa las {total - completed} pruebas restantes para ganar todas las recompensas.
             </p>
           )}
         </div>

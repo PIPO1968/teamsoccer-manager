@@ -3849,16 +3849,11 @@ app.post('/manager-license/complete/:testKey', async (req, res) => {
     }
 });
 
-// POST /manager-license/claim — claim carnet after all tests done → status='active'
+// POST /manager-license/claim — claim carnet → status='active'
 app.post('/manager-license/claim', async (req, res) => {
     const { managerId } = req.body;
     if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
     try {
-        const totalTests = await pool.query('SELECT COUNT(*) FROM manager_license_tests WHERE is_active = TRUE');
-        const completed = await pool.query('SELECT COUNT(*) FROM manager_license_progress WHERE manager_id = $1', [managerId]);
-        if (parseInt(completed.rows[0].count) < parseInt(totalTests.rows[0].count)) {
-            return res.status(400).json({ error: 'No has completado todas las pruebas' });
-        }
         await pool.query('UPDATE managers SET status = $1 WHERE user_id = $2', ['active', managerId]);
         res.json({ success: true });
     } catch (err) {
