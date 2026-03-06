@@ -12,6 +12,7 @@ import { useUserTeam } from "@/hooks/useUserTeam";
 import { formatMoney } from "../utils";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface PlaceBidDialogProps {
   open: boolean;
@@ -24,11 +25,12 @@ export const PlaceBidDialog = ({ open, onOpenChange, player, onSuccess }: PlaceB
   const { placeBid, isProcessing } = useBidOperations();
   const { team } = useUserTeam();
   const { finances } = useTeamFinances(team?.team_id?.toString());
-  
+  const { t } = useLanguage();
+
   const [bidAmount, setBidAmount] = useState<number>(
     player.highestBid ? player.highestBid + 10000 : player.askingPrice
   );
-  
+
   const handleBidAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value.replace(/,/g, ''));
     if (!isNaN(value)) {
@@ -69,9 +71,9 @@ export const PlaceBidDialog = ({ open, onOpenChange, player, onSuccess }: PlaceB
       }
 
       console.log(`Submitting bid of ${bidAmount} for player ${player.name}, listing ID: ${player.listing_id}`);
-      
+
       const result = await placeBid(player.listing_id, bidAmount);
-      
+
       if (result.success) {
         console.log("Bid placed/updated successfully, closing dialog");
         toast.success("Bid placed successfully!");
@@ -88,48 +90,48 @@ export const PlaceBidDialog = ({ open, onOpenChange, player, onSuccess }: PlaceB
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Place Bid on Player</DialogTitle>
+          <DialogTitle>{t('transfer.placeBidTitle')}</DialogTitle>
           <DialogDescription>
-            Enter your bid amount for {player.name}
+            {t('transfer.enterBidAmount')} {player.name}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-2 items-center gap-4">
-            <Label htmlFor="name">Player</Label>
+            <Label htmlFor="name">{t('transfer.colPlayer')}</Label>
             <div className="flex items-center gap-2">
               {player.name}
               <Badge variant="outline">{player.position}</Badge>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="rating" className="col-span-1">Rating</Label>
+            <Label htmlFor="rating" className="col-span-1">{t('transfer.ratingLabel')}</Label>
             <div className="col-span-1">{player.rating}</div>
-            
-            <Label htmlFor="age" className="col-span-1">Age</Label>
+
+            <Label htmlFor="age" className="col-span-1">{t('transfer.colAge')}</Label>
             <div className="col-span-1">{player.age}</div>
           </div>
-          
+
           <div className="grid grid-cols-2 items-center gap-4">
-            <Label htmlFor="starting-price">Starting Price</Label>
+            <Label htmlFor="starting-price">{t('transfer.colStartingPrice')}</Label>
             <div>{formatMoney(player.askingPrice)}</div>
           </div>
-          
+
           {player.highestBid && (
             <div className="grid grid-cols-2 items-center gap-4">
-              <Label htmlFor="highest-bid">Current Highest Bid</Label>
+              <Label htmlFor="highest-bid">{t('transfer.highestBid')}</Label>
               <div className="font-semibold">{formatMoney(player.highestBid)}</div>
             </div>
           )}
-          
+
           <div className="grid grid-cols-2 items-center gap-4">
-            <Label htmlFor="your-cash">Your Cash Balance</Label>
-            <div>{finances ? formatMoney(finances.cash_balance) : "Loading..."}</div>
+            <Label htmlFor="your-cash">{t('transfer.cashBalance')}</Label>
+            <div>{finances ? formatMoney(finances.cash_balance) : t('transfer.loadingBalance')}</div>
           </div>
-          
+
           <div className="grid grid-cols-2 items-center gap-4">
-            <Label htmlFor="bid-amount">Your Bid</Label>
+            <Label htmlFor="bid-amount">{t('transfer.colYourBid')}</Label>
             <Input
               id="bid-amount"
               type="text"
@@ -141,15 +143,15 @@ export const PlaceBidDialog = ({ open, onOpenChange, player, onSuccess }: PlaceB
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t('transfer.cancel')}</Button>
           <Button onClick={handleSubmit} disabled={isProcessing}>
             {isProcessing ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Processing...
+                {t('transfer.processing')}
               </>
             ) : (
-              "Place Bid"
+              t('transfer.placeBid')
             )}
           </Button>
         </DialogFooter>

@@ -8,50 +8,52 @@ import { LoadingBidsState } from "./components/bids/LoadingBidsState";
 import { EmptyBidsState } from "./components/bids/EmptyBidsState";
 import { useTransferMarketAuth } from "@/hooks/transfer/useTransferMarketAuth";
 import { useFetchUserBids } from "@/hooks/transfer/useFetchUserBids";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const BidsPage = () => {
   const navigate = useNavigate();
   const { isAuthorized, userTeam } = useTransferMarketAuth();
   const { userBids, isLoading, refetch } = useFetchUserBids();
+  const { t } = useLanguage();
 
   return (
     <div className="space-y-4">
       <div className="flex items-center">
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => navigate('/transfer-market')}
           className="mr-4"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Market
+          {t('transfer.backToMarket')}
         </Button>
-        <h1 className="text-2xl font-bold">Your Transfer Bids</h1>
+        <h1 className="text-2xl font-bold">{t('transfer.transferBids')}</h1>
       </div>
 
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle>Bids Made</CardTitle>
-              <CardDescription>Track the status of your transfer market bids</CardDescription>
+              <CardTitle>{t('transfer.bidsMade')}</CardTitle>
+              <CardDescription>{t('transfer.trackBids')}</CardDescription>
             </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => refetch(true)}
               disabled={isLoading || !userTeam}
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh
+              {t('transfer.refresh')}
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading 
+          {isLoading
             ? <LoadingBidsState />
             : !userTeam
-              ? <EmptyBidsState message="No team data available" />
+              ? <EmptyBidsState message={t('transfer.noTeamData')} />
               : userBids.length > 0
                 ? <BidTable bids={userBids} />
                 : <EmptyBidsState />}

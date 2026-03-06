@@ -12,6 +12,7 @@ import { useTeamPlayers } from "@/hooks/useTeamPlayers";
 import { useUserTeam } from "@/hooks/useUserTeam";
 import { MarketPlayer } from "../types";
 import { formatMoney } from "../utils";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface MyPlayersTabProps {
   searchTerm: string;
@@ -24,8 +25,9 @@ export const MyPlayersTab = ({ searchTerm, positionFilter }: MyPlayersTabProps) 
   const navigate = useNavigate();
   const { team } = useUserTeam();
   const { players: myPlayers, isLoading: playersLoading, refetch: refetchPlayers } = useTeamPlayers(team?.team_id?.toString());
+  const { t } = useLanguage();
 
-  const filteredTeamPlayers = myPlayers?.filter(player => 
+  const filteredTeamPlayers = myPlayers?.filter(player =>
     player.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     player.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     player.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -54,27 +56,27 @@ export const MyPlayersTab = ({ searchTerm, positionFilter }: MyPlayersTabProps) 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>My Squad</CardTitle>
-        <CardDescription>List players for transfer or manage contracts</CardDescription>
+        <CardTitle>{t('transfer.mySquad')}</CardTitle>
+        <CardDescription>{t('transfer.mySquadDesc')}</CardDescription>
       </CardHeader>
       <CardContent>
         {playersLoading ? (
           <div className="flex justify-center items-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="ml-2">Loading your players...</span>
+            <span className="ml-2">{t('transfer.loadingMyPlayers')}</span>
           </div>
         ) : (
           <div className="rounded-md border overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[100px]">Position</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Age</TableHead>
-                  <TableHead>Rating</TableHead>
-                  <TableHead>Form</TableHead>
-                  <TableHead>Value</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="w-[100px]">{t('transfer.colPosition')}</TableHead>
+                  <TableHead>{t('transfer.colName')}</TableHead>
+                  <TableHead>{t('transfer.colAge')}</TableHead>
+                  <TableHead>{t('transfer.colRating')}</TableHead>
+                  <TableHead>{t('transfer.colForm')}</TableHead>
+                  <TableHead>{t('transfer.colValue')}</TableHead>
+                  <TableHead className="text-right">{t('transfer.colActions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -108,7 +110,7 @@ export const MyPlayersTab = ({ searchTerm, positionFilter }: MyPlayersTabProps) 
                             size="sm"
                             onClick={() => viewPlayerDetails(player.player_id)}
                           >
-                            View
+                            {t('transfer.view')}
                           </Button>
                           <Button
                             variant="outline"
@@ -134,7 +136,7 @@ export const MyPlayersTab = ({ searchTerm, positionFilter }: MyPlayersTabProps) 
                               setIsListingPlayer(true);
                             }}
                           >
-                            <PlusCircle className="h-4 w-4 mr-1" /> List for Sale
+                            <PlusCircle className="h-4 w-4 mr-1" /> {t('transfer.listForSale')}
                           </Button>
                         </div>
                       </TableCell>
@@ -143,7 +145,7 @@ export const MyPlayersTab = ({ searchTerm, positionFilter }: MyPlayersTabProps) 
                 ) : (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
-                      No players found in your squad
+                      {t('transfer.noPlayersInSquad')}
                     </TableCell>
                   </TableRow>
                 )}
