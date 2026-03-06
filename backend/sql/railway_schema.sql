@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS stadiums (
 CREATE TABLE IF NOT EXISTS team_finances (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   team_id integer UNIQUE REFERENCES teams(team_id) ON DELETE CASCADE,
-  cash_balance integer DEFAULT 2500000,
+  cash_balance integer DEFAULT 1000000,
   weekly_income integer DEFAULT 0,
   weekly_expenses integer DEFAULT 0,
   match_income integer DEFAULT 0,

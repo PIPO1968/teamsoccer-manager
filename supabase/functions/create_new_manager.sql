@@ -69,8 +69,8 @@ BEGIN
     RAISE NOTICE 'Created team with ID: %', v_team_id;
 
     -- Create team finances
-    INSERT INTO team_finances (team_id)
-    VALUES (v_team_id);
+    INSERT INTO team_finances (team_id, cash_balance)
+    VALUES (v_team_id, 1000000);
     
     -- Create a stadium for the team
     INSERT INTO stadiums (name, team_id)
