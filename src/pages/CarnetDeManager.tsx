@@ -160,17 +160,23 @@ const CarnetDeManager = () => {
       )}
 
       {/* Test cards — locked if pending approval */}
-      <div className={`grid gap-4 mb-8 ${isPendingApproval ? 'opacity-40 pointer-events-none select-none' : ''}`}>
-        {tests.map(test => (
-          <TestCard
-            key={test.test_key}
-            test={test}
-            isCompleted={completedKeys.includes(test.test_key)}
-            teamId={teamId}
-            stadiumId={stadiumId}
-          />
-        ))}
-      </div>
+      {tests.length === 0 && !isLoading ? (
+        <div className="text-center py-8 text-gray-400">
+          <p>No se pudieron cargar las pruebas. Recarga la página.</p>
+        </div>
+      ) : (
+        <div className={`grid gap-4 mb-8 ${isPendingApproval ? 'opacity-40 pointer-events-none select-none' : ''}`}>
+          {tests.map(test => (
+            <TestCard
+              key={test.test_key}
+              test={test}
+              isCompleted={completedKeys.includes(test.test_key)}
+              teamId={teamId}
+              stadiumId={stadiumId}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Claim button */}
       {!isPendingApproval && (

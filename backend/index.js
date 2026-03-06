@@ -49,6 +49,7 @@ pool.connect()
 const initDb = async () => {
     const client = await pool.connect();
     try {
+        // Tablas del carnet
         await client.query(`
             CREATE TABLE IF NOT EXISTS manager_license_tests (
                 id SERIAL PRIMARY KEY,
@@ -68,20 +69,6 @@ const initDb = async () => {
                 completed_at TIMESTAMPTZ DEFAULT NOW(),
                 UNIQUE (manager_id, test_key)
             )
-        `);
-        await client.query(`
-            INSERT INTO manager_license_tests (test_key, title, description, reward_amount, sort_order) VALUES
-                ('visit_dashboard',       'Explora tu Panel',        'Visita la página Resumen de tu club',          50000, 1),
-                ('visit_team',            'Conoce tu Equipo',        'Visita la página de tu equipo',                50000, 2),
-                ('visit_players',         'Gestiona tus Jugadores',  'Visita la lista de jugadores',                 50000, 3),
-                ('visit_transfer_market', 'Mercado de Fichajes',     'Visita el Mercado de Transferencias',          75000, 4),
-                ('visit_matches',         'Los Partidos',            'Visita la sección de Partidos',                50000, 5),
-                ('visit_finances',        'Las Finanzas',            'Revisa las finanzas de tu equipo',             50000, 6),
-                ('visit_stadium',         'Tu Estadio',              'Visita tu estadio',                            50000, 7),
-                ('visit_training',        'Entrenamiento',           'Visita la sección de Entrenamiento',           50000, 8),
-                ('visit_forums',          'Los Foros',               'Visita los Foros de la comunidad',             50000, 9),
-                ('visit_community',       'La Comunidad',            'Visita la página de Comunidad',                50000, 10)
-            ON CONFLICT (test_key) DO NOTHING
         `);
         await client.query(`
             CREATE TABLE IF NOT EXISTS avatar_configs (
@@ -109,15 +96,36 @@ const initDb = async () => {
                 created_at TIMESTAMPTZ DEFAULT NOW()
             )
         `);
-        // Añadir columna goalkeeper si no existe (para tablas ya creadas)
+        await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS goalkeeper INTEGER DEFAULT 30`);
+        await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS image_url TEXT`);
+        console.log('✅ Tablas verificadas/creadas correctamente');
+    } catch (err) {
+        console.error('❌ Error creando tablas:', err.message);
+    }
+
+    // Seed pruebas del Carnet (bloque separado — siempre se intenta)
+    try {
         await client.query(`
-            ALTER TABLE players ADD COLUMN IF NOT EXISTS goalkeeper INTEGER DEFAULT 30
+            INSERT INTO manager_license_tests (test_key, title, description, reward_amount, sort_order) VALUES
+            ('visit_dashboard',       'Explora tu Panel',        'Visita la página Resumen de tu club',         50000, 1),
+            ('visit_team',            'Conoce tu Equipo',        'Visita la página de tu equipo',               50000, 2),
+            ('visit_players',         'Gestiona tus Jugadores',  'Visita la lista de jugadores',                50000, 3),
+            ('visit_transfer_market', 'Mercado de Fichajes',     'Visita el Mercado de Transferencias',         75000, 4),
+            ('visit_matches',         'Los Partidos',            'Visita la sección de Partidos',               50000, 5),
+            ('visit_finances',        'Las Finanzas',            'Revisa las finanzas de tu equipo',            50000, 6),
+            ('visit_stadium',         'Tu Estadio',              'Visita tu estadio',                           50000, 7),
+            ('visit_training',        'Entrenamiento',           'Visita la sección de Entrenamiento',          50000, 8),
+            ('visit_forums',          'Los Foros',               'Visita los Foros de la comunidad',            50000, 9),
+            ('visit_community',       'La Comunidad',            'Visita la página de Comunidad',               50000, 10)
+            ON CONFLICT (test_key) DO NOTHING
         `);
-        // Añadir columna image_url si no existe
-        await client.query(`
-            ALTER TABLE players ADD COLUMN IF NOT EXISTS image_url TEXT
-        `);
-        // Expandir países disponibles (idempotente - ON CONFLICT DO NOTHING)
+        console.log('✅ Pruebas del Carnet verificadas');
+    } catch (err) {
+        console.error('❌ Error seeding carnet tests:', err.message);
+    }
+
+    // Expandir países (bloque separado — ON CONFLICT requiere UNIQUE en leagues_regions.name)
+    try {
         await client.query(`
             INSERT INTO leagues_regions (name) VALUES
             ('Germany'), ('Italy'), ('Portugal'), ('Netherlands'), ('Belgium'),
@@ -147,27 +155,12 @@ const initDb = async () => {
             ('Niger'), ('Sierra Leone'), ('Liberia'), ('Mauritania'), ('Somalia')
             ON CONFLICT (name) DO NOTHING
         `);
-        // Sembrar pruebas del Carnet de Manager (idempotente)
-        await client.query(`
-            INSERT INTO manager_license_tests (test_key, title, description, reward_amount, sort_order) VALUES
-            ('visit_dashboard',       'Explora tu Panel',        'Visita la página Resumen de tu club',         50000, 1),
-            ('visit_team',            'Conoce tu Equipo',        'Visita la página de tu equipo',               50000, 2),
-            ('visit_players',         'Gestiona tus Jugadores',  'Visita la lista de jugadores',                50000, 3),
-            ('visit_transfer_market', 'Mercado de Fichajes',     'Visita el Mercado de Transferencias',         75000, 4),
-            ('visit_matches',         'Los Partidos',            'Visita la sección de Partidos',               50000, 5),
-            ('visit_finances',        'Las Finanzas',            'Revisa las finanzas de tu equipo',            50000, 6),
-            ('visit_stadium',         'Tu Estadio',              'Visita tu estadio',                           50000, 7),
-            ('visit_training',        'Entrenamiento',           'Visita la sección de Entrenamiento',          50000, 8),
-            ('visit_forums',          'Los Foros',               'Visita los Foros de la comunidad',            50000, 9),
-            ('visit_community',       'La Comunidad',            'Visita la página de Comunidad',               50000, 10)
-            ON CONFLICT (test_key) DO NOTHING
-        `);
-        console.log('✅ Tablas verificadas/creadas correctamente');
+        console.log('✅ Países verificados');
     } catch (err) {
-        console.error('❌ Error en initDb:', err.message);
-    } finally {
-        client.release();
+        console.error('❌ Error expandiendo países (puede que leagues_regions.name no tenga UNIQUE):', err.message);
     }
+
+    client.release();
 };
 initDb();
 

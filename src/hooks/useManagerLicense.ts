@@ -52,10 +52,10 @@ export const useManagerLicense = () => {
   }, [manager?.user_id]);
 
   useEffect(() => {
-    if ((isCarnetPending || isWaitingList) && manager?.user_id) {
+    if (manager?.user_id) {
       fetchLicense();
     }
-  }, [isCarnetPending, isWaitingList, manager?.user_id, fetchLicense]);
+  }, [manager?.user_id, fetchLicense]);
 
   const completeTest = useCallback(async (testKey: string) => {
     if (!manager?.user_id || !isCarnetPending) return;
