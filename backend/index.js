@@ -4139,6 +4139,29 @@ app.get('/series/:id', async (req, res) => {
     }
 });
 
+// Temporadas disponibles para una serie (misma div/grupo/región)
+app.get('/series/:id/seasons', async (req, res) => {
+    const seriesId = parseInt(req.params.id, 10);
+    if (!seriesId) return res.status(400).json({ error: 'seriesId inválido' });
+    try {
+        const base = await pool.query(
+            'SELECT division, group_number, region_id FROM series WHERE series_id = $1',
+            [seriesId]
+        );
+        if (!base.rows[0]) return res.status(404).json({ error: 'Serie no encontrada' });
+        const { division, group_number, region_id } = base.rows[0];
+        const result = await pool.query(
+            `SELECT series_id, season FROM series
+             WHERE region_id = $1 AND division = $2 AND group_number = $3
+             ORDER BY season ASC`,
+            [region_id, division, group_number]
+        );
+        res.json({ success: true, seasons: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Jerarquía de series (superior / inferior)
 app.get('/series/:id/hierarchy', async (req, res) => {
     const seriesId = parseInt(req.params.id, 10);
