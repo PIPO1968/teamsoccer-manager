@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Award, HelpCircle, LogOut, UserRound } from "lucide-react";
+import { Award, LogOut, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -21,14 +21,6 @@ const WaitingListNavbar = () => {
           </nav>
 
           <div className="flex items-center space-x-1">
-            <Link
-              to="/help"
-              className="px-3 py-1 rounded-md font-medium text-sm flex items-center gap-1.5 hover:bg-teamsoccer-green-dark text-white/90"
-            >
-              <HelpCircle className="h-4 w-4" />
-              <span>Ayuda</span>
-            </Link>
-
             {manager && (
               <span className="px-3 py-1 text-sm flex items-center gap-1.5 text-white/90">
                 <UserRound className="h-4 w-4" />
