@@ -60,7 +60,7 @@ const Stadium = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Stadium 3D View */}
         <div className="lg:col-span-1">
-          <StadiumVisualization />
+          <StadiumVisualization stadium={stadium} />
         </div>
 
         {/* Stadium Information */}
