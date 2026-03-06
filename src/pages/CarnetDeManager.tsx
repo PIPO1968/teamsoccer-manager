@@ -53,20 +53,30 @@ const TestCard = ({ test, isCompleted, teamId, stadiumId, onComplete }: TestCard
             <p className="text-sm text-gray-600 mb-3">{test.description}</p>
             <div className="flex items-center justify-between">
               <span className={`text-sm font-medium ${isCompleted ? 'text-green-700' : 'text-gray-500'}`}>
-                {isCompleted ? '✓ Recompensa recibida:' : 'Recompensa:'}{' '}
+                {isCompleted ? '✓ Premio recibido:' : 'Recompensa:'}{' '}
                 <span className="font-bold">
                   {test.reward_label ?? `€${test.reward_amount.toLocaleString('es-ES')}`}
                 </span>
               </span>
-              <Link to={route} onClick={!isCompleted ? onComplete : undefined}>
+              {isCompleted ? (
                 <Button
                   size="sm"
-                  variant={isCompleted ? 'ghost' : 'outline'}
-                  className={`gap-1 text-xs ${isCompleted ? 'text-green-700 hover:bg-green-50' : 'border-yellow-400 text-yellow-700 hover:bg-yellow-50'}`}
+                  disabled
+                  className="gap-1 text-xs bg-green-100 text-green-700 border border-green-300 cursor-not-allowed opacity-100"
                 >
-                  {isCompleted ? '✓ Visitado' : 'Ir a la sección'} <ExternalLink className="h-3 w-3" />
+                  <CheckCircle2 className="h-3 w-3" /> Prueba superada
                 </Button>
-              </Link>
+              ) : (
+                <Link to={route} onClick={onComplete}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1 text-xs border-yellow-400 text-yellow-700 hover:bg-yellow-50"
+                  >
+                    Ir a la sección <ExternalLink className="h-3 w-3" />
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -91,7 +101,6 @@ const CarnetDeManager = () => {
   const completed = completedKeys.length;
   const total = tests.length;
   const progressPct = total > 0 ? Math.round((completed / total) * 100) : 0;
-  const pendingTests = tests.filter(t => !completedKeys.includes(t.test_key));
 
   const totalReward = tests.reduce((sum, t) => sum + t.reward_amount, 0);
 
@@ -156,28 +165,18 @@ const CarnetDeManager = () => {
         </Card>
       )}
 
-      {/* Test cards — locked if pending approval; completed ones disappear */}
+      {/* Test cards — locked if pending approval */}
       <div className={`grid gap-4 mb-8 ${isPendingApproval ? 'opacity-40 pointer-events-none select-none' : ''}`}>
-        {pendingTests.length === 0 && !isPendingApproval ? (
-          <Card className="border-2 border-green-300 bg-green-50">
-            <CardContent className="p-6 text-center">
-              <CheckCircle2 className="h-10 w-10 text-green-600 mx-auto mb-3" />
-              <p className="text-green-800 font-semibold text-lg">¡Has completado todas las pruebas!</p>
-              <p className="text-sm text-green-700 mt-1">Activa tu cuenta para acceder al juego completo.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          pendingTests.map(test => (
-            <TestCard
-              key={test.test_key}
-              test={test}
-              isCompleted={false}
-              teamId={teamId}
-              stadiumId={stadiumId}
-              onComplete={() => completeTest(test.test_key)}
-            />
-          ))
-        )}
+        {tests.map(test => (
+          <TestCard
+            key={test.test_key}
+            test={test}
+            isCompleted={completedKeys.includes(test.test_key)}
+            teamId={teamId}
+            stadiumId={stadiumId}
+            onComplete={() => completeTest(test.test_key)}
+          />
+        ))}
       </div>
 
       {/* Claim button */}
