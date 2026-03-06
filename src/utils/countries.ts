@@ -38,4 +38,4 @@ export async function getCountryNameById(id: number): Promise<string> {
 
 // Re-export for backward compatibility
 export { getCountriesByContinent, specialCases };
-export { localizeCountryName } from "@/utils/countries/translations";
+export { localizeCountryName } from "./countries/translations";
