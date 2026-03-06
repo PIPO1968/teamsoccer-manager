@@ -2273,11 +2273,13 @@ app.get('/admin/teams', async (req, res) => {
                 t.fan_count,
                 t.club_logo,
                 t.created_at,
+                COALESCE(tf.cash_balance, 0) AS cash_balance,
                 m.username AS manager_username,
                 r.name AS country_name
              FROM teams t
              LEFT JOIN managers m ON m.user_id = t.manager_id
              LEFT JOIN leagues_regions r ON r.region_id = t.country_id
+             LEFT JOIN team_finances tf ON tf.team_id = t.team_id
              ORDER BY t.team_id`
         );
         res.json({ success: true, teams: result.rows });
@@ -2314,19 +2316,27 @@ app.put('/admin/teams/:id', async (req, res) => {
         updates.push(`${key} = $${values.length}`);
     });
 
-    if (updates.length === 0) {
+    if (updates.length === 0 && req.body?.cash_balance === undefined) {
         return res.status(400).json({ error: 'No hay campos para actualizar' });
     }
 
     values.push(teamId);
 
     try {
-        const result = await pool.query(
-            `UPDATE teams SET ${updates.join(', ')} WHERE team_id = $${values.length} RETURNING team_id`,
-            values
-        );
-        if (result.rowCount === 0) {
-            return res.status(404).json({ error: 'Equipo no encontrado' });
+        if (updates.length > 0) {
+            const result = await pool.query(
+                `UPDATE teams SET ${updates.join(', ')} WHERE team_id = $${values.length} RETURNING team_id`,
+                values
+            );
+            if (result.rowCount === 0) {
+                return res.status(404).json({ error: 'Equipo no encontrado' });
+            }
+        }
+        if (req.body?.cash_balance !== undefined) {
+            await pool.query(
+                `UPDATE team_finances SET cash_balance = $1 WHERE team_id = $2`,
+                [Number(req.body.cash_balance), teamId]
+            );
         }
         res.json({ success: true });
     } catch (err) {

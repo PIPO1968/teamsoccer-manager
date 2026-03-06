@@ -86,6 +86,8 @@ export const useManagerLicense = () => {
             title: '¡Premium activado!',
             description: '¡Has ganado 30 días Premium por explorar tu panel!',
           });
+          const updated = await apiFetch<{ success: boolean; manager: any }>(`/managers/${manager.user_id}`);
+          if (updated?.manager) signIn(updated.manager);
         } else if (res.reward) {
           toast({
             title: '¡Prueba completada!',
@@ -96,7 +98,7 @@ export const useManagerLicense = () => {
     } catch (err) {
       console.error('Error completing test:', err);
     }
-  }, [manager?.user_id, manager?.status, toast]);
+  }, [manager?.user_id, manager?.status, signIn, toast]);
 
   const claimCarnet = useCallback(async (): Promise<boolean> => {
     if (!manager?.user_id) return false;
@@ -139,7 +141,7 @@ export const useManagerLicense = () => {
  * No-ops if the manager is not in carnet_pending status.
  */
 export const useCompleteCarnetTest = (testKey: string, enabled = true) => {
-  const { manager } = useAuth();
+  const { manager, signIn } = useAuth();
   const { toast } = useToast();
   const firedRef = useRef(false);
 
@@ -151,13 +153,16 @@ export const useCompleteCarnetTest = (testKey: string, enabled = true) => {
     apiFetch<{ success: boolean; reward?: number; premiumActivated?: boolean; alreadyCompleted?: boolean }>(
       `/manager-license/complete/${testKey}`,
       { method: 'POST', body: JSON.stringify({ managerId: manager.user_id }) }
-    ).then(res => {
+    ).then(async res => {
       if (res.success && !res.alreadyCompleted) {
         if (res.premiumActivated) {
           toast({
             title: '¡Premium activado!',
             description: '¡Has ganado 30 días Premium por explorar tu panel!',
           });
+          // Refrescar AuthContext para que is_premium se refleje automáticamente
+          const updated = await apiFetch<{ success: boolean; manager: any }>(`/managers/${manager.user_id}`);
+          if (updated?.manager) signIn(updated.manager);
         } else if (res.reward) {
           toast({
             title: '¡Prueba completada!',

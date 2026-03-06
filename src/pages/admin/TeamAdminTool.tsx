@@ -22,6 +22,7 @@ interface Team {
   fan_count: number;
   club_logo: string;
   created_at: string;
+  cash_balance: number;
 }
 
 interface FieldConfig {
@@ -44,7 +45,7 @@ const TeamAdminTool = () => {
   // Define which fields should be editable
   const editableFields = [
     'name', 'manager_id', 'country_id', 'is_bot', 'team_rating',
-    'team_morale', 'team_spirit', 'fan_count', 'club_logo'
+    'team_morale', 'team_spirit', 'fan_count', 'club_logo', 'cash_balance'
   ];
 
   useEffect(() => {
@@ -106,7 +107,8 @@ const TeamAdminTool = () => {
       team_morale: teamData.team_morale ? Number(teamData.team_morale) : null,
       team_spirit: teamData.team_spirit || null,
       fan_count: teamData.fan_count ? Number(teamData.fan_count) : null,
-      club_logo: teamData.club_logo || null
+      club_logo: teamData.club_logo || null,
+      cash_balance: teamData.cash_balance !== undefined && teamData.cash_balance !== '' ? Number(teamData.cash_balance) : null,
     };
 
     // Remove null/undefined values to avoid unnecessary updates
@@ -146,6 +148,12 @@ const TeamAdminTool = () => {
       render: (_: any, team: any) => team.leagues_regions?.name || 'Unknown'
     },
     { key: 'team_rating', label: 'Rating', sortable: true },
+    {
+      key: 'cash_balance',
+      label: 'Cash Balance',
+      sortable: true,
+      render: (val: number) => `€${Number(val || 0).toLocaleString('es-ES')}`
+    },
     {
       key: 'is_bot',
       label: 'Bot',
