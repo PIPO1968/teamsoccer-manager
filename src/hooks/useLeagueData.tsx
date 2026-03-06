@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { apiFetch } from "@/services/apiClient";
 
 export type League = {
   series_id: number;
@@ -49,10 +50,7 @@ export const useLeagueData = (seriesId: string | undefined) => {
       setIsLoading(true);
       setError(null);
       try {
-        // Llama a la API Express para obtener datos de la liga/serie
-        const response = await fetch(`/api/series/${parsedSeriesId}`);
-        if (!response.ok) throw new Error("No se pudo obtener datos de la serie");
-        const data = await response.json();
+        const data = await apiFetch<{ success: boolean; league: League }>(`/series/${parsedSeriesId}`);
         setLeague(data.league || null);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error al obtener datos de la liga");

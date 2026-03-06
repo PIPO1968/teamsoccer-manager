@@ -3891,6 +3891,179 @@ app.post('/manager-license/claim', async (req, res) => {
     }
 });
 
+// Liga stats por region
+app.get('/leagues/:regionId', async (req, res) => {
+    const regionId = parseInt(req.params.regionId, 10);
+    if (!regionId) return res.status(400).json({ error: 'regionId inválido' });
+    try {
+        const regionResult = await pool.query(
+            'SELECT region_id, name FROM leagues_regions WHERE region_id = $1',
+            [regionId]
+        );
+        if (!regionResult.rows[0]) return res.status(404).json({ error: 'Liga no encontrada' });
+
+        const teamsResult = await pool.query(
+            'SELECT COUNT(DISTINCT team_id)::int AS total FROM teams WHERE country_id = $1',
+            [regionId]
+        );
+        const managersResult = await pool.query(
+            'SELECT COUNT(DISTINCT manager_id)::int AS total FROM teams WHERE country_id = $1 AND manager_id IS NOT NULL',
+            [regionId]
+        );
+
+        let seriesList = [];
+        try {
+            const seriesResult = await pool.query(
+                `SELECT s.series_id, s.division, s.group_number,
+                        (SELECT COUNT(DISTINCT team_id)::int FROM (
+                            SELECT home_team_id AS team_id FROM matches WHERE series_id = s.series_id
+                            UNION
+                            SELECT away_team_id FROM matches WHERE series_id = s.series_id
+                        ) t) AS team_count
+                 FROM series s
+                 WHERE s.region_id = $1
+                 ORDER BY s.division ASC, s.group_number ASC`,
+                [regionId]
+            );
+            seriesList = seriesResult.rows;
+        } catch (seriesErr) {
+            console.warn('series table not available:', seriesErr.message);
+        }
+
+        res.json({
+            success: true,
+            stats: {
+                regionId: regionResult.rows[0].region_id,
+                regionName: regionResult.rows[0].name,
+                totalTeams: teamsResult.rows[0]?.total || 0,
+                totalManagers: managersResult.rows[0]?.total || 0,
+                totalSeries: seriesList.length,
+                seriesList
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Serie (standings) por serie_id
+app.get('/series/:id', async (req, res) => {
+    const seriesId = parseInt(req.params.id, 10);
+    if (!seriesId) return res.status(400).json({ error: 'seriesId inválido' });
+    try {
+        const seriesResult = await pool.query(
+            `SELECT s.series_id, s.division, s.group_number, s.region_id, s.season,
+                    r.name AS region_name
+             FROM series s
+             LEFT JOIN leagues_regions r ON r.region_id = s.region_id
+             WHERE s.series_id = $1`,
+            [seriesId]
+        );
+        if (!seriesResult.rows[0]) return res.status(404).json({ error: 'Serie no encontrada' });
+        const seriesInfo = seriesResult.rows[0];
+
+        const matchesResult = await pool.query(
+            `SELECT m.home_team_id, m.away_team_id, m.home_score, m.away_score,
+                    ht.name AS home_team_name, at.name AS away_team_name,
+                    ht.club_logo AS home_team_logo, at.club_logo AS away_team_logo,
+                    ht.is_bot AS home_is_bot, at.is_bot AS away_is_bot
+             FROM matches m
+             JOIN teams ht ON ht.team_id = m.home_team_id
+             JOIN teams at ON at.team_id = m.away_team_id
+             WHERE m.series_id = $1 AND m.status = 'completed'`,
+            [seriesId]
+        );
+
+        const teamsMap = {};
+        for (const m of matchesResult.rows) {
+            if (!teamsMap[m.home_team_id]) {
+                teamsMap[m.home_team_id] = { team_id: m.home_team_id, team_name: m.home_team_name, team_logo: m.home_team_logo, played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0, points: 0, is_bot: m.home_is_bot, form: [] };
+            }
+            if (!teamsMap[m.away_team_id]) {
+                teamsMap[m.away_team_id] = { team_id: m.away_team_id, team_name: m.away_team_name, team_logo: m.away_team_logo, played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0, points: 0, is_bot: m.away_is_bot, form: [] };
+            }
+            const home = teamsMap[m.home_team_id];
+            const away = teamsMap[m.away_team_id];
+            home.played++; away.played++;
+            home.goals_for += m.home_score || 0; home.goals_against += m.away_score || 0;
+            away.goals_for += m.away_score || 0; away.goals_against += m.home_score || 0;
+            if (m.home_score > m.away_score) {
+                home.won++; home.points += 3; home.form.push('W');
+                away.lost++; away.form.push('L');
+            } else if (m.home_score === m.away_score) {
+                home.drawn++; home.points += 1; home.form.push('D');
+                away.drawn++; away.points += 1; away.form.push('D');
+            } else {
+                away.won++; away.points += 3; away.form.push('W');
+                home.lost++; home.form.push('L');
+            }
+        }
+
+        const teams = Object.values(teamsMap).map(t => ({
+            ...t,
+            goal_difference: t.goals_for - t.goals_against,
+            form: t.form.slice(-5)
+        })).sort((a, b) => b.points - a.points || (b.goal_difference - a.goal_difference) || (b.goals_for - a.goals_for));
+
+        res.json({
+            success: true,
+            league: {
+                series_id: seriesInfo.series_id,
+                league_id: seriesInfo.series_id,
+                league_name: `Division ${seriesInfo.division} Group ${seriesInfo.group_number}`,
+                division: seriesInfo.division,
+                group_number: seriesInfo.group_number,
+                region_id: seriesInfo.region_id,
+                region_name: seriesInfo.region_name,
+                season: seriesInfo.season || 1,
+                teams
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Jerarquía de series (superior / inferior)
+app.get('/series/:id/hierarchy', async (req, res) => {
+    const seriesId = parseInt(req.params.id, 10);
+    if (!seriesId) return res.status(400).json({ error: 'seriesId inválido' });
+    try {
+        const currentResult = await pool.query(
+            `SELECT series_id, division, group_number, region_id, season,
+                    COALESCE(parent_series_id, NULL) AS parent_series_id
+             FROM series WHERE series_id = $1`,
+            [seriesId]
+        );
+        if (!currentResult.rows[0]) return res.status(404).json({ error: 'Serie no encontrada' });
+        const current = currentResult.rows[0];
+
+        let higherSeries = null;
+        if (current.parent_series_id) {
+            const r = await pool.query('SELECT series_id, division, group_number, region_id, season, parent_series_id FROM series WHERE series_id = $1', [current.parent_series_id]);
+            higherSeries = r.rows[0] || null;
+        } else if (current.division > 1) {
+            const r = await pool.query('SELECT series_id, division, group_number, region_id, season, parent_series_id FROM series WHERE region_id = $1 AND division = $2 LIMIT 1', [current.region_id, current.division - 1]);
+            higherSeries = r.rows[0] || null;
+        }
+
+        const lowerResult = await pool.query(
+            'SELECT series_id, division, group_number, region_id, season, parent_series_id FROM series WHERE region_id = $1 AND division = $2 ORDER BY group_number ASC LIMIT 1',
+            [current.region_id, current.division + 1]
+        );
+        const lowerSeries = lowerResult.rows[0] || null;
+
+        res.json({
+            success: true,
+            currentSeries: { ...current, division_level: current.division },
+            higherSeries: higherSeries ? { ...higherSeries, division_level: higherSeries.division } : null,
+            lowerSeries: lowerSeries ? { ...lowerSeries, division_level: lowerSeries.division } : null
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/', (req, res) => {
     res.send('Backend TeamSoccer funcionando');
 });
