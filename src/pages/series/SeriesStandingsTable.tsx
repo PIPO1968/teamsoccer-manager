@@ -58,10 +58,10 @@ const SeriesStandingsTable = ({ teams, division }: SeriesStandingsTableProps) =>
 
   const getDot = (pos: number) => {
     if (!isDiv1) return null;
-    if (pos === 1) return <div className="w-1.5 h-1.5 rounded-full bg-green-500" title="Campeón" />;
-    if (pos === 2) return <div className="w-1.5 h-1.5 rounded-full bg-blue-500" title="Ascenso" />;
+    if (pos === 1) return <div className="w-1.5 h-1.5 rounded-full bg-green-500" title="Champions Cup (next season)" />;
+    if (pos === 2) return <div className="w-1.5 h-1.5 rounded-full bg-blue-500" title="TS Cup (next season)" />;
     if (pos === 5 || pos === 6) return <div className="w-1.5 h-1.5 rounded-full bg-orange-500" title="Playoff" />;
-    if (pos === 7 || pos === 8) return <div className="w-1.5 h-1.5 rounded-full bg-red-500" title="Descenso" />;
+    if (pos === 7 || pos === 8) return <div className="w-1.5 h-1.5 rounded-full bg-red-500" title="Relegation to Div II" />;
     return null;
   };
 
@@ -121,10 +121,10 @@ const SeriesStandingsTable = ({ teams, division }: SeriesStandingsTableProps) =>
                     <div
                       key={i}
                       className={`w-4 h-4 flex items-center justify-center rounded text-[10px] font-medium ${result === "W"
-                          ? "bg-green-500 text-white"
-                          : result === "D"
-                            ? "bg-yellow-500 text-black"
-                            : "bg-red-500 text-white"
+                        ? "bg-green-500 text-white"
+                        : result === "D"
+                          ? "bg-yellow-500 text-black"
+                          : "bg-red-500 text-white"
                         }`}
                     >
                       {result}
