@@ -3786,7 +3786,7 @@ app.get('/manager-license', async (req, res) => {
         const tests = await pool.query('SELECT * FROM manager_license_tests WHERE is_active = TRUE ORDER BY sort_order');
         const progress = await pool.query('SELECT test_key FROM manager_license_progress WHERE manager_id = $1', [managerId]);
         const teamRow = await pool.query(
-            'SELECT t.team_id, s.id AS stadium_id FROM teams t LEFT JOIN stadiums s ON s.team_id = t.team_id WHERE t.manager_id = $1',
+            'SELECT t.team_id, s.stadium_id FROM teams t LEFT JOIN stadiums s ON s.team_id = t.team_id WHERE t.manager_id = $1',
             [managerId]
         );
         const completedKeys = progress.rows.map(r => r.test_key);
