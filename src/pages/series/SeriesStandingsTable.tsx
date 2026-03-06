@@ -23,6 +23,7 @@ type SeriesTeamStats = {
 type SeriesStandingsTableProps = {
   teams: SeriesTeamStats[];
   division?: number;
+  groupNumber?: number;
 };
 
 const TeamIcon = ({ team }: { team: SeriesTeamStats }) => {
@@ -51,19 +52,39 @@ const TeamIcon = ({ team }: { team: SeriesTeamStats }) => {
   );
 };
 
-const SeriesStandingsTable = ({ teams, division }: SeriesStandingsTableProps) => {
+const SeriesStandingsTable = ({ teams, division, groupNumber }: SeriesStandingsTableProps) => {
   const [hoveredTeam, setHoveredTeam] = useState<number | null>(null);
   const displayed = teams.slice(0, 8);
   const isDiv1 = division === 1;
+  const isDiv2g1 = division === 2 && groupNumber === 1;
+  const isDiv2g2 = division === 2 && groupNumber === 2;
+
+  const dot = (color: string, title: string, double = false) =>
+    double
+      ? <div className={`w-3 h-3 rounded-full border-2 ${color}`} title={title} />
+      : <div className={`w-1.5 h-1.5 rounded-full ${color}`} title={title} />;
 
   const getDot = (pos: number) => {
-    if (!isDiv1) return null;
-    if (pos === 1) return <div className="w-1.5 h-1.5 rounded-full bg-green-500" title="Champions Cup (next season)" />;
-    if (pos === 2) return <div className="w-1.5 h-1.5 rounded-full bg-blue-500" title="TS Cup (next season)" />;
-    if (pos === 5) return <div className="w-1.5 h-1.5 rounded-full bg-orange-500" title="Playoff vs 2nd Div II.2" />;
-    if (pos === 6) return <div className="w-1.5 h-1.5 rounded-full bg-orange-500" title="Playoff vs 2nd Div II.1" />;
-    if (pos === 7) return <div className="w-3 h-3 rounded-full border-2 border-red-500 bg-red-200" title="Relegation to Div II.1" />;
-    if (pos === 8) return <div className="w-3 h-3 rounded-full border-2 border-red-500 bg-red-200" title="Relegation to Div II.2" />;
+    if (isDiv1) {
+      if (pos === 1) return dot('bg-green-500', 'Champions Cup (next season)');
+      if (pos === 2) return dot('bg-blue-500', 'TS Cup (next season)');
+      if (pos === 5) return dot('bg-orange-500', 'Playoff vs 2nd Div II.2');
+      if (pos === 6) return dot('bg-orange-500', 'Playoff vs 2nd Div II.1');
+      if (pos === 7) return dot('border-red-500 bg-red-200', 'Relegation to Div II.1', true);
+      if (pos === 8) return dot('border-red-500 bg-red-200', 'Relegation to Div II.2', true);
+    }
+    if (isDiv2g1) {
+      if (pos === 1) return dot('bg-green-500', 'Promotion to Div I.1 (replaces 7th)');
+      if (pos === 2) return dot('bg-blue-500', 'Playoff vs 6th of Div I.1');
+      if (pos === 5 || pos === 6) return dot('bg-orange-500', 'Relegation playoff');
+      if (pos === 7 || pos === 8) return dot('border-red-500 bg-red-200', 'Relegation to Div III', true);
+    }
+    if (isDiv2g2) {
+      if (pos === 1) return dot('bg-green-500', 'Promotion to Div I.1 (replaces 8th)');
+      if (pos === 2) return dot('bg-blue-500', 'Playoff vs 5th of Div I.1');
+      if (pos === 5 || pos === 6) return dot('bg-orange-500', 'Relegation playoff');
+      if (pos === 7 || pos === 8) return dot('border-red-500 bg-red-200', 'Relegation to Div III', true);
+    }
     return null;
   };
 
