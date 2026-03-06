@@ -1,3 +1,4 @@
+// v2 — fix useCompleteCarnetTest dependency array
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { apiFetch } from '@/services/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
