@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { toRomanNumeral } from "@/utils/romanNumerals";
 
 interface Series {
   series_id: number;
@@ -17,6 +19,7 @@ interface SeriesListProps {
 }
 
 const SeriesList = ({ series }: SeriesListProps) => {
+  const { t } = useLanguage();
   // Group series by division
   const seriesByDivision = series.reduce((acc, s) => {
     const division = s.division;
@@ -47,7 +50,7 @@ const SeriesList = ({ series }: SeriesListProps) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Series Overview</CardTitle>
+        <CardTitle className="text-lg">{t('league.seriesOverview')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {sortedDivisions.map(division => (
@@ -57,7 +60,7 @@ const SeriesList = ({ series }: SeriesListProps) => {
             onOpenChange={() => toggleDivision(division)}
           >
             <CollapsibleTrigger className="flex w-full items-center justify-between p-2 bg-slate-100 hover:bg-slate-200 rounded-md">
-              <span className="font-medium">Division {division}</span>
+              <span className="font-medium">{t('league.division')} {toRomanNumeral(division)}</span>
               {openDivisions[division] ? (
                 <ChevronDown className="h-4 w-4" />
               ) : (
@@ -74,10 +77,10 @@ const SeriesList = ({ series }: SeriesListProps) => {
                     className="flex items-center justify-between p-3 ml-4 bg-gray-50 hover:bg-gray-100 rounded-md"
                   >
                     <div className="flex items-center gap-2">
-                      <span className="text-sm">Group {s.group_number}</span>
+                      <span className="text-sm">{t('league.group')} {s.group_number}</span>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {s.team_count} teams
+                      {s.team_count} {t('league.teams')}
                     </div>
                   </Link>
                 ))}
