@@ -81,7 +81,6 @@ const CarnetDeManager = () => {
     completedKeys,
     teamId,
     stadiumId,
-    isLoading,
     isAllCompleted,
     completeTest,
     claimCarnet,
@@ -99,14 +98,6 @@ const CarnetDeManager = () => {
       navigate('/dashboard');
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-64">
-        <div className="text-gray-500">Cargando pruebas...</div>
-      </div>
-    );
-  }
 
   const isPendingApproval = manager?.status === 'waiting_list';
 
@@ -162,24 +153,18 @@ const CarnetDeManager = () => {
       )}
 
       {/* Test cards — locked if pending approval */}
-      {tests.length === 0 && !isLoading ? (
-        <div className="text-center py-8 text-gray-400">
-          <p>No se pudieron cargar las pruebas. Recarga la página.</p>
-        </div>
-      ) : (
-        <div className={`grid gap-4 mb-8 ${isPendingApproval ? 'opacity-40 pointer-events-none select-none' : ''}`}>
-          {tests.map(test => (
-            <TestCard
-              key={test.test_key}
-              test={test}
-              isCompleted={completedKeys.includes(test.test_key)}
-              teamId={teamId}
-              stadiumId={stadiumId}
-              onComplete={() => completeTest(test.test_key)}
-            />
-          ))}
-        </div>
-      )}
+      <div className={`grid gap-4 mb-8 ${isPendingApproval ? 'opacity-40 pointer-events-none select-none' : ''}`}>
+        {tests.map(test => (
+          <TestCard
+            key={test.test_key}
+            test={test}
+            isCompleted={completedKeys.includes(test.test_key)}
+            teamId={teamId}
+            stadiumId={stadiumId}
+            onComplete={() => completeTest(test.test_key)}
+          />
+        ))}
+      </div>
 
       {/* Claim button */}
       {!isPendingApproval && (

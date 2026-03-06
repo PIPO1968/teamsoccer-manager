@@ -4,48 +4,57 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 export interface LicenseTest {
-  id: number;
   test_key: string;
   title: string;
   description: string;
   reward_amount: number;
-  sort_order: number;
-  is_active: boolean;
 }
 
-interface LicenseData {
-  tests: LicenseTest[];
+// Las 10 pruebas del Carnet de Manager — definidas en el frontend para
+// que siempre aparezcan independientemente del estado de la base de datos.
+export const CARNET_TESTS: LicenseTest[] = [
+  { test_key: 'visit_dashboard',       title: 'Explora tu Panel',        description: 'Visita la página Resumen de tu club',          reward_amount: 50000 },
+  { test_key: 'visit_team',            title: 'Conoce tu Equipo',        description: 'Visita la página de tu equipo',                reward_amount: 50000 },
+  { test_key: 'visit_players',         title: 'Gestiona tus Jugadores',  description: 'Visita la lista de jugadores',                 reward_amount: 50000 },
+  { test_key: 'visit_transfer_market', title: 'Mercado de Fichajes',     description: 'Visita el Mercado de Transferencias',          reward_amount: 75000 },
+  { test_key: 'visit_matches',         title: 'Los Partidos',            description: 'Visita la sección de Partidos',                reward_amount: 50000 },
+  { test_key: 'visit_finances',        title: 'Las Finanzas',            description: 'Revisa las finanzas de tu equipo',             reward_amount: 50000 },
+  { test_key: 'visit_stadium',         title: 'Tu Estadio',              description: 'Visita tu estadio',                            reward_amount: 50000 },
+  { test_key: 'visit_training',        title: 'Entrenamiento',           description: 'Visita la sección de Entrenamiento',           reward_amount: 50000 },
+  { test_key: 'visit_forums',          title: 'Los Foros',               description: 'Visita los Foros de la comunidad',             reward_amount: 50000 },
+  { test_key: 'visit_community',       title: 'La Comunidad',            description: 'Visita la página de Comunidad',                reward_amount: 50000 },
+];
+
+interface ProgressData {
   completedKeys: string[];
   teamId: number | null;
   stadiumId: number | null;
 }
 
 export const useManagerLicense = () => {
-  const { manager, isCarnetPending, isWaitingList, signIn } = useAuth();
+  const { manager, isCarnetPending, signIn } = useAuth();
   const { toast } = useToast();
-  const [data, setData] = useState<LicenseData>({
-    tests: [],
+  const [progress, setProgress] = useState<ProgressData>({
     completedKeys: [],
     teamId: null,
     stadiumId: null,
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchLicense = useCallback(async () => {
+  const fetchProgress = useCallback(async () => {
     if (!manager?.user_id) return;
     setIsLoading(true);
     try {
-      const res = await apiFetch<LicenseData & { success: boolean }>(
+      const res = await apiFetch<{ success: boolean; completedKeys: string[]; teamId: number | null; stadiumId: number | null }>(
         `/manager-license?managerId=${manager.user_id}`
       );
-      setData({
-        tests: res.tests || [],
+      setProgress({
         completedKeys: res.completedKeys || [],
         teamId: res.teamId ?? null,
         stadiumId: res.stadiumId ?? null,
       });
     } catch (err) {
-      console.error('Error fetching manager license:', err);
+      console.error('Error fetching manager license progress:', err);
     } finally {
       setIsLoading(false);
     }
@@ -53,12 +62,17 @@ export const useManagerLicense = () => {
 
   useEffect(() => {
     if (manager?.user_id) {
-      fetchLicense();
+      fetchProgress();
     }
-  }, [manager?.user_id, fetchLicense]);
+  }, [manager?.user_id, fetchProgress]);
 
   const completeTest = useCallback(async (testKey: string) => {
     if (!manager?.user_id || !isCarnetPending) return;
+    // Optimistic update: marca como completada en UI inmediatamente
+    setProgress(prev => {
+      if (prev.completedKeys.includes(testKey)) return prev;
+      return { ...prev, completedKeys: [...prev.completedKeys, testKey] };
+    });
     try {
       const res = await apiFetch<{ success: boolean; reward?: number; alreadyCompleted?: boolean }>(
         `/manager-license/complete/${testKey}`,
@@ -69,10 +83,6 @@ export const useManagerLicense = () => {
           title: '¡Prueba completada!',
           description: `Has ganado €${res.reward.toLocaleString('es-ES')} por completar esta prueba.`,
         });
-        setData(prev => ({
-          ...prev,
-          completedKeys: [...prev.completedKeys, testKey],
-        }));
       }
     } catch (err) {
       console.error('Error completing test:', err);
@@ -100,22 +110,24 @@ export const useManagerLicense = () => {
   }, [manager?.user_id, signIn, toast]);
 
   const isAllCompleted =
-    data.tests.length > 0 && data.completedKeys.length >= data.tests.length;
+    progress.completedKeys.length >= CARNET_TESTS.length;
 
   return {
-    ...data,
+    tests: CARNET_TESTS,
+    completedKeys: progress.completedKeys,
+    teamId: progress.teamId,
+    stadiumId: progress.stadiumId,
     isLoading,
     isAllCompleted,
     completeTest,
     claimCarnet,
-    refetch: fetchLicense,
+    refetch: fetchProgress,
   };
 };
 
 /**
  * Lightweight hook to auto-complete a carnet test when a page is visited.
  * No-ops if the manager is not in carnet_pending status.
- * Usage: call at the top level of any target page component.
  */
 export const useCompleteCarnetTest = (testKey: string, enabled = true) => {
   const { manager, isCarnetPending } = useAuth();
@@ -138,6 +150,5 @@ export const useCompleteCarnetTest = (testKey: string, enabled = true) => {
       console.error('Error completing carnet test:', err);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled]); // Re-run when enabled changes (e.g., own team ID resolved)
+  }, [enabled]);
 };
-
