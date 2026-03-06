@@ -220,27 +220,8 @@ const TeamAdminTool = () => {
             )}
           </CardContent>
         </Card>
-                {[500000, 1000000, 2000000, 5000000].map((amount) => (
-                  <Button
-                    key={amount}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setNewBalance(String(amount))}
-                  >
-                    €{(amount / 1000000).toFixed(1)}M
-                  </Button>
-                ))}
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setFinanceTeam(null)}>Cancelar</Button>
-              <Button onClick={handleSaveFinance} disabled={savingFinance}>
-                {savingFinance ? "Guardando..." : "Guardar"}
-              </Button>
-            </DialogFooter>
-          </DialogContent >
-      </div >
-    </AdminGuard >
+      </div>
+    </AdminGuard>
   );
 };
 
