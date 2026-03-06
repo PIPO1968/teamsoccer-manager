@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -8,6 +9,7 @@ type CoachLevel = "poor" | "regular" | "good" | "excellent" | "worldClass";
 
 export default function TrainingActions() {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const [coachLevel, setCoachLevel] = useState<CoachLevel>("poor");
 
   const handleCoachChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -38,6 +40,7 @@ export default function TrainingActions() {
         <Button
           variant="outline"
           className="w-full justify-start text-green-700 hover:text-green-800 hover:bg-green-50"
+          onClick={() => navigate('/training/manual')}
         >
           {t('training.manual')}
         </Button>

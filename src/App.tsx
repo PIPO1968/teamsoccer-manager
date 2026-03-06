@@ -24,6 +24,7 @@ import NotFound from "./pages/NotFound";
 import TeamView from "./pages/TeamView";
 import PlayerView from "./pages/PlayerView";
 import Training from "./pages/Training";
+import TrainingManualPage from "./pages/training/TrainingManualPage";
 import Manager from "./pages/Manager";
 import ManagerAvatarPage from "./pages/manager/ManagerAvatarPage";
 import SeriesFixtures from "./pages/series/SeriesFixtures";
@@ -103,6 +104,7 @@ const App = () => {
                 <Route path="/transfer-market" element={<Layout><TransferMarket /></Layout>} />
                 <Route path="/bids/:teamId" element={<Layout><BidsPage /></Layout>} />
                 <Route path="/training" element={<Layout><Training /></Layout>} />
+                <Route path="/training/manual" element={<Layout><TrainingManualPage /></Layout>} />
                 <Route path="/manager/:managerId" element={<Layout><Manager /></Layout>} />
                 <Route path="/manager/:managerId/avatar" element={<Layout><ManagerAvatarPage /></Layout>} />
 
