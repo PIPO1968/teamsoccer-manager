@@ -186,6 +186,57 @@ const initDb = async () => {
         console.warn('⚠️ No se pudieron crear series automáticamente:', seriesErr.message);
     }
 
+    // Asignar serie Div1 a equipos reales (is_bot=0) que no tengan serie asignada
+    try {
+        const unassigned = await client.query(
+            'SELECT team_id, country_id FROM teams WHERE is_bot = 0 AND series_id IS NULL AND country_id IS NOT NULL'
+        );
+        for (const team of unassigned.rows) {
+            const s = await client.query(
+                'SELECT series_id FROM series WHERE region_id = $1 AND division = 1 AND group_number = 1 ORDER BY season DESC LIMIT 1',
+                [team.country_id]
+            );
+            if (s.rows[0]) {
+                await client.query('UPDATE teams SET series_id = $1 WHERE team_id = $2', [s.rows[0].series_id, team.team_id]);
+            }
+        }
+        if (unassigned.rows.length > 0) console.log(`✅ ${unassigned.rows.length} equipos reales asignados a Div1`);
+    } catch (err) {
+        console.warn('⚠️ Error asignando series a equipos reales:', err.message);
+    }
+
+    // Rellenar cada serie con equipos BOT hasta alcanzar 8 equipos en total
+    try {
+        const botNames = ['Athletic', 'United', 'City', 'Rovers', 'Wanderers', 'Rangers', 'Dynamo', 'Sporting'];
+        const allSeries = await client.query('SELECT series_id, region_id FROM series ORDER BY series_id ASC');
+        for (const s of allSeries.rows) {
+            const countRes = await client.query(
+                'SELECT COUNT(*)::int AS total FROM teams WHERE series_id = $1', [s.series_id]
+            );
+            const needed = 8 - countRes.rows[0].total;
+            if (needed <= 0) continue;
+            const usedRes = await client.query(
+                'SELECT name FROM teams WHERE series_id = $1 AND is_bot = 1', [s.series_id]
+            );
+            const usedNames = new Set(usedRes.rows.map(r => r.name));
+            let added = 0;
+            for (const n of botNames) {
+                if (added >= needed) break;
+                const fullName = `${n} FC`;
+                if (!usedNames.has(fullName)) {
+                    await client.query(
+                        'INSERT INTO teams (name, manager_id, country_id, is_bot, series_id) VALUES ($1, NULL, $2, 1, $3)',
+                        [fullName, s.region_id, s.series_id]
+                    );
+                    added++;
+                }
+            }
+        }
+        console.log('✅ Series rellenadas con equipos BOT (8 por serie)');
+    } catch (err) {
+        console.warn('⚠️ Error rellenando BOT teams:', err.message);
+    }
+
     // Seed pruebas del Carnet (bloque separado — siempre se intenta)
     try {
         await client.query(`
@@ -409,49 +460,21 @@ app.post('/register', async (req, res) => {
         );
         const managerId = managerResult.rows[0].user_id;
 
-        // 3. Asignar equipo: reclamar el primer slot BOT libre del país, rellenando desde Div1 hacia abajo
-        let teamId = null;
-        let claimedBot = false;
-        if (countryId) {
-            const botResult = await client.query(
-                `SELECT t.team_id FROM teams t
-                 JOIN series s ON s.series_id = t.series_id
-                 WHERE t.is_bot = 1 AND s.region_id = $1
-                 ORDER BY s.division ASC, s.group_number ASC, t.team_id ASC LIMIT 1`,
-                [countryId]
-            );
-            if (botResult.rows.length > 0) {
-                teamId = botResult.rows[0].team_id;
-                await client.query(
-                    'UPDATE teams SET name = $1, manager_id = $2, country_id = $3, is_bot = 0, updated_at = NOW() WHERE team_id = $4',
-                    [teamName, managerId, countryId, teamId]
-                );
-                claimedBot = true;
-            }
-        }
-        if (!claimedBot) {
-            // Fallback: crear equipo nuevo (sin serie asignada aún)
-            const teamResult = await client.query(
-                'INSERT INTO teams (name, manager_id, country_id) VALUES ($1, $2, $3) RETURNING team_id',
-                [teamName, managerId, countryId]
-            );
-            teamId = teamResult.rows[0].team_id;
-        }
+        // 3. Crear equipo provisional (sin serie, sin BOT — se asignará al obtener el carnet)
+        const teamResult = await client.query(
+            'INSERT INTO teams (name, manager_id, country_id) VALUES ($1, $2, $3) RETURNING team_id',
+            [teamName, managerId, countryId]
+        );
+        const teamId = teamResult.rows[0].team_id;
 
         await client.query(
-            `INSERT INTO team_finances (team_id, cash_balance) VALUES ($1, 1000000)
-             ON CONFLICT (team_id) DO UPDATE SET cash_balance = 1000000`,
+            'INSERT INTO team_finances (team_id, cash_balance) VALUES ($1, 1000000)',
             [teamId]
         );
         await client.query(
-            `INSERT INTO stadiums (name, team_id) VALUES ($1, $2)
-             ON CONFLICT (team_id) DO UPDATE SET name = EXCLUDED.name`,
+            'INSERT INTO stadiums (name, team_id) VALUES ($1, $2)',
             [`${teamName} Stadium`, teamId]
         );
-        if (claimedBot) {
-            // Eliminar jugadores BOT anteriores antes de generar los nuevos
-            await client.query('DELETE FROM players WHERE team_id = $1', [teamId]);
-        }
         await createInitialPlayers(client, teamId, countryId);
 
         await client.query('COMMIT');
@@ -2512,26 +2535,21 @@ app.post('/admin/activate-manager', async (req, res) => {
     if (!adminUsername || !managerId) {
         return res.status(400).json({ error: 'Faltan datos' });
     }
-
     try {
         const adminResult = await pool.query(
             'SELECT is_admin FROM managers WHERE username = $1',
             [adminUsername]
         );
-
         if (adminResult.rows.length === 0 || adminResult.rows[0].is_admin < 4) {
             return res.status(403).json({ error: 'No autorizado' });
         }
-
         const updateResult = await pool.query(
             'UPDATE managers SET status = $1 WHERE user_id = $2 RETURNING user_id, status',
             ['active', managerId]
         );
-
         if (updateResult.rows.length === 0) {
             return res.status(404).json({ error: 'Manager no encontrado' });
         }
-
         res.json({ success: true, manager: updateResult.rows[0] });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -3990,19 +4008,67 @@ app.post('/manager-license/complete/:testKey', async (req, res) => {
     }
 });
 
-// POST /manager-license/claim — claim carnet after all tests done → status='active'
+// POST /manager-license/claim — claim carnet after all tests done → status='active' + asigna BOT team
 app.post('/manager-license/claim', async (req, res) => {
     const { managerId } = req.body;
     if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
+    const client = await pool.connect();
     try {
-        const completed = await pool.query('SELECT COUNT(*) FROM manager_license_progress WHERE manager_id = $1', [managerId]);
+        const completed = await client.query('SELECT COUNT(*) FROM manager_license_progress WHERE manager_id = $1', [managerId]);
         if (parseInt(completed.rows[0].count) < TOTAL_CARNET_TESTS) {
+            client.release();
             return res.status(400).json({ error: 'No has completado todas las pruebas' });
         }
-        await pool.query('UPDATE managers SET status = $1 WHERE user_id = $2', ['active', managerId]);
+
+        await client.query('BEGIN');
+        await client.query('UPDATE managers SET status = $1 WHERE user_id = $2', ['active', managerId]);
+
+        // Obtener el equipo del manager y su país
+        const teamRes = await client.query(
+            'SELECT team_id, name, country_id FROM teams WHERE manager_id = $1 LIMIT 1',
+            [managerId]
+        );
+        if (teamRes.rows.length > 0) {
+            const { team_id, name: teamName, country_id } = teamRes.rows[0];
+            if (country_id) {
+                // Buscar primer BOT libre de su país, rellenando desde Div1 hacia abajo
+                const botRes = await client.query(
+                    `SELECT t.team_id AS bot_team_id, t.series_id AS bot_series_id FROM teams t
+                     JOIN series s ON s.series_id = t.series_id
+                     WHERE t.is_bot = 1 AND s.region_id = $1
+                     ORDER BY s.division ASC, s.group_number ASC, t.team_id ASC LIMIT 1`,
+                    [country_id]
+                );
+                if (botRes.rows.length > 0) {
+                    const { bot_team_id, bot_series_id } = botRes.rows[0];
+                    // Fusionar: mover el equipo real al slot BOT
+                    await client.query(
+                        'UPDATE teams SET series_id = $1, is_bot = 0, updated_at = NOW() WHERE team_id = $2',
+                        [bot_series_id, team_id]
+                    );
+                    // Eliminar el equipo BOT que ocupaba ese slot
+                    await client.query('DELETE FROM players WHERE team_id = $1', [bot_team_id]);
+                    await client.query('DELETE FROM teams WHERE team_id = $1', [bot_team_id]);
+                } else {
+                    // No hay BOT libre: asignar Div1 directamente sin desplazar
+                    const div1 = await client.query(
+                        'SELECT series_id FROM series WHERE region_id = $1 AND division = 1 AND group_number = 1 LIMIT 1',
+                        [country_id]
+                    );
+                    if (div1.rows[0]) {
+                        await client.query('UPDATE teams SET series_id = $1, updated_at = NOW() WHERE team_id = $2', [div1.rows[0].series_id, team_id]);
+                    }
+                }
+            }
+        }
+
+        await client.query('COMMIT');
         res.json({ success: true });
     } catch (err) {
+        await client.query('ROLLBACK');
         res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
     }
 });
 
@@ -4077,6 +4143,20 @@ app.get('/series/:id', async (req, res) => {
         if (!seriesResult.rows[0]) return res.status(404).json({ error: 'Serie no encontrada' });
         const seriesInfo = seriesResult.rows[0];
 
+        // Cargar todos los equipos asignados a esta serie (con o sin partidos)
+        const allTeamsResult = await pool.query(
+            `SELECT t.team_id, t.name AS team_name, t.club_logo AS team_logo, t.is_bot
+             FROM teams t
+             WHERE t.series_id = $1
+             ORDER BY t.is_bot ASC, t.team_id ASC`,
+            [seriesId]
+        );
+        const teamsMap = {};
+        for (const t of allTeamsResult.rows) {
+            teamsMap[t.team_id] = { team_id: t.team_id, team_name: t.team_name, team_logo: t.team_logo, played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0, points: 0, is_bot: t.is_bot, form: [] };
+        }
+
+        // Sobreescribir stats con partidos completados
         const matchesResult = await pool.query(
             `SELECT m.home_team_id, m.away_team_id, m.home_score, m.away_score,
                     ht.name AS home_team_name, at.name AS away_team_name,
@@ -4088,9 +4168,8 @@ app.get('/series/:id', async (req, res) => {
              WHERE m.series_id = $1 AND m.status = 'completed'`,
             [seriesId]
         );
-
-        const teamsMap = {};
         for (const m of matchesResult.rows) {
+            // Añadir equipos de partidos que no están en series_id (compatibilidad)
             if (!teamsMap[m.home_team_id]) {
                 teamsMap[m.home_team_id] = { team_id: m.home_team_id, team_name: m.home_team_name, team_logo: m.home_team_logo, played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0, points: 0, is_bot: m.home_is_bot, form: [] };
             }
