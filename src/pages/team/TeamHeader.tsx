@@ -7,13 +7,14 @@ import { Users, Flag as FlagIcon } from "lucide-react";
 import { Flag } from "@/components/ui/flag";
 import { TeamLogoUpload } from "@/components/team/TeamLogoUpload";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { localizeCountryName } from "@/utils/countries";
 
 interface TeamHeaderProps {
   team: TeamData | null;
 }
 
 export default function TeamHeader({ team }: TeamHeaderProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   if (!team) return null;
 
   return (
@@ -53,7 +54,7 @@ export default function TeamHeader({ team }: TeamHeaderProps) {
                 ) : (
                   <FlagIcon className="h-4 w-4" />
                 )}
-                <span className="text-sm text-gray-600">{team.country}</span>
+                <span className="text-sm text-gray-600">{localizeCountryName(team.country, language)}</span>
               </div>
 
               <div className="flex items-center gap-1">
