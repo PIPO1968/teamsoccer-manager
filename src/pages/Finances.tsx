@@ -5,6 +5,7 @@ import { useTeamData } from "@/hooks/useTeamData";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowUpRight, ArrowDownRight, DollarSign, Award } from "lucide-react";
 import { useCompleteCarnetTest, useManagerLicense, CARNET_TESTS } from '@/hooks/useManagerLicense';
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function Finances() {
   useCompleteCarnetTest('visit_finances');
@@ -12,6 +13,7 @@ export default function Finances() {
   const { finances, isLoading: financesLoading } = useTeamFinances(teamId);
   const { team, isLoading: teamLoading } = useTeamData(teamId);
   const { completedKeys: carnetCompletedKeys } = useManagerLicense();
+  const { t } = useLanguage();
 
   if (financesLoading || teamLoading) {
     return <FinancesSkeleton />;
@@ -26,20 +28,20 @@ export default function Finances() {
   };
 
   const cashEarned = CARNET_TESTS
-    .filter(t => t.test_key !== 'visit_dashboard' && carnetCompletedKeys.includes(t.test_key))
-    .reduce((sum, t) => sum + t.reward_amount, 0);
+    .filter(test => test.test_key !== 'visit_dashboard' && carnetCompletedKeys.includes(test.test_key))
+    .reduce((sum, test) => sum + test.reward_amount, 0);
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Club Finances</h1>
-        <p className="text-muted-foreground">{team?.name} financial overview</p>
+        <h1 className="text-3xl font-bold tracking-tight">{t('finances.title')}</h1>
+        <p className="text-muted-foreground">{team?.name} {t('finances.overview')}</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Cash Balance</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('finances.cashBalance')}</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -48,7 +50,7 @@ export default function Finances() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Weekly Income</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('finances.weeklyIncome')}</CardTitle>
             <ArrowUpRight className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
@@ -57,7 +59,7 @@ export default function Finances() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Weekly Expenses</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('finances.weeklyExpenses')}</CardTitle>
             <ArrowDownRight className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
@@ -66,7 +68,7 @@ export default function Finances() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Weekly Balance</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('finances.weeklyBalance')}</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -80,29 +82,29 @@ export default function Finances() {
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Income</CardTitle>
-            <CardDescription>Breakdown of income sources</CardDescription>
+            <CardTitle>{t('finances.income')}</CardTitle>
+            <CardDescription>{t('finances.incomeBreakdown')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex justify-between">
-                <span className="text-sm">Match Income</span>
+                <span className="text-sm">{t('finances.matchIncome')}</span>
                 <span className="font-medium">{formatMoney(finances?.match_income || 0)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm">Sponsorship</span>
+                <span className="text-sm">{t('finances.sponsorship')}</span>
                 <span className="font-medium">{formatMoney(finances?.sponsor_income || 0)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm">Player Sales</span>
+                <span className="text-sm">{t('finances.playerSales')}</span>
                 <span className="font-medium">{formatMoney(finances?.player_sales_income || 0)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm">Commission</span>
+                <span className="text-sm">{t('finances.commission')}</span>
                 <span className="font-medium">{formatMoney(finances?.commission_income || 0)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm">Other Income</span>
+                <span className="text-sm">{t('finances.otherIncome')}</span>
                 <span className="font-medium">{formatMoney(finances?.other_income || 0)}</span>
               </div>
             </div>
@@ -111,37 +113,37 @@ export default function Finances() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Expenses</CardTitle>
-            <CardDescription>Breakdown of expenses</CardDescription>
+            <CardTitle>{t('finances.expenses')}</CardTitle>
+            <CardDescription>{t('finances.expensesBreakdown')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex justify-between">
-                <span className="text-sm">Wages</span>
+                <span className="text-sm">{t('finances.wages')}</span>
                 <span className="font-medium">{formatMoney(finances?.wages_expenses || 0)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm">Stadium Maintenance</span>
+                <span className="text-sm">{t('finances.stadiumMaintenance')}</span>
                 <span className="font-medium">{formatMoney(finances?.stadium_maintenance_expenses || 0)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm">Stadium Building</span>
+                <span className="text-sm">{t('finances.stadiumBuilding')}</span>
                 <span className="font-medium">{formatMoney(finances?.stadium_building_expenses || 0)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm">Staff</span>
+                <span className="text-sm">{t('finances.staff')}</span>
                 <span className="font-medium">{formatMoney(finances?.staff_expenses || 0)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm">Youth Academy</span>
+                <span className="text-sm">{t('finances.youthAcademy')}</span>
                 <span className="font-medium">{formatMoney(finances?.youth_expenses || 0)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm">New Signings</span>
+                <span className="text-sm">{t('finances.newSignings')}</span>
                 <span className="font-medium">{formatMoney(finances?.new_signings_expenses || 0)}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm">Other Expenses</span>
+                <span className="text-sm">{t('finances.otherExpenses')}</span>
                 <span className="font-medium">{formatMoney(finances?.other_expenses || 0)}</span>
               </div>
             </div>
@@ -149,36 +151,36 @@ export default function Finances() {
         </Card>
       </div>
 
-      {/* Premios del Carnet de Manager */}
+      {/* Manager License Awards */}
       {carnetCompletedKeys.length > 0 && (
         <Card className="border-yellow-200 bg-yellow-50/40">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-yellow-800">
               <Award className="h-5 w-5 text-yellow-500" />
-              Premios del Carnet de Manager
+              {t('finances.carnetAwards')}
             </CardTitle>
-            <CardDescription>Recompensas obtenidas durante el proceso de obtención del carnet</CardDescription>
+            <CardDescription>{t('finances.carnetDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {carnetCompletedKeys.includes('visit_dashboard') && (
                 <div className="flex justify-between items-center py-2 border-b border-yellow-200">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-yellow-800">⭐ 30 días Premium</span>
-                    <span className="text-xs text-gray-500">— Explora tu Panel</span>
+                    <span className="text-sm font-medium text-yellow-800">{t('finances.premiumDays')}</span>
+                    <span className="text-xs text-gray-500">— {t('finances.exploreDashboard')}</span>
                   </div>
-                  <span className="text-sm font-bold text-yellow-700">Activado</span>
+                  <span className="text-sm font-bold text-yellow-700">{t('finances.activated')}</span>
                 </div>
               )}
-              {CARNET_TESTS.filter(t => t.test_key !== 'visit_dashboard' && carnetCompletedKeys.includes(t.test_key)).map(t => (
-                <div key={t.test_key} className="flex justify-between items-center">
-                  <span className="text-sm text-gray-700">{t.title}</span>
-                  <span className="text-sm font-bold text-green-600">+{formatMoney(t.reward_amount)}</span>
+              {CARNET_TESTS.filter(test => test.test_key !== 'visit_dashboard' && carnetCompletedKeys.includes(test.test_key)).map(test => (
+                <div key={test.test_key} className="flex justify-between items-center">
+                  <span className="text-sm text-gray-700">{test.title}</span>
+                  <span className="text-sm font-bold text-green-600">+{formatMoney(test.reward_amount)}</span>
                 </div>
               ))}
               {cashEarned > 0 && (
                 <div className="flex justify-between items-center pt-3 border-t border-yellow-200 font-bold">
-                  <span className="text-sm text-gray-900">Total ganado en metálico</span>
+                  <span className="text-sm text-gray-900">{t('finances.totalEarned')}</span>
                   <span className="text-sm text-green-700">+{formatMoney(cashEarned)}</span>
                 </div>
               )}

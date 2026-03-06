@@ -8,17 +8,19 @@ import { GAME_NAME } from "@/config/constants";
 import { useAuth } from "@/contexts/AuthContext";
 import { WaitingListDashboard } from "@/components/dashboard/WaitingListDashboard";
 import { useCompleteCarnetTest } from '@/hooks/useManagerLicense';
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Dashboard = () => {
   useCompleteCarnetTest('visit_dashboard');
   const { isWaitingList } = useAuth();
-  const { 
-    team, 
+  const { t } = useLanguage();
+  const {
+    team,
     league,
-    recentMatches, 
-    nextMatch, 
-    getFormattedMatchDate, 
-    isLoading 
+    recentMatches,
+    nextMatch,
+    getFormattedMatchDate,
+    isLoading
   } = useDashboardData();
 
   // Show waiting list dashboard for waiting list users
@@ -29,8 +31,8 @@ const Dashboard = () => {
   if (isLoading || !team) {
     return (
       <div className="space-y-8">
-        <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
-        <p className="text-muted-foreground">Loading dashboard data...</p>
+        <h1 className="text-3xl font-bold tracking-tight">{t('dashboard.overview')}</h1>
+        <p className="text-muted-foreground">{t('dashboard.loading')}</p>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[...Array(4)].map((_, i) => (
             <Card key={i}>
@@ -68,37 +70,37 @@ const Dashboard = () => {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Overview</h1>
-        <p className="text-muted-foreground">Welcome to {GAME_NAME}!</p>
+        <h1 className="text-3xl font-bold tracking-tight">{t('dashboard.overview')}</h1>
+        <p className="text-muted-foreground">{t('dashboard.welcome')} {GAME_NAME}!</p>
       </div>
-      
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Team Rating</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.teamRating')}</CardTitle>
             <Trophy className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{team.team_rating}/100</div>
             <Progress value={team.team_rating} className="mt-2 h-1" />
             <p className="text-xs text-muted-foreground mt-2">
-              {team.team_rating > 85 ? "Elite level" : 
-               team.team_rating > 75 ? "Professional level" :
-               team.team_rating > 65 ? "Good level" : "Developing level"}
+              {team.team_rating > 85 ? t('dashboard.elite') :
+                team.team_rating > 75 ? t('dashboard.professional') :
+                  team.team_rating > 65 ? t('dashboard.goodLevel') : t('dashboard.developing')}
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Next Match</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.nextMatch')}</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {nextMatch ? (
               <>
                 <div className="text-md font-bold">
-                  {nextMatch.isHome ? "vs " : "@ "}
+                  {nextMatch.isHome ? `${t('dashboard.home')} ` : `${t('dashboard.away')} `}
                   <Link to={`/match/${nextMatch.id}`} className="hover:underline">
                     {nextMatch.opponent}
                   </Link>
@@ -109,37 +111,37 @@ const Dashboard = () => {
               </>
             ) : (
               <>
-                <div className="text-md font-bold">No upcoming matches</div>
+                <div className="text-md font-bold">{t('dashboard.noUpcoming')}</div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Check schedule for details
+                  {t('dashboard.checkSchedule')}
                 </p>
               </>
             )}
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Team Morale</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.teamMorale')}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {team.team_morale >= 80 ? "Excellent" :
-               team.team_morale >= 65 ? "Good" :
-               team.team_morale >= 50 ? "Average" :
-               team.team_morale >= 35 ? "Poor" : "Terrible"}
+              {team.team_morale >= 80 ? t('dashboard.excellent') :
+                team.team_morale >= 65 ? t('dashboard.good') :
+                  team.team_morale >= 50 ? t('dashboard.average') :
+                    team.team_morale >= 35 ? t('dashboard.poor') : t('dashboard.terrible')}
             </div>
             <Progress value={team.team_morale} className="mt-2 h-1" />
           </CardContent>
         </Card>
       </div>
-      
+
       <div className="grid gap-4 md:grid-cols-1">
         <Card className="col-span-1">
           <CardHeader>
-            <CardTitle>Recent Matches</CardTitle>
-            <CardDescription>Your last {recentMatches.length || 5} match results</CardDescription>
+            <CardTitle>{t('dashboard.recentMatches')}</CardTitle>
+            <CardDescription>{t('dashboard.lastResults').replace('{n}', String(recentMatches.length || 5))}</CardDescription>
           </CardHeader>
           <CardContent>
             {recentMatches.length > 0 ? (
@@ -147,10 +149,9 @@ const Dashboard = () => {
                 {recentMatches.map((match, i) => (
                   <div key={i} className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
-                      <div className={`w-2 h-8 rounded-full ${
-                        match.result === "Win" ? "bg-green-500" :
-                        match.result === "Draw" ? "bg-yellow-500" : "bg-red-500"
-                      }`} />
+                      <div className={`w-2 h-8 rounded-full ${match.result === "Win" ? "bg-green-500" :
+                          match.result === "Draw" ? "bg-yellow-500" : "bg-red-500"
+                        }`} />
                       <div>
                         <p className="text-sm font-medium flex items-center">
                           {match.opponent} {getResultIcon(match.result)}
@@ -163,7 +164,7 @@ const Dashboard = () => {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No recent match history available.</p>
+              <p className="text-sm text-muted-foreground">{t('dashboard.noHistory')}</p>
             )}
           </CardContent>
         </Card>

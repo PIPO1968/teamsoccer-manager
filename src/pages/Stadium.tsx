@@ -11,6 +11,7 @@ import { StadiumVisualization } from "./Stadium/components/StadiumVisualization"
 import { StadiumInformation } from "./Stadium/components/StadiumInformation";
 import { StadiumLoading } from "./Stadium/components/StadiumLoading";
 import { useCompleteCarnetTest } from '@/hooks/useManagerLicense';
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Stadium = () => {
   useCompleteCarnetTest('visit_stadium');
@@ -18,6 +19,7 @@ const Stadium = () => {
   const { stadium, isLoading, error } = useStadiumData(stadiumId);
   const { matches, isLoading: matchesLoading } = useStadiumMatches(stadiumId);
   const { league, isLoading: leagueLoading } = useTeamLeague(stadium?.team_id.toString());
+  const { t } = useLanguage();
 
   if (isLoading || leagueLoading) {
     return <StadiumLoading />;
@@ -26,7 +28,7 @@ const Stadium = () => {
   if (error) {
     return (
       <Alert variant="destructive">
-        <AlertTitle>Error</AlertTitle>
+        <AlertTitle>{t('stadium.error')}</AlertTitle>
         <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
@@ -35,18 +37,18 @@ const Stadium = () => {
   if (!stadium) {
     return (
       <Alert>
-        <AlertTitle>Stadium not found</AlertTitle>
-        <AlertDescription>The requested stadium could not be found.</AlertDescription>
+        <AlertTitle>{t('stadium.notFound')}</AlertTitle>
+        <AlertDescription>{t('stadium.notFoundDesc')}</AlertDescription>
       </Alert>
     );
   }
-  
+
   // Split matches into recent and upcoming
   const now = new Date();
   const recentMatches = matches
     .filter(match => match.status === 'completed')
     .slice(0, 5); // Show last 5 completed matches
-  
+
   const upcomingMatches = matches
     .filter(match => match.status === 'scheduled' && new Date(match.match_date) > now)
     .slice(0, 5); // Show next 5 upcoming matches
@@ -54,7 +56,7 @@ const Stadium = () => {
   return (
     <div className="space-y-6">
       <StadiumHeader stadium={stadium} league={league} />
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Stadium 3D View */}
         <div className="lg:col-span-1">
@@ -70,9 +72,9 @@ const Stadium = () => {
       {/* Recent Matches Section - Full Width */}
       <div className="w-full">
         <StadiumMatchesSection
-          title={`Recent matches for ${stadium.team_name}`}
+          title={`${t('stadium.recentMatchesFor')} ${stadium.team_name}`}
           matches={recentMatches}
-          emptyMessage="No recent matches found"
+          emptyMessage={t('stadium.noRecentMatches')}
           showResult={false}
         />
       </div>
@@ -80,9 +82,9 @@ const Stadium = () => {
       {/* Upcoming Matches Section - Full Width */}
       <div className="w-full">
         <StadiumMatchesSection
-          title="Upcoming matches"
+          title={t('stadium.upcomingMatches')}
           matches={upcomingMatches}
-          emptyMessage="No upcoming matches scheduled"
+          emptyMessage={t('stadium.noUpcomingMatches')}
           showResult={false}
         />
       </div>

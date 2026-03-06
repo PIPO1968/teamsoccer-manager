@@ -6,9 +6,11 @@ import { toast } from "sonner";
 import { GAME_NAME } from "@/config/constants";
 import ShopContent from "@/components/shop/ShopContent";
 import ErrorDetailsDialog from "@/components/shop/ErrorDetailsDialog";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Shop = () => {
   const { manager } = useAuth();
+  const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
@@ -44,7 +46,7 @@ const Shop = () => {
 
   const handlePurchasePremium = async () => {
     if (!manager) {
-      toast.error("You must be logged in to purchase premium.");
+      toast.error(t('shop.loginRequired'));
       return;
     }
 
@@ -72,7 +74,7 @@ const Shop = () => {
       if (error.type === "stripe_error") {
         toast.error(`Stripe error: ${error.message}`);
       } else {
-        toast.error("Failed to initiate checkout. Please try again.");
+        toast.error(t('shop.checkoutError'));
       }
 
       setErrorDetails(JSON.stringify(error, null, 2));
@@ -88,8 +90,8 @@ const Shop = () => {
         <h1 className="text-3xl font-bold mb-2">{GAME_NAME} Premium</h1>
         <p className="text-lg text-muted-foreground">
           {manager?.is_premium
-            ? "Manage your premium access"
-            : "Upgrade your manager experience with premium features"}
+            ? t('shop.manageAccess')
+            : t('shop.upgradeDesc')}
         </p>
       </div>
 
