@@ -4,6 +4,7 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { PlayerData } from "@/hooks/useTeamPlayers";
 import { Link } from "react-router-dom";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface PlayerTrainingRowProps {
   player: PlayerData;
@@ -20,6 +21,7 @@ export default function PlayerTrainingRow({
   onTrainingTypeChange,
   onIntensityChange
 }: PlayerTrainingRowProps) {
+  const { t } = useLanguage();
   return (
     <TableRow>
       <TableCell>
@@ -41,14 +43,14 @@ export default function PlayerTrainingRow({
           onChange={(e) => onTrainingTypeChange(player.player_id, parseInt(e.target.value))}
           className="w-full rounded-md border border-input bg-background px-2 py-1 text-sm"
         >
-          <option value={0}>No Training</option>
-          <option value={1}>Goalkeeper</option>
-          <option value={2}>Defense</option>
-          <option value={3}>Passing</option>
-          <option value={4}>Crossing</option>
-          <option value={5}>Dribbling</option>
-          <option value={6}>Heading</option>
-          <option value={7}>Scoring</option>
+          <option value={0}>{t('training.type.none')}</option>
+          <option value={1}>{t('training.type.goalkeeper')}</option>
+          <option value={2}>{t('training.type.defense')}</option>
+          <option value={3}>{t('training.type.passing')}</option>
+          <option value={4}>{t('training.type.crossing')}</option>
+          <option value={5}>{t('training.type.dribbling')}</option>
+          <option value={6}>{t('training.type.heading')}</option>
+          <option value={7}>{t('training.type.scoring')}</option>
         </select>
       </TableCell>
       <TableCell>
