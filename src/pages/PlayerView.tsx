@@ -14,13 +14,14 @@ import { ListPlayerDialog } from "./transfer-market/components/ListPlayerDialog"
 import { useUserTeam } from "@/hooks/useUserTeam";
 import { PlayerAvatar } from "@/components/avatar/PlayerAvatar";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { localizeCountryName } from "@/utils/countries";
 
 const PlayerView = () => {
   const { playerId } = useParams<{ playerId: string }>();
   const { player, isLoading, error } = usePlayerData(playerId);
   const { team } = useUserTeam();
   const [isListPlayerDialogOpen, setIsListPlayerDialogOpen] = useState(false);
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const formatValue = (value: number) => {
     if (value >= 1000000) {
@@ -119,7 +120,7 @@ const PlayerView = () => {
               <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground">{t('player.nationality')}:</span>
-                  <span>{player.nationality || t('player.unknown')}</span>
+                  <span>{player.nationality ? localizeCountryName(player.nationality, language) : t('player.unknown')}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground">{t('player.value')}:</span>
