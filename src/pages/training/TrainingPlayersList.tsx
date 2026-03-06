@@ -4,16 +4,18 @@ import { Button } from "@/components/ui/button";
 import { PlayerData } from "@/hooks/useTeamPlayers";
 import { useTrainingManagement } from "./hooks/useTrainingManagement";
 import TrainingTable from "./components/TrainingTable";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface TrainingPlayersListProps {
   players: PlayerData[];
   isLoading: boolean;
 }
 
-export default function TrainingPlayersList({ 
-  players, 
+export default function TrainingPlayersList({
+  players,
   isLoading
 }: TrainingPlayersListProps) {
+  const { t } = useLanguage();
   const {
     playerTrainings,
     isSaving,
@@ -26,7 +28,7 @@ export default function TrainingPlayersList({
     return (
       <Card>
         <CardContent className="p-4">
-          <div className="text-center py-8">Loading players...</div>
+          <div className="text-center py-8">{t('training.loadingPlayers')}</div>
         </CardContent>
       </Card>
     );
@@ -36,7 +38,7 @@ export default function TrainingPlayersList({
     return (
       <Card>
         <CardContent className="p-4">
-          <div className="text-center py-8">No players found.</div>
+          <div className="text-center py-8">{t('training.noPlayers')}</div>
         </CardContent>
       </Card>
     );
@@ -45,12 +47,12 @@ export default function TrainingPlayersList({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-6">
-        <CardTitle>Team Training</CardTitle>
-        <Button 
-          onClick={saveAllTrainings} 
+        <CardTitle>{t('training.teamTraining')}</CardTitle>
+        <Button
+          onClick={saveAllTrainings}
           disabled={isSaving}
         >
-          {isSaving ? "Saving..." : "Save All"}
+          {isSaving ? t('training.saving') : t('training.saveAll')}
         </Button>
       </CardHeader>
       <CardContent>
