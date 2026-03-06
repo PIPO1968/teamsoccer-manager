@@ -114,9 +114,76 @@ const initDb = async () => {
         `);
         // Añadir coach_level a equipos si no existe
         await client.query(`ALTER TABLE teams ADD COLUMN IF NOT EXISTS coach_level TEXT DEFAULT 'poor'`);
+        await client.query(`ALTER TABLE teams ADD COLUMN IF NOT EXISTS series_id INTEGER REFERENCES series(series_id) ON DELETE SET NULL`);
         console.log('✅ Tablas verificadas/creadas correctamente');
     } catch (err) {
         console.error('❌ Error creando tablas:', err.message);
+    }
+
+    // Seed series: crear 4 divisiones + 8 equipos BOT por serie por cada región que no las tenga
+    try {
+        const regionsResult = await client.query('SELECT region_id FROM leagues_regions ORDER BY region_id ASC');
+        for (const row of regionsResult.rows) {
+            const regionId = row.region_id;
+            const existing = await client.query(
+                'SELECT COUNT(*)::int AS total FROM series WHERE region_id = $1', [regionId]
+            );
+            if (existing.rows[0].total > 0) continue;
+
+            // División 1 — 1 grupo
+            const d1 = await client.query(
+                'INSERT INTO series (division, group_number, region_id, season, parent_series_id) VALUES (1, 1, $1, 1, NULL) RETURNING series_id',
+                [regionId]
+            );
+            const d1g1 = d1.rows[0].series_id;
+
+            // División 2 — 2 grupos (parent: d1g1)
+            const d2ids = [];
+            for (let g = 1; g <= 2; g++) {
+                const r = await client.query(
+                    'INSERT INTO series (division, group_number, region_id, season, parent_series_id) VALUES (2, $1, $2, 1, $3) RETURNING series_id',
+                    [g, regionId, d1g1]
+                );
+                d2ids.push(r.rows[0].series_id);
+            }
+
+            // División 3 — 4 grupos (parent: d2ids[Math.floor((g-1)/2)])
+            const d3ids = [];
+            for (let g = 1; g <= 4; g++) {
+                const parent = d2ids[Math.floor((g - 1) / 2)];
+                const r = await client.query(
+                    'INSERT INTO series (division, group_number, region_id, season, parent_series_id) VALUES (3, $1, $2, 1, $3) RETURNING series_id',
+                    [g, regionId, parent]
+                );
+                d3ids.push(r.rows[0].series_id);
+            }
+
+            // División 4 — 8 grupos (parent: d3ids[Math.floor((g-1)/2)])
+            const d4ids = [];
+            for (let g = 1; g <= 8; g++) {
+                const parent = d3ids[Math.floor((g - 1) / 2)];
+                const r = await client.query(
+                    'INSERT INTO series (division, group_number, region_id, season, parent_series_id) VALUES (4, $1, $2, 1, $3) RETURNING series_id',
+                    [g, regionId, parent]
+                );
+                d4ids.push(r.rows[0].series_id);
+            }
+
+            // Crear 8 equipos BOT por cada serie (120 equipos por región)
+            const botNames = ['Athletic', 'United', 'City', 'Rovers', 'Wanderers', 'Rangers', 'Dynamo', 'Sporting'];
+            const allSeriesIds = [d1g1, ...d2ids, ...d3ids, ...d4ids];
+            for (const sid of allSeriesIds) {
+                for (let t = 0; t < 8; t++) {
+                    await client.query(
+                        `INSERT INTO teams (name, manager_id, country_id, is_bot, series_id) VALUES ($1, NULL, $2, 1, $3)`,
+                        [`${botNames[t]} FC`, regionId, sid]
+                    );
+                }
+            }
+        }
+        console.log('✅ Series (4 divisiones) y equipos BOT verificados/creados');
+    } catch (seriesErr) {
+        console.warn('⚠️ No se pudieron crear series automáticamente:', seriesErr.message);
     }
 
     // Seed pruebas del Carnet (bloque separado — siempre se intenta)
@@ -342,15 +409,49 @@ app.post('/register', async (req, res) => {
         );
         const managerId = managerResult.rows[0].user_id;
 
-        // 3. Crear equipo
-        const teamResult = await client.query(
-            'INSERT INTO teams (name, manager_id, country_id) VALUES ($1, $2, $3) RETURNING team_id',
-            [teamName, managerId, countryId]
-        );
-        const teamId = teamResult.rows[0].team_id;
+        // 3. Asignar equipo: reclamar BOT de Div4 del país del usuario si hay disponible
+        let teamId = null;
+        let claimedBot = false;
+        if (countryId) {
+            const botResult = await client.query(
+                `SELECT t.team_id FROM teams t
+                 JOIN series s ON s.series_id = t.series_id
+                 WHERE t.is_bot = 1 AND s.region_id = $1 AND s.division = 4
+                 ORDER BY t.team_id ASC LIMIT 1`,
+                [countryId]
+            );
+            if (botResult.rows.length > 0) {
+                teamId = botResult.rows[0].team_id;
+                await client.query(
+                    'UPDATE teams SET name = $1, manager_id = $2, country_id = $3, is_bot = 0, updated_at = NOW() WHERE team_id = $4',
+                    [teamName, managerId, countryId, teamId]
+                );
+                claimedBot = true;
+            }
+        }
+        if (!claimedBot) {
+            // Fallback: crear equipo nuevo (sin serie asignada aún)
+            const teamResult = await client.query(
+                'INSERT INTO teams (name, manager_id, country_id) VALUES ($1, $2, $3) RETURNING team_id',
+                [teamName, managerId, countryId]
+            );
+            teamId = teamResult.rows[0].team_id;
+        }
 
-        await client.query('INSERT INTO team_finances (team_id, cash_balance) VALUES ($1, 1000000)', [teamId]);
-        await client.query('INSERT INTO stadiums (name, team_id) VALUES ($1, $2)', [`${teamName} Stadium`, teamId]);
+        await client.query(
+            `INSERT INTO team_finances (team_id, cash_balance) VALUES ($1, 1000000)
+             ON CONFLICT (team_id) DO UPDATE SET cash_balance = 1000000`,
+            [teamId]
+        );
+        await client.query(
+            `INSERT INTO stadiums (name, team_id) VALUES ($1, $2)
+             ON CONFLICT (team_id) DO UPDATE SET name = EXCLUDED.name`,
+            [`${teamName} Stadium`, teamId]
+        );
+        if (claimedBot) {
+            // Eliminar jugadores BOT anteriores antes de generar los nuevos
+            await client.query('DELETE FROM players WHERE team_id = $1', [teamId]);
+        }
         await createInitialPlayers(client, teamId, countryId);
 
         await client.query('COMMIT');
