@@ -1,6 +1,7 @@
 
 import SeriesStandingsTable from "./series/SeriesStandingsTable";
 import DivisionNavigation from "./series/DivisionNavigation";
+import SeriesStatsBlock from "./series/SeriesStatsBlock";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link, useNavigate } from "react-router-dom";
@@ -92,16 +93,7 @@ const Series = () => {
           </CardContent>
         </div>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Quick Links</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <nav>
-              <Link to={`/series/${seriesId}/fixtures`} className="block text-sm text-primary hover:underline">Fixtures</Link>
-            </nav>
-          </CardContent>
-        </Card>
+        <SeriesStatsBlock seriesId={seriesId!} />
       </div>
     </div>
   );

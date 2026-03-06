@@ -4218,6 +4218,95 @@ app.get('/series/:id', async (req, res) => {
     }
 });
 
+// Estadísticas de la temporada activa de una serie
+app.get('/series/:id/stats', async (req, res) => {
+    const seriesId = parseInt(req.params.id, 10);
+    if (!seriesId) return res.status(400).json({ error: 'seriesId inválido' });
+    try {
+        // Top goleadores (jugadores de equipos en esta serie)
+        const scorersResult = await pool.query(
+            `SELECT p.player_id, p.first_name, p.last_name, p.position, p.goals,
+                    t.team_id, t.name AS team_name, t.club_logo AS team_logo
+             FROM players p
+             JOIN teams t ON t.team_id = p.team_id
+             WHERE t.series_id = $1 AND p.goals > 0
+             ORDER BY p.goals DESC, p.assists DESC
+             LIMIT 10`,
+            [seriesId]
+        );
+
+        // Top asistidores
+        const assistsResult = await pool.query(
+            `SELECT p.player_id, p.first_name, p.last_name, p.position, p.assists,
+                    t.team_id, t.name AS team_name, t.club_logo AS team_logo
+             FROM players p
+             JOIN teams t ON t.team_id = p.team_id
+             WHERE t.series_id = $1 AND p.assists > 0
+             ORDER BY p.assists DESC, p.goals DESC
+             LIMIT 10`,
+            [seriesId]
+        );
+
+        // Equipos con menos goles encajados (a partir de partidos completados)
+        const concededResult = await pool.query(
+            `SELECT t.team_id, t.name AS team_name, t.club_logo AS team_logo,
+                    COALESCE(SUM(CASE WHEN m.home_team_id = t.team_id THEN m.away_score
+                                     WHEN m.away_team_id = t.team_id THEN m.home_score
+                                     ELSE 0 END), 0)::int AS goals_against,
+                    COUNT(m.match_id_int)::int AS played
+             FROM teams t
+             LEFT JOIN matches m ON (m.home_team_id = t.team_id OR m.away_team_id = t.team_id)
+               AND m.series_id = $1 AND m.status = 'completed'
+             WHERE t.series_id = $1
+             GROUP BY t.team_id, t.name, t.club_logo
+             ORDER BY goals_against ASC, played DESC
+             LIMIT 8`,
+            [seriesId]
+        );
+
+        // Partidos jugados (completados), más recientes primero
+        const playedResult = await pool.query(
+            `SELECT m.match_id_int AS match_id, m.home_team_id, m.away_team_id,
+                    ht.name AS home_team_name, at.name AS away_team_name,
+                    ht.club_logo AS home_team_logo, at.club_logo AS away_team_logo,
+                    m.home_score, m.away_score, m.match_date, m.week
+             FROM matches m
+             JOIN teams ht ON ht.team_id = m.home_team_id
+             JOIN teams at ON at.team_id = m.away_team_id
+             WHERE m.series_id = $1 AND m.status = 'completed'
+             ORDER BY m.match_date DESC, m.match_id_int DESC
+             LIMIT 20`,
+            [seriesId]
+        );
+
+        // Próximos partidos (pendientes), más cercanos primero
+        const upcomingResult = await pool.query(
+            `SELECT m.match_id_int AS match_id, m.home_team_id, m.away_team_id,
+                    ht.name AS home_team_name, at.name AS away_team_name,
+                    ht.club_logo AS home_team_logo, at.club_logo AS away_team_logo,
+                    m.match_date, m.week
+             FROM matches m
+             JOIN teams ht ON ht.team_id = m.home_team_id
+             JOIN teams at ON at.team_id = m.away_team_id
+             WHERE m.series_id = $1 AND m.status != 'completed'
+             ORDER BY m.match_date ASC, m.match_id_int ASC
+             LIMIT 20`,
+            [seriesId]
+        );
+
+        res.json({
+            success: true,
+            topScorers: scorersResult.rows,
+            topAssists: assistsResult.rows,
+            fewestConceded: concededResult.rows,
+            playedMatches: playedResult.rows,
+            upcomingMatches: upcomingResult.rows
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Temporadas disponibles para una serie (misma div/grupo/región)
 app.get('/series/:id/seasons', async (req, res) => {
     const seriesId = parseInt(req.params.id, 10);
