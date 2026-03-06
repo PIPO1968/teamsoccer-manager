@@ -177,15 +177,16 @@ const CarnetDeManager = () => {
         <div className="text-center">
           <Button
             size="lg"
+            disabled={!isAllCompleted}
             onClick={handleClaim}
-            className="px-10 bg-yellow-500 hover:bg-yellow-600 text-white font-bold"
+            className="px-10 bg-yellow-500 hover:bg-yellow-600 text-white font-bold disabled:opacity-40"
           >
             <Award className="h-5 w-5 mr-2" />
-            Obtener Carnet de Manager
+            {isAllCompleted ? '¡Activar cuenta y entrar al juego!' : 'Completa las pruebas para activar tu cuenta'}
           </Button>
           {!isAllCompleted && total > 0 && (
             <p className="text-xs text-gray-500 mt-2">
-              Completa las {total - completed} pruebas para ganar €{tests.slice(completed).reduce((s, t) => s + t.reward_amount, 0).toLocaleString('es-ES')} en recompensas.
+              {total - completed} prueba{total - completed !== 1 ? 's' : ''} restante{total - completed !== 1 ? 's' : ''}
             </p>
           )}
         </div>
