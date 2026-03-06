@@ -4269,7 +4269,7 @@ app.get('/series/:id/stats', async (req, res) => {
             `SELECT m.match_id_int AS match_id, m.home_team_id, m.away_team_id,
                     ht.name AS home_team_name, at.name AS away_team_name,
                     ht.club_logo AS home_team_logo, at.club_logo AS away_team_logo,
-                    m.home_score, m.away_score, m.match_date, m.week
+                    m.home_score, m.away_score, m.match_date
              FROM matches m
              JOIN teams ht ON ht.team_id = m.home_team_id
              JOIN teams at ON at.team_id = m.away_team_id
@@ -4284,7 +4284,7 @@ app.get('/series/:id/stats', async (req, res) => {
             `SELECT m.match_id_int AS match_id, m.home_team_id, m.away_team_id,
                     ht.name AS home_team_name, at.name AS away_team_name,
                     ht.club_logo AS home_team_logo, at.club_logo AS away_team_logo,
-                    m.match_date, m.week
+                    m.match_date
              FROM matches m
              JOIN teams ht ON ht.team_id = m.home_team_id
              JOIN teams at ON at.team_id = m.away_team_id

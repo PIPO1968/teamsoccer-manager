@@ -36,7 +36,6 @@ interface MatchRow {
     home_score?: number;
     away_score?: number;
     match_date: string;
-    week?: number;
 }
 
 interface SeriesStats {
@@ -167,7 +166,6 @@ export default function SeriesStatsBlock({ seriesId }: { seriesId: string }) {
                                             to={`/match/${m.match_id}`}
                                             className="flex items-center gap-1 text-xs py-1.5 px-1 hover:bg-muted rounded border-b last:border-0"
                                         >
-                                            {m.week && <span className="text-muted-foreground w-6 flex-shrink-0">J{m.week}</span>}
                                             <div className="flex items-center gap-1 flex-1 min-w-0 justify-between">
                                                 <span className="truncate text-right flex-1">{m.home_team_name}</span>
                                                 <span className="text-muted-foreground px-1 flex-shrink-0">vs</span>
@@ -191,7 +189,6 @@ export default function SeriesStatsBlock({ seriesId }: { seriesId: string }) {
                                             to={`/match/${m.match_id}`}
                                             className="flex items-center gap-1 text-xs py-1.5 px-1 hover:bg-muted rounded border-b last:border-0"
                                         >
-                                            {m.week && <span className="text-muted-foreground w-6 flex-shrink-0">J{m.week}</span>}
                                             <div className="flex items-center gap-1 flex-1 min-w-0 justify-between">
                                                 <span className="truncate text-right flex-1">{m.home_team_name}</span>
                                                 <span className="font-bold px-1 flex-shrink-0 tabular-nums">
