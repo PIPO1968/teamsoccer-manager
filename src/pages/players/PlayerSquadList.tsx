@@ -7,6 +7,7 @@ import { PlayerData } from "@/hooks/useTeamPlayers";
 import { Flag } from "@/components/ui/flag";
 import { PlayerAvatar } from "@/components/avatar/PlayerAvatar";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { localizeCountryName } from "@/utils/countries";
 
 const SKILL_LEVELS = [
   { min: 1, name: "poor", color: "bg-red-500" },
@@ -51,7 +52,7 @@ interface PlayerSquadListProps {
 }
 
 export default function PlayerSquadList({ players }: PlayerSquadListProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const getSkillColor = (level: number) => {
     if (level >= 15) return "bg-violet-500";
@@ -108,7 +109,7 @@ export default function PlayerSquadList({ players }: PlayerSquadListProps) {
 
               <div className="flex-1">
                 <div className="flex items-center gap-1 text-xs text-gray-500">
-                  <span>{player.nationality || t('player.unknown')}</span>
+                  <span>{player.nationality ? localizeCountryName(player.nationality, language) : t('player.unknown')}</span>
                   <span>•</span>
                   <span>{player.age} {t('player.age').toLowerCase()}</span>
                   <span>•</span>

@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Trophy, Users, Flag, Star, Trophy as LeagueTrophy } from "lucide-react";
 import type { TeamData } from "@/hooks/useTeamData";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { localizeCountryName } from "@/utils/countries";
 import { Link, useParams } from "react-router-dom";
 import { useTeamLeague } from "@/hooks/useTeamLeague";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,7 +20,7 @@ export default function ClubDetails({ team }: ClubDetailsProps) {
   const { league, isLoading: leagueLoading } = useTeamLeague(team?.team_id?.toString());
   const { manager } = useAuth();
   const { stadiumId } = useStadiumIdByTeamId(team?.team_id);
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   console.log('ClubDetails rendering with:', {
     'Team data': team,
@@ -56,7 +57,7 @@ export default function ClubDetails({ team }: ClubDetailsProps) {
                   <>
                     {t('team.competesIn')}{" "}
                     <Link to={`/series/${league.series_id}`} className="text-green-700 hover:underline">
-                      {league.region_name} {toRomanNumeral(league.division)}.{league.group_number}
+                      {localizeCountryName(league.region_name, language)} {toRomanNumeral(league.division)}.{league.group_number}
                     </Link>
                   </>
                 ) : (

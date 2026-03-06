@@ -5,10 +5,11 @@ import { Flag } from "@/components/ui/flag";
 import { Link } from "react-router-dom";
 import { useWorldStats } from "@/hooks/useWorldStats";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { localizeCountryName } from "@/utils/countries";
 
 const World = () => {
   const { stats, isLoading, error } = useWorldStats();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   if (isLoading) return <div>{t('world.loading')}</div>;
   if (error) return <div>{t('world.error')}: {error}</div>;
@@ -64,7 +65,7 @@ const World = () => {
                       className="flex items-center gap-2 hover:underline"
                     >
                       <Flag countryId={league.region_id} />
-                      {league.region_name}
+                      {localizeCountryName(league.region_name, language)}
                     </Link>
                   </TableCell>
                   <TableCell className="text-right">{league.team_count}</TableCell>

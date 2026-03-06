@@ -9,6 +9,8 @@ import { ManagerStatusIndicators } from "@/components/manager/ManagerStatusIndic
 import { useManagerStatus } from "@/hooks/useManagerStatus";
 import { AvatarDisplay } from "@/components/avatar/AvatarDisplay";
 import { useAvatarConfig } from "@/hooks/useAvatarConfig";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { localizeCountryName } from "@/utils/countries";
 
 interface PostUserInfoProps {
   userId: number;
@@ -32,6 +34,7 @@ export default function PostUserInfo({ userId, createdAt }: PostUserInfoProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   const { league } = useTeamLeague(managerInfo.team_id?.toString());
+  const { language } = useLanguage();
   const { is_online, last_seen } = useManagerStatus(userId);
   const { avatarConfig } = useAvatarConfig(userId);
 
@@ -112,7 +115,7 @@ export default function PostUserInfo({ userId, createdAt }: PostUserInfoProps) {
                 to={`/series/${league.series_id}`}
                 className="text-xs hover:underline text-muted-foreground"
               >
-                {league.region_name} {toRomanNumeral(league.division)}.{league.group_number}
+                {localizeCountryName(league.region_name, language)} {toRomanNumeral(league.division)}.{league.group_number}
               </Link>
             ) : managerInfo.team_id ? (
               <span className="text-xs text-muted-foreground">

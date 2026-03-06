@@ -5,11 +5,14 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbS
 import { Home, Trophy } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { useLeagueData } from "@/hooks/useLeagueData";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { localizeCountryName } from "@/utils/countries";
 
 const SeriesFixtures = () => {
   const { seriesId } = useParams();
   const { league, isLoading } = useLeagueData(seriesId);
-  
+  const { language } = useLanguage();
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -17,7 +20,7 @@ const SeriesFixtures = () => {
   if (!league) {
     return <div>Series not found</div>;
   }
-  
+
   return (
     <div className="space-y-4">
       <Breadcrumb>
@@ -29,7 +32,7 @@ const SeriesFixtures = () => {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href={`/series/${seriesId}`}>{league.region_name}</BreadcrumbLink>
+            <BreadcrumbLink href={`/series/${seriesId}`}>{localizeCountryName(league.region_name, language)}</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
@@ -42,7 +45,7 @@ const SeriesFixtures = () => {
         <div className="lg:col-span-2">
           <div className="teamsoccer-panel">
             <div className="teamsoccer-header flex items-center justify-between">
-              <h2 className="text-white">Fixtures - {league.region_name} Division {league.division} - Group {league.group_number}</h2>
+              <h2 className="text-white">Fixtures - {localizeCountryName(league.region_name, language)} Division {league.division} - Group {league.group_number}</h2>
               <span className="text-sm text-white/80">Season {league.season}</span>
             </div>
             <CardContent className="p-4">

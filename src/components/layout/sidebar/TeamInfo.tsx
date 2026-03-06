@@ -6,6 +6,7 @@ import { useTeamLeague } from "@/hooks/useTeamLeague";
 import { toRomanNumeral } from "@/utils/romanNumerals";
 import type { TeamData } from "@/hooks/useTeamData";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { localizeCountryName } from "@/utils/countries";
 
 interface TeamInfoProps {
   team: TeamData | null;
@@ -14,7 +15,7 @@ interface TeamInfoProps {
 
 export default function TeamInfo({ team, isLoading }: TeamInfoProps) {
   const { league, isLoading: leagueLoading } = useTeamLeague(team?.team_id?.toString());
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   if (isLoading) {
     return (
@@ -70,7 +71,7 @@ export default function TeamInfo({ team, isLoading }: TeamInfoProps) {
             to={`/series/${league.series_id}`}
             className="block text-[10px] text-muted-foreground mt-0.5 hover:underline"
           >
-            {league.region_name} {toRomanNumeral(league.division)}.{league.group_number}
+            {localizeCountryName(league.region_name, language)} {toRomanNumeral(league.division)}.{league.group_number}
           </Link>
         ) : (
           <span className="block text-[10px] text-muted-foreground mt-0.5">
