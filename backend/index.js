@@ -3797,11 +3797,27 @@ app.get('/manager-license', async (req, res) => {
     }
 });
 
+// Recompensas hardcodeadas — independiente del estado de la tabla manager_license_tests
+const CARNET_REWARDS = {
+    visit_dashboard:       50000,
+    visit_team:            50000,
+    visit_players:         50000,
+    visit_transfer_market: 75000,
+    visit_matches:         50000,
+    visit_finances:        50000,
+    visit_stadium:         50000,
+    visit_training:        50000,
+    visit_forums:          50000,
+    visit_community:       50000,
+};
+const TOTAL_CARNET_TESTS = Object.keys(CARNET_REWARDS).length; // 10
+
 // POST /manager-license/complete/:testKey — mark test done + award money (idempotent)
 app.post('/manager-license/complete/:testKey', async (req, res) => {
     const { testKey } = req.params;
     const { managerId } = req.body;
     if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
+    if (!CARNET_REWARDS[testKey]) return res.status(404).json({ error: 'Prueba no encontrada' });
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
@@ -3813,15 +3829,7 @@ app.post('/manager-license/complete/:testKey', async (req, res) => {
             await client.query('ROLLBACK');
             return res.json({ success: true, alreadyCompleted: true });
         }
-        const test = await client.query(
-            'SELECT reward_amount FROM manager_license_tests WHERE test_key = $1 AND is_active = TRUE',
-            [testKey]
-        );
-        if (test.rows.length === 0) {
-            await client.query('ROLLBACK');
-            return res.status(404).json({ error: 'Prueba no encontrada' });
-        }
-        const reward = test.rows[0].reward_amount;
+        const reward = CARNET_REWARDS[testKey];
         await client.query(
             'INSERT INTO manager_license_progress (manager_id, test_key) VALUES ($1, $2)',
             [managerId, testKey]
@@ -3848,9 +3856,8 @@ app.post('/manager-license/claim', async (req, res) => {
     const { managerId } = req.body;
     if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
     try {
-        const totalTests = await pool.query('SELECT COUNT(*) FROM manager_license_tests WHERE is_active = TRUE');
         const completed = await pool.query('SELECT COUNT(*) FROM manager_license_progress WHERE manager_id = $1', [managerId]);
-        if (parseInt(completed.rows[0].count) < parseInt(totalTests.rows[0].count)) {
+        if (parseInt(completed.rows[0].count) < TOTAL_CARNET_TESTS) {
             return res.status(400).json({ error: 'No has completado todas las pruebas' });
         }
         await pool.query('UPDATE managers SET status = $1 WHERE user_id = $2', ['active', managerId]);
