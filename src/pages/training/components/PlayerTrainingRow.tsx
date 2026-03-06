@@ -26,7 +26,7 @@ export default function PlayerTrainingRow({
     <TableRow>
       <TableCell>
         <div>
-          <Link 
+          <Link
             to={`/players/${player.player_id}`}
             className="font-medium text-primary hover:underline"
           >
