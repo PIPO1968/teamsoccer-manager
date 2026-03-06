@@ -30,7 +30,7 @@ const Series = () => {
     error: hierarchyError
   } = useLeagueHierarchy(seriesId);
   const { seasonInfo, isLoading: seasonLoading } = useCurrentSeason();
-  const { language } = useLanguage();
+  const { language, t } = useLanguage();
   const [availableSeasons, setAvailableSeasons] = useState<SeasonEntry[]>([]);
 
   useEffect(() => {
@@ -41,11 +41,11 @@ const Series = () => {
   }, [seriesId]);
 
   if (leagueLoading || hierarchyLoading || seasonLoading) {
-    return <div>Loading series data...</div>;
+    return <div>{t('series.loading')}</div>;
   }
 
   if (leagueError || hierarchyError || !league) {
-    return <div>Error: {leagueError || hierarchyError || "Series not found"}</div>;
+    return <div>Error: {leagueError || hierarchyError || t('series.notFound')}</div>;
   }
 
   return (
@@ -71,16 +71,16 @@ const Series = () => {
                   <SelectContent>
                     {availableSeasons.map((s) => (
                       <SelectItem key={s.series_id} value={String(s.series_id)}>
-                        Season {s.season}
+                        {t('series.season')} {s.season}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               ) : (
-                <span className="text-sm text-white font-medium drop-shadow-lg">Season {league.season}</span>
+                <span className="text-sm text-white font-medium drop-shadow-lg">{t('series.season')} {league.season}</span>
               )}
               <span className="text-white/80 text-sm">|</span>
-              <span className="text-sm text-white font-medium drop-shadow-lg">Week {seasonInfo?.current_week}</span>
+              <span className="text-sm text-white font-medium drop-shadow-lg">{t('series.week')} {seasonInfo?.current_week}</span>
             </div>
           </div>
           <CardContent className="p-4">

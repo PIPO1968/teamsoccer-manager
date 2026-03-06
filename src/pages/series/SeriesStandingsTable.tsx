@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Link } from "react-router-dom";
 import { Shield, Bot } from "lucide-react";
 
@@ -53,6 +54,7 @@ const TeamIcon = ({ team }: { team: SeriesTeamStats }) => {
 };
 
 const SeriesStandingsTable = ({ teams, division, groupNumber }: SeriesStandingsTableProps) => {
+  const { t } = useLanguage();
   const [hoveredTeam, setHoveredTeam] = useState<number | null>(null);
   const displayed = teams.slice(0, 8);
 
@@ -110,7 +112,7 @@ const SeriesStandingsTable = ({ teams, division, groupNumber }: SeriesStandingsT
         <TableHeader>
           <TableRow className="bg-muted/50">
             <TableHead className="w-[40px]">#</TableHead>
-            <TableHead>Team</TableHead>
+            <TableHead>{t('series.colTeam')}</TableHead>
             <TableHead className="text-center w-[35px]">P</TableHead>
             <TableHead className="text-center w-[35px]">W</TableHead>
             <TableHead className="text-center w-[35px]">D</TableHead>
@@ -119,7 +121,7 @@ const SeriesStandingsTable = ({ teams, division, groupNumber }: SeriesStandingsT
             <TableHead className="text-center w-[35px]">GA</TableHead>
             <TableHead className="text-center w-[35px]">+/-</TableHead>
             <TableHead className="text-center w-[40px]">Pts</TableHead>
-            <TableHead className="w-[100px]">Form</TableHead>
+            <TableHead className="w-[100px]">{t('series.colForm')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
