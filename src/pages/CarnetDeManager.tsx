@@ -31,9 +31,10 @@ interface TestCardProps {
   isCompleted: boolean;
   teamId: number | null;
   stadiumId: number | null;
+  onComplete: () => void;
 }
 
-const TestCard = ({ test, isCompleted, teamId, stadiumId }: TestCardProps) => {
+const TestCard = ({ test, isCompleted, teamId, stadiumId, onComplete }: TestCardProps) => {
   const route = getTestRoute(test.test_key, teamId, stadiumId);
 
   return (
@@ -55,7 +56,7 @@ const TestCard = ({ test, isCompleted, teamId, stadiumId }: TestCardProps) => {
                 {isCompleted ? '✓ Recompensa recibida:' : 'Recompensa:'}{' '}
                 <span className="font-bold">€{test.reward_amount.toLocaleString('es-ES')}</span>
               </span>
-              <Link to={route}>
+              <Link to={route} onClick={!isCompleted ? onComplete : undefined}>
                 <Button
                   size="sm"
                   variant={isCompleted ? 'ghost' : 'outline'}
@@ -82,6 +83,7 @@ const CarnetDeManager = () => {
     stadiumId,
     isLoading,
     isAllCompleted,
+    completeTest,
     claimCarnet,
   } = useManagerLicense();
 
@@ -173,6 +175,7 @@ const CarnetDeManager = () => {
               isCompleted={completedKeys.includes(test.test_key)}
               teamId={teamId}
               stadiumId={stadiumId}
+              onComplete={() => completeTest(test.test_key)}
             />
           ))}
         </div>
