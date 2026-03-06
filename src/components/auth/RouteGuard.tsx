@@ -30,7 +30,7 @@ export const RouteGuard = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
-    if (manager.status === 'carnet_pending') {
+    if (manager.status === 'carnet_pending' || manager.status === 'waiting_list') {
       const allowed = CARNET_ALLOWED_PATHS.some(p => location.pathname.startsWith(p));
       if (!allowed) {
         navigate('/carnet');

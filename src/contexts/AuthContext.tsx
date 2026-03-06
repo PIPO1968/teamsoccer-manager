@@ -35,14 +35,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const initializeAuth = async () => {
-      // Check for stored manager data
       const storedManager = localStorage.getItem('manager');
       if (storedManager) {
         try {
           const parsedManager = JSON.parse(storedManager);
-
-          // If the stored manager doesn't have status or premium info, fetch it from the database
-          if (parsedManager && (!parsedManager.status || parsedManager.is_premium === undefined)) {
+          if (parsedManager?.user_id) {
+            // Always re-fetch from DB to get current status (admin may have changed it)
             const updatedData = await fetchManagerData(parsedManager.user_id);
             if (updatedData) {
               const updatedManager = { ...parsedManager, ...updatedData };
@@ -51,12 +49,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             } else {
               setManager(parsedManager);
             }
-          } else {
-            setManager(parsedManager);
-          }
-
-          // Check if this manager has a team
-          if (parsedManager?.user_id) {
             await checkManagerTeam(parsedManager.user_id);
           }
         } catch (error) {
