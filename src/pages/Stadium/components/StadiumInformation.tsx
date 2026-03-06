@@ -68,14 +68,14 @@ export const StadiumInformation = ({ stadium }: StadiumInformationProps) => {
             <span className="text-gray-600">{t('stadium.potentialTakings')}</span>
           </div>
           <div className="font-medium">
-            {Math.floor((stadium.stadium_capacity || 2500) * 5).toLocaleString()} £
+            {Math.floor((stadium.stadium_capacity || 2500) * 30).toLocaleString()} $
           </div>
 
           <div>
             <span className="text-gray-600">{t('stadium.maintenance')}</span>
           </div>
           <div className="font-medium">
-            {Math.floor((stadium.stadium_capacity || 2500) * 0.3).toLocaleString()} £
+            {Math.floor((stadium.stadium_capacity || 2500) * 1.8).toLocaleString()} $
           </div>
         </div>
       </CardContent>

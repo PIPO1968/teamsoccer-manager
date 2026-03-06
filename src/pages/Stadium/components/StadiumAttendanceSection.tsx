@@ -122,7 +122,7 @@ export const StadiumAttendanceSection = ({
                                         {/* Earnings */}
                                         <div className="md:col-span-2 text-center">
                                             <span className="font-semibold text-emerald-700 text-sm">
-                                                £{earnings.toLocaleString()}
+                                                ${earnings.toLocaleString()}
                                             </span>
                                         </div>
 
