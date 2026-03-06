@@ -14,11 +14,11 @@ const Navbar = () => {
   const { manager, isPremium, signOut } = useAuth();
   const { team } = useUserTeam();
   const { t } = useLanguage();
-  
+
   const navItems = [
     { name: t('nav.myClub'), icon: Home, path: `/team/${team?.team_id || 1}` },
     { name: t('nav.world'), icon: Globe, path: "/world" },
-    { name: "Rooms", icon: Users, path: "/rooms" },
+    { name: t('nav.rooms'), icon: Users, path: "/rooms" },
     { name: t('nav.forums'), icon: MessageCircle, path: "/forums" },
     { name: t('nav.community'), icon: Globe, path: "/community" },
   ];
@@ -38,31 +38,30 @@ const Navbar = () => {
 
           <nav className="hidden md:flex space-x-1">
             {navItems.map((item) => (
-              <Link 
+              <Link
                 key={item.name}
                 to={item.path}
-                className={`px-3 py-1 rounded-md font-medium text-sm flex items-center gap-1.5 hover:bg-teamsoccer-green-dark ${
-                  window.location.pathname === item.path 
-                    ? "bg-teamsoccer-green-dark" 
+                className={`px-3 py-1 rounded-md font-medium text-sm flex items-center gap-1.5 hover:bg-teamsoccer-green-dark ${window.location.pathname === item.path
+                    ? "bg-teamsoccer-green-dark"
                     : "text-white/90"
-                }`}
+                  }`}
               >
                 <item.icon className="h-4 w-4" />
                 <span>{item.name}</span>
               </Link>
             ))}
           </nav>
-          
+
           <div className="flex items-center space-x-1">
-            <Link 
+            <Link
               to="/help"
               className="px-3 py-1 rounded-md font-medium text-sm flex items-center gap-1.5 hover:bg-teamsoccer-green-dark text-white/90"
             >
               <HelpCircle className="h-4 w-4" />
               <span>{t('nav.help')}</span>
             </Link>
-            
-            <Link 
+
+            <Link
               to="/shop"
               className="px-3 py-1 rounded-md font-medium text-sm flex items-center gap-1.5 hover:bg-yellow-700 bg-yellow-600 text-white"
             >
@@ -70,7 +69,7 @@ const Navbar = () => {
               <span>{t('nav.premium')}</span>
             </Link>
 
-            <Link 
+            <Link
               to="/messages"
               className="px-3 py-1 rounded-md font-medium text-sm flex items-center gap-1.5 hover:bg-teamsoccer-green-dark text-white/90"
             >
@@ -84,7 +83,7 @@ const Navbar = () => {
             </Link>
 
             {manager && (
-              <Link 
+              <Link
                 to={`/manager/${manager.user_id}`}
                 className="px-3 py-1 rounded-md font-medium text-sm flex items-center gap-1.5 hover:bg-teamsoccer-green-dark text-white/90"
               >
@@ -99,17 +98,17 @@ const Navbar = () => {
               className="px-3 py-1 rounded-md font-medium text-sm flex items-center gap-1.5 hover:bg-teamsoccer-green-dark text-white/90 h-auto"
             >
               <LogOut className="h-4 w-4" />
-              <span>Logout</span>
+              <span>{t('nav.logout')}</span>
             </Button>
           </div>
         </div>
       </div>
-      
+
       {isMobileMenuOpen && (
         <div className="md:hidden bg-teamsoccer-green-dark border-t border-white/10 px-2 py-3">
           <nav className="space-y-1">
             {navItems.map((item) => (
-              <Link 
+              <Link
                 key={item.name}
                 to={item.path}
                 className="flex items-center gap-2 px-3 py-2 rounded-md text-white hover:bg-teamsoccer-green"

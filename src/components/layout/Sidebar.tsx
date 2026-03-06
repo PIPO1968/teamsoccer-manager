@@ -16,14 +16,14 @@ const Sidebar = () => {
   const { stadiumId } = useStadiumIdByTeamId(team?.team_id);
   const { league } = useTeamLeague(team?.team_id?.toString());
   const { t } = useLanguage();
-  
+
   const managerIdFromTeam = team?.manager_id || null;
   const effectiveManagerId = managerIdFromTeam || managerId;
   const managerLink = effectiveManagerId ? `/manager/${effectiveManagerId}` : '/manager';
-  
+
   // Check if manager is high-level admin (admin level > 1)
   const isHighLevelAdmin = manager?.is_admin && manager.is_admin > 1;
-  
+
   const navItems = [
     { name: t('sidebar.overview'), icon: Home, path: "/dashboard" },
     { name: t('sidebar.club'), icon: Building, path: `/team/${team?.team_id || 1}` },
@@ -36,7 +36,7 @@ const Sidebar = () => {
     { name: t('sidebar.transfers'), icon: Inbox, path: "/transfer-market" },
     { name: t('sidebar.challenges'), icon: Swords, path: `/challenges/${team?.team_id}` },
     { name: t('sidebar.manager'), icon: User, path: managerLink },
-    ...(isHighLevelAdmin ? [{ name: "Admin Area", icon: Settings, path: "/admin" }] : [])
+    ...(isHighLevelAdmin ? [{ name: t('sidebar.adminArea'), icon: Settings, path: "/admin" }] : [])
   ];
 
   return (

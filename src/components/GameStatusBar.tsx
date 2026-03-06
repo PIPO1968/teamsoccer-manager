@@ -50,17 +50,17 @@ const GameStatusBar = () => {
             <div className="flex items-center space-x-3 text-sm">
               <div className="flex items-center space-x-1">
                 <span className="w-2 h-2 rounded-full bg-green-400 inline-block"></span>
-                <span>{playersLoading ? "..." : `${onlinePlayers.toLocaleString()} online`}</span>
+                <span>{playersLoading ? "..." : `${onlinePlayers.toLocaleString()} ${t('gameStatus.online')}`}</span>
               </div>
               <span className="text-white/40">|</span>
               <div className="flex items-center space-x-1">
                 <Users className="w-4 h-4" />
-                <span>{playersLoading ? "..." : `${totalManagers.toLocaleString()} registrados`}</span>
+                <span>{playersLoading ? "..." : `${totalManagers.toLocaleString()} ${t('gameStatus.registered')}`}</span>
               </div>
               {!seasonLoading && seasonInfo && (
                 <>
                   <span className="text-white/40">|</span>
-                  <span>Season {seasonInfo.current_season}, Week {seasonInfo.current_week}</span>
+                  <span>{t('gameStatus.season')} {seasonInfo.current_season}, {t('gameStatus.week')} {seasonInfo.current_week}</span>
                 </>
               )}
             </div>
@@ -84,7 +84,7 @@ const GameStatusBar = () => {
             {isLandingPage && (
               <div className="flex items-center space-x-2">
                 <Globe className="w-4 h-4" />
-                <span className="text-sm">Choose language:</span>
+                <span className="text-sm">{t('gameStatus.chooseLanguage')}:</span>
                 <Select value={language} onValueChange={(value: Language) => setLanguage(value)}>
                   <SelectTrigger className="w-[130px] bg-transparent border-teamsoccer-green hover:bg-teamsoccer-green text-white">
                     <SelectValue />
