@@ -22,7 +22,6 @@ app.get('/leagues-regions', async (req, res) => {
     }
 });
 
-const app = express();
 // CORS global usando paquete cors y función para origin
 const allowedOrigins = [
     'https://teamsoccer-manager-production-f836.up.railway.app',
