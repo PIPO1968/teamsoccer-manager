@@ -1,36 +1,11 @@
-import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Users, Shield, Newspaper, UserCog, Building, User, Eye } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
-import { apiFetch } from "@/services/apiClient";
-import { AdminBadge } from "@/components/admin/OnlineManagerBadges";
-
-interface OnlineManager {
-  user_id: number;
-  username: string;
-  is_admin: number;
-  country_name?: string;
-}
 
 const AdminArea = () => {
   const { manager } = useAuth();
-  const [onlineManagers, setOnlineManagers] = useState<OnlineManager[]>([]);
-
-  useEffect(() => {
-    const fetch = async () => {
-      try {
-        const data = await apiFetch<{ success: boolean; managers: OnlineManager[] }>('/admin/online-managers');
-        setOnlineManagers(data.managers ?? []);
-      } catch {
-        setOnlineManagers([]);
-      }
-    };
-    fetch();
-    const interval = setInterval(fetch, 30_000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Check if user has required admin level
   if (!manager?.is_admin || manager.is_admin <= 3) {
@@ -79,22 +54,9 @@ const AdminArea = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {onlineManagers.length === 0 ? (
-              <p className="text-sm text-gray-500 mb-4">No hay managers conectados ahora mismo</p>
-            ) : (
-              <ul className="space-y-1 mb-4">
-                {onlineManagers.map(m => (
-                  <li key={m.user_id} className="flex items-center gap-2 text-sm">
-                    <span className="w-2 h-2 rounded-full bg-green-500 shrink-0" />
-                    <Link to={`/manager/${m.user_id}`} className="font-medium text-blue-600 hover:underline">
-                      {m.username}
-                    </Link>
-                    <AdminBadge adminLevel={m.is_admin} />
-                    {m.country_name && <span className="text-gray-400 text-xs">{m.country_name}</span>}
-                  </li>
-                ))}
-              </ul>
-            )}
+            <p className="text-sm text-gray-600 mb-4">
+              Ver managers conectados en tiempo real con su IP y ubicación
+            </p>
             <Link
               to="/admin/online-managers"
               className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
