@@ -302,36 +302,17 @@ initDb();
 
 const ADMIN_USERNAME = 'PIPO68';
 
-// Activación completa: garantiza que el manager tiene equipo, jugadores, estadio, finanzas y liga
+// Activación completa: garantiza que el manager tiene jugadores, estadio, finanzas y liga
 const fullyActivateManager = async (client, managerId) => {
-    // 1. Obtener o crear equipo
-    let teamRes = await client.query(
+    // Obtener equipo (siempre existe: se crea en el registro)
+    const teamRes = await client.query(
         'SELECT team_id, name, country_id, series_id FROM teams WHERE manager_id = $1 LIMIT 1',
         [managerId]
     );
-    let team_id, country_id, team_name;
-    if (teamRes.rows.length === 0) {
-        // Sin equipo: crear uno con datos del manager
-        const mRes = await client.query(
-            'SELECT username, country_id FROM managers WHERE user_id = $1',
-            [managerId]
-        );
-        if (mRes.rows.length === 0) return;
-        const mgr = mRes.rows[0];
-        country_id = mgr.country_id;
-        team_name = `${mgr.username} FC`;
-        const newTeam = await client.query(
-            'INSERT INTO teams (name, manager_id, country_id) VALUES ($1, $2, $3) RETURNING team_id',
-            [team_name, managerId, country_id]
-        );
-        team_id = newTeam.rows[0].team_id;
-    } else {
-        team_id = teamRes.rows[0].team_id;
-        country_id = teamRes.rows[0].country_id;
-        team_name = teamRes.rows[0].name;
-    }
+    if (teamRes.rows.length === 0) return; // sin equipo = error de registro, no intervenir
+    const { team_id, name: team_name, country_id, series_id } = teamRes.rows[0];
 
-    // 2. Garantizar finanzas
+    // 1. Garantizar finanzas
     const finRes = await client.query(
         'SELECT 1 FROM team_finances WHERE team_id = $1',
         [team_id]
@@ -343,7 +324,7 @@ const fullyActivateManager = async (client, managerId) => {
         );
     }
 
-    // 3. Garantizar estadio
+    // 2. Garantizar estadio
     const stadRes = await client.query(
         'SELECT 1 FROM stadiums WHERE team_id = $1',
         [team_id]
@@ -355,7 +336,7 @@ const fullyActivateManager = async (client, managerId) => {
         );
     }
 
-    // 4. Garantizar jugadores (mínimo 18)
+    // 3. Garantizar jugadores (mínimo 18)
     const plRes = await client.query(
         'SELECT COUNT(*)::int AS total FROM players WHERE team_id = $1',
         [team_id]
@@ -364,12 +345,8 @@ const fullyActivateManager = async (client, managerId) => {
         await createInitialPlayers(client, team_id, country_id);
     }
 
-    // 5. Asignar liga (serie) si aún no la tiene
-    const serRes = await client.query(
-        'SELECT series_id FROM teams WHERE team_id = $1',
-        [team_id]
-    );
-    if (!serRes.rows[0]?.series_id && country_id) {
+    // 4. Asignar liga (serie) si aún no la tiene
+    if (!series_id && country_id) {
         const botRes = await client.query(
             `SELECT t.team_id AS bot_team_id, t.series_id AS bot_series_id FROM teams t
              JOIN series s ON s.series_id = t.series_id
