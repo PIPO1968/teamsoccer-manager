@@ -7,7 +7,7 @@ interface StadiumVisualizationProps {
   stadium: StadiumData;
 }
 
-const MAX_CAPACITY = 10000;
+const MAX_CAPACITY = 80000;
 const ROWS = 12;
 
 // Colors
@@ -74,9 +74,9 @@ export const StadiumVisualization = ({ stadium }: StadiumVisualizationProps) => 
   const roofSeats = Math.floor(cap * 0.008);  // laterales E/O — ámbar
   const vipSeats = 0;                         // tribuna sur — verde (inicia vacía)
 
-  const tRows = Math.round(Math.min(terraces / (MAX_CAPACITY * 0.80), 1) * ROWS);
-  const bFill = Math.min(basicSeats / (MAX_CAPACITY * 0.192), 1);  // relleno esquinas
-  const rCols = Math.round(Math.min(roofSeats / (MAX_CAPACITY * 0.008), 1) * ROWS);
+  const tRows = Math.ceil(Math.min(terraces / (MAX_CAPACITY * 0.80), 1) * ROWS);
+  const bRows = Math.ceil(Math.min(basicSeats / (MAX_CAPACITY * 0.192), 1) * ROWS);
+  const rCols = Math.ceil(Math.min(roofSeats / (MAX_CAPACITY * 0.008), 1) * ROWS);
 
   // Layout (viewBox 420×340):
   // Pitch: (80,78) 260×184
@@ -94,15 +94,11 @@ export const StadiumVisualization = ({ stadium }: StadiumVisualizationProps) => 
           <rect width="420" height="340" fill="#0f172a" rx="8" />
 
           {/* ── STANDS ── */}
-          {/* VIP corners (rendered before stands so they appear behind) */}
-          {([
-            [5, 5], [345, 5], [5, 267], [345, 267]
-          ] as [number, number][]).map(([cx, cy], i) => (
-            <rect key={i} x={cx} y={cy} width={70} height={68}
-              fill={bFill > 0 ? C.vip : C.empty}
-              stroke={C.emptyStr} strokeWidth={0.5} rx={2}
-              opacity={bFill > 0 ? 0.25 + bFill * 0.75 : 0.4} />
-          ))}
+          {/* Corners – Asientos básicos (filas proporcionales) */}
+          <HStand x={5} y={5} w={70} h={68} filledRows={bRows} color={C.vip} fromBottom={true} />
+          <HStand x={345} y={5} w={70} h={68} filledRows={bRows} color={C.vip} fromBottom={true} />
+          <HStand x={5} y={267} w={70} h={68} filledRows={bRows} color={C.vip} fromBottom={false} />
+          <HStand x={345} y={267} w={70} h={68} filledRows={bRows} color={C.vip} fromBottom={false} />
 
           {/* North – Terraces */}
           <HStand x={80} y={5} w={260} h={68} filledRows={tRows} color={C.terraces} fromBottom={true} />
