@@ -122,6 +122,18 @@ const initDb = async () => {
         await client.query(`ALTER TABLE managers ADD COLUMN IF NOT EXISTS connection_country TEXT`);
         // Corrección de capacidad: estadios con el valor antiguo por defecto (15000) → 2500
         await client.query(`UPDATE stadiums SET capacity = 2500 WHERE capacity = 15000`);
+        // Tabla de mensajes privados entre managers
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS messages (
+                id SERIAL PRIMARY KEY,
+                sender_id INTEGER NOT NULL REFERENCES managers(user_id) ON DELETE CASCADE,
+                recipient_id INTEGER NOT NULL REFERENCES managers(user_id) ON DELETE CASCADE,
+                subject TEXT NOT NULL,
+                content TEXT NOT NULL,
+                read BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
         console.log('✅ Tablas verificadas/creadas correctamente');
     } catch (err) {
         console.error('❌ Error creando tablas:', err.message);
