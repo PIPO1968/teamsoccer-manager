@@ -139,6 +139,7 @@ const initDb = async () => {
         await client.query(`ALTER TABLE stadiums ADD COLUMN IF NOT EXISTS seats_basic INTEGER DEFAULT 0`);
         await client.query(`ALTER TABLE stadiums ADD COLUMN IF NOT EXISTS seats_covered INTEGER DEFAULT 0`);
         await client.query(`ALTER TABLE stadiums ADD COLUMN IF NOT EXISTS seats_vip INTEGER DEFAULT 0`);
+        await client.query(`ALTER TABLE team_finances ADD COLUMN IF NOT EXISTS last_weekly_process TIMESTAMPTZ DEFAULT NULL`);
         console.log('✅ Tablas verificadas/creadas correctamente');
     } catch (err) {
         console.error('❌ Error creando tablas:', err.message);
@@ -927,11 +928,12 @@ app.get('/teams/:id/finances', async (req, res) => {
     if (!teamId) {
         return res.status(400).json({ error: 'teamId invalido' });
     }
+    const client = await pool.connect();
     try {
         const [finResult, wagesResult, stadResult] = await Promise.all([
-            pool.query('SELECT * FROM team_finances WHERE team_id = $1', [teamId]),
-            pool.query('SELECT COALESCE(SUM(wage), 0) AS total_wages FROM players WHERE team_id = $1', [teamId]),
-            pool.query('SELECT capacity FROM stadiums WHERE team_id = $1 LIMIT 1', [teamId]),
+            client.query('SELECT * FROM team_finances WHERE team_id = $1', [teamId]),
+            client.query('SELECT COALESCE(SUM(wage), 0) AS total_wages FROM players WHERE team_id = $1', [teamId]),
+            client.query('SELECT capacity FROM stadiums WHERE team_id = $1 LIMIT 1', [teamId]),
         ]);
 
         const finances = finResult.rows[0] || null;
@@ -939,16 +941,41 @@ app.get('/teams/:id/finances', async (req, res) => {
             const totalWages = parseInt(wagesResult.rows[0]?.total_wages || 0);
             const capacity = parseInt(stadResult.rows[0]?.capacity || 0);
             const maintenanceCost = Math.floor(capacity * 1.8);
+            const weeklyExpenses = totalWages + maintenanceCost;
 
-            finances.wages_expenses = totalWages;
-            finances.stadium_maintenance_expenses = maintenanceCost;
-            finances.weekly_expenses = totalWages + maintenanceCost;
+            // Procesar deducción semanal si han pasado 7 días desde la última vez
+            const lastProcess = finances.last_weekly_process ? new Date(finances.last_weekly_process) : null;
+            const now = new Date();
+            const daysSinceLast = lastProcess ? (now - lastProcess) / (1000 * 60 * 60 * 24) : 999;
+
+            if (daysSinceLast >= 7 && weeklyExpenses > 0) {
+                await client.query(
+                    `UPDATE team_finances
+                     SET cash_balance = GREATEST(cash_balance - $1, 0),
+                         wages_expenses = wages_expenses + $2,
+                         stadium_maintenance_expenses = stadium_maintenance_expenses + $3,
+                         last_weekly_process = NOW()
+                     WHERE team_id = $4`,
+                    [weeklyExpenses, totalWages, maintenanceCost, teamId]
+                );
+                finances.cash_balance = Math.max((finances.cash_balance || 0) - weeklyExpenses, 0);
+                finances.wages_expenses = (finances.wages_expenses || 0) + totalWages;
+                finances.stadium_maintenance_expenses = (finances.stadium_maintenance_expenses || 0) + maintenanceCost;
+            } else {
+                // Solo actualizar campos mostrados sin deducir
+                finances.wages_expenses = totalWages;
+                finances.stadium_maintenance_expenses = maintenanceCost;
+            }
+
+            finances.weekly_expenses = weeklyExpenses;
             finances.weekly_income = (finances.match_income || 0) + (finances.sponsor_income || 0) + (finances.other_income || 0);
         }
 
         res.json({ success: true, finances });
     } catch (err) {
         res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
     }
 });
 
