@@ -43,14 +43,11 @@ const AdminArea = () => {
         {/* Online Managers - Available for staff level 4+ */}
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
-            <CardTitle className="flex items-center justify-between gap-2">
+            <CardTitle className="flex items-center gap-2">
               <div className="flex items-center gap-2">
                 <Eye className="h-5 w-5" />
                 Online Managers
               </div>
-              <span className="text-sm font-normal bg-green-100 text-green-700 rounded-full px-2 py-0.5">
-                {onlineManagers.length} en línea
-              </span>
             </CardTitle>
           </CardHeader>
           <CardContent>
