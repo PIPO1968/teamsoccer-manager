@@ -928,11 +928,24 @@ app.get('/teams/:id/finances', async (req, res) => {
         return res.status(400).json({ error: 'teamId invalido' });
     }
     try {
-        const result = await pool.query(
-            'SELECT * FROM team_finances WHERE team_id = $1',
-            [teamId]
-        );
-        const finances = result.rows[0] || null;
+        const [finResult, wagesResult, stadResult] = await Promise.all([
+            pool.query('SELECT * FROM team_finances WHERE team_id = $1', [teamId]),
+            pool.query('SELECT COALESCE(SUM(wage), 0) AS total_wages FROM players WHERE team_id = $1', [teamId]),
+            pool.query('SELECT capacity FROM stadiums WHERE team_id = $1 LIMIT 1', [teamId]),
+        ]);
+
+        const finances = finResult.rows[0] || null;
+        if (finances) {
+            const totalWages = parseInt(wagesResult.rows[0]?.total_wages || 0);
+            const capacity = parseInt(stadResult.rows[0]?.capacity || 0);
+            const maintenanceCost = Math.floor(capacity * 1.8);
+
+            finances.wages_expenses = totalWages;
+            finances.stadium_maintenance_expenses = maintenanceCost;
+            finances.weekly_expenses = totalWages + maintenanceCost;
+            finances.weekly_income = (finances.match_income || 0) + (finances.sponsor_income || 0) + (finances.other_income || 0);
+        }
+
         res.json({ success: true, finances });
     } catch (err) {
         res.status(500).json({ error: err.message });

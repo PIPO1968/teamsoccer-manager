@@ -10,6 +10,19 @@ interface StadiumInformationProps {
 
 export const StadiumInformation = ({ stadium }: StadiumInformationProps) => {
   const { t } = useLanguage();
+  const cap = stadium.stadium_capacity || 2500;
+
+  const sStanding = stadium.seats_standing ?? 0;
+  const sBasic = stadium.seats_basic ?? 0;
+  const sCovered = stadium.seats_covered ?? 0;
+  const sVip = stadium.seats_vip ?? 0;
+
+  const hasAssigned = sStanding + sBasic + sCovered + sVip > 0;
+  const terraces = hasAssigned ? sStanding : Math.floor(cap * 0.80);
+  const basicSeats = hasAssigned ? sBasic : Math.floor(cap * 0.192);
+  const roofSeats = hasAssigned ? sCovered : Math.floor(cap * 0.008);
+  const vipSeats = sVip;
+
   return (
     <Card className="h-full">
       <CardHeader>
@@ -33,49 +46,49 @@ export const StadiumInformation = ({ stadium }: StadiumInformationProps) => {
             <span className="text-gray-600">{t('stadium.totalCapacity')}</span>
           </div>
           <div className="font-medium">
-            {stadium.stadium_capacity?.toLocaleString() || '2,500'}
+            {cap.toLocaleString()}
           </div>
 
           <div>
             <span className="text-gray-600">{t('stadium.terraces')}</span>
           </div>
           <div className="font-medium">
-            {Math.floor((stadium.stadium_capacity || 2500) * 0.80).toLocaleString()}
+            {terraces.toLocaleString()}
           </div>
 
           <div>
             <span className="text-gray-600">{t('stadium.basicSeating')}</span>
           </div>
           <div className="font-medium">
-            {Math.floor((stadium.stadium_capacity || 2500) * 0.192).toLocaleString()}
+            {basicSeats.toLocaleString()}
           </div>
 
           <div>
             <span className="text-gray-600">{t('stadium.seatsUnderRoof')}</span>
           </div>
           <div className="font-medium">
-            {Math.floor((stadium.stadium_capacity || 2500) * 0.008).toLocaleString()}
+            {roofSeats.toLocaleString()}
           </div>
 
           <div>
             <span className="text-gray-600">{t('stadium.vipBoxes')}</span>
           </div>
           <div className="font-medium">
-            0
+            {vipSeats.toLocaleString()}
           </div>
 
           <div>
             <span className="text-gray-600">{t('stadium.potentialTakings')}</span>
           </div>
           <div className="font-medium">
-            {Math.floor((stadium.stadium_capacity || 2500) * 30).toLocaleString()} $
+            {Math.floor(cap * 30).toLocaleString()} $
           </div>
 
           <div>
             <span className="text-gray-600">{t('stadium.maintenance')}</span>
           </div>
           <div className="font-medium">
-            {Math.floor((stadium.stadium_capacity || 2500) * 1.8).toLocaleString()} $
+            {Math.floor(cap * 1.8).toLocaleString()} $
           </div>
         </div>
       </CardContent>
