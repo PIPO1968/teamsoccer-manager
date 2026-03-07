@@ -630,6 +630,21 @@ app.post('/logout', async (req, res) => {
     }
 });
 
+// Heartbeat: mantiene al manager marcado como online
+app.post('/heartbeat', async (req, res) => {
+    const { managerId } = req.body;
+    if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
+    try {
+        await pool.query(
+            'UPDATE managers SET is_online = true, last_seen = now() WHERE user_id = $1',
+            [managerId]
+        );
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Obtener manager por id
 app.get('/managers/:id', async (req, res) => {
     const managerId = parseInt(req.params.id, 10);
@@ -2367,8 +2382,9 @@ app.get('/world/stats', async (req, res) => {
         const managersResult = await pool.query(
             'SELECT COUNT(*)::int AS total FROM managers'
         );
+        // Online = last_seen en los últimos 5 minutos (cubre cierres de pestaña sin logout)
         const onlineResult = await pool.query(
-            "SELECT COUNT(*)::int AS total FROM managers WHERE is_online = true"
+            "SELECT COUNT(*)::int AS total FROM managers WHERE is_online = true AND last_seen > NOW() - INTERVAL '5 minutes'"
         );
 
         const leaguesResult = await pool.query(
@@ -2421,6 +2437,29 @@ app.get('/admin/managers', async (req, res) => {
                 last_login
              FROM managers
              ORDER BY user_id`
+        );
+        res.json({ success: true, managers: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Admin: managers online ahora (last_seen en los últimos 5 minutos)
+app.get('/admin/online-managers', async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT
+                m.user_id,
+                m.username,
+                m.is_admin,
+                m.is_premium,
+                m.last_login,
+                m.last_seen,
+                r.name AS country_name
+             FROM managers m
+             LEFT JOIN leagues_regions r ON r.region_id = m.country_id
+             WHERE m.is_online = true AND m.last_seen > NOW() - INTERVAL '5 minutes'
+             ORDER BY m.last_seen DESC`
         );
         res.json({ success: true, managers: result.rows });
     } catch (err) {

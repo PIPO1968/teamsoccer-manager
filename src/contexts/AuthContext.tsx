@@ -93,6 +93,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Heartbeat: actualiza last_seen cada 2 minutos para mantener el conteo online preciso
+  useEffect(() => {
+    if (!manager?.user_id) return;
+    const sendHeartbeat = () => {
+      apiFetch('/heartbeat', {
+        method: 'POST',
+        body: JSON.stringify({ managerId: manager.user_id }),
+      }).catch(() => { });
+    };
+    sendHeartbeat(); // inmediato al montar
+    const interval = setInterval(sendHeartbeat, 2 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [manager?.user_id]);
+
   const signOut = async () => {
     if (manager?.user_id) {
       try {

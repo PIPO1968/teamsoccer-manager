@@ -1,12 +1,12 @@
 
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { AdminGuard } from "@/components/admin/AdminGuard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users } from "lucide-react";
-import { useOnlinePlayers } from "@/hooks/useOnlinePlayers";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { OnlineManagersList } from "@/components/admin/OnlineManagersList";
+import { apiFetch } from "@/services/apiClient";
 
 interface OnlineManager {
   user_id: number;
@@ -19,14 +19,26 @@ interface OnlineManager {
 }
 
 const OnlineManagers = () => {
-  const { onlineUserIds, isLoading } = useOnlinePlayers();
   const { t } = useLanguage();
+  const [onlineManagers, setOnlineManagers] = useState<OnlineManager[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const onlineManagers = useMemo<OnlineManager[]>(() => {
-    return [];
+  useEffect(() => {
+    const fetch = async () => {
+      try {
+        const data = await apiFetch<{ success: boolean; managers: OnlineManager[] }>('/admin/online-managers');
+        setOnlineManagers(data.managers ?? []);
+      } catch {
+        setOnlineManagers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetch();
+    // refresca cada 30 segundos
+    const interval = setInterval(fetch, 30_000);
+    return () => clearInterval(interval);
   }, []);
-
-  const loading = isLoading;
 
   return (
     <AdminGuard requiredLevel={1}>
@@ -41,7 +53,7 @@ const OnlineManagers = () => {
             <CardTitle className="flex items-center justify-between">
               <span>{t('admin.currentlyOnline')}</span>
               <Badge variant="outline" className="text-sm">
-                {t('admin.onlineCount').replace('{n}', onlineUserIds.length.toString())}
+                {t('admin.onlineCount').replace('{n}', onlineManagers.length.toString())}
               </Badge>
             </CardTitle>
           </CardHeader>
