@@ -19,10 +19,19 @@ const pool = new Pool({
 
 async function migrateAdditional() {
     try {
+        // Ejecutar migración adicional principal
         const schemaPath = path.join(__dirname, 'sql', 'railway_schema_additional.sql');
         const schemaSql = fs.readFileSync(schemaPath, 'utf8');
         await pool.query(schemaSql);
         console.log('Migración adicional aplicada o ya existe.');
+
+        // Ejecutar migración forzada para nationality
+        const forcePath = path.join(__dirname, 'sql', '20260307_force_add_nationality_to_players.sql');
+        if (fs.existsSync(forcePath)) {
+            const forceSql = fs.readFileSync(forcePath, 'utf8');
+            await pool.query(forceSql);
+            console.log('Migración forzada de nationality aplicada.');
+        }
     } catch (err) {
         console.error('Error en la migración adicional:', err);
     } finally {
