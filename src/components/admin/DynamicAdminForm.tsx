@@ -104,16 +104,30 @@ export const DynamicAdminForm = ({
 
     // Special handling for team_id
     if (field.name === 'team_id') {
+      // Log visual para depuración
+      if (!Array.isArray(teams)) {
+        return <div key={field.name} style={{ color: 'red' }}>Error: teams no es un array válido</div>;
+      }
       if (teams.length === 0) {
         return (
           <div key={field.name} className="space-y-2 text-yellow-600">
-            No hay equipos disponibles para seleccionar.
+            No hay equipos disponibles para seleccionar.<br />
+            <pre style={{ fontSize: '0.8em', color: '#888', maxHeight: 100, overflow: 'auto' }}>{JSON.stringify(teams, null, 2)}</pre>
           </div>
         );
       }
+      // Protección: si hay demasiados equipos, no renderizar el selector
+      if (teams.length > 1000) {
+        return <div key={field.name} style={{ color: 'red' }}>Demasiados equipos para mostrar el selector.</div>;
+      }
+      // Mostrar log visual de los equipos cargados
       return (
         <div key={field.name} className="space-y-2">
           <Label htmlFor={field.name}>Team</Label>
+          <div style={{ fontSize: '0.8em', color: '#888', maxHeight: 100, overflow: 'auto' }}>
+            Equipos cargados: {teams.length}
+            <pre>{JSON.stringify(teams.slice(0, 5), null, 2)}{teams.length > 5 ? '\n...más' : ''}</pre>
+          </div>
           <Select
             value={value?.toString() || ''}
             onValueChange={(newValue) => setFormData(prev => ({ ...prev, [field.name]: newValue === 'null' ? null : parseInt(newValue) }))}
