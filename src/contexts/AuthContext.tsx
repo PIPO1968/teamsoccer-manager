@@ -1,6 +1,6 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { apiFetch } from '@/services/apiClient';
 
 interface Manager {
@@ -32,6 +32,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasTeam, setHasTeam] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -93,19 +94,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // Heartbeat: actualiza last_seen cada 2 minutos para mantener el conteo online preciso
+  // Heartbeat: actualiza last_seen y current_url cada 2 minutos
   useEffect(() => {
     if (!manager?.user_id) return;
     const sendHeartbeat = () => {
       apiFetch('/heartbeat', {
         method: 'POST',
-        body: JSON.stringify({ managerId: manager.user_id }),
+        body: JSON.stringify({ managerId: manager.user_id, currentUrl: location.pathname }),
       }).catch(() => { });
     };
     sendHeartbeat(); // inmediato al montar
     const interval = setInterval(sendHeartbeat, 2 * 60 * 1000);
     return () => clearInterval(interval);
-  }, [manager?.user_id]);
+  }, [manager?.user_id, location.pathname]);
 
   const signOut = async () => {
     if (manager?.user_id) {

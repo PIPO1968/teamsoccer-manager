@@ -115,6 +115,7 @@ const initDb = async () => {
         // Añadir coach_level a equipos si no existe
         await client.query(`ALTER TABLE teams ADD COLUMN IF NOT EXISTS coach_level TEXT DEFAULT 'poor'`);
         await client.query(`ALTER TABLE teams ADD COLUMN IF NOT EXISTS series_id INTEGER REFERENCES series(series_id) ON DELETE SET NULL`);
+        await client.query(`ALTER TABLE managers ADD COLUMN IF NOT EXISTS current_url TEXT`);
         // Corrección de capacidad: estadios con el valor antiguo por defecto (15000) → 2500
         await client.query(`UPDATE stadiums SET capacity = 2500 WHERE capacity = 15000`);
         console.log('✅ Tablas verificadas/creadas correctamente');
@@ -632,12 +633,16 @@ app.post('/logout', async (req, res) => {
 
 // Heartbeat: mantiene al manager marcado como online
 app.post('/heartbeat', async (req, res) => {
-    const { managerId } = req.body;
+    const { managerId, currentUrl } = req.body;
     if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
     try {
         await pool.query(
-            'UPDATE managers SET is_online = true, last_seen = now() WHERE user_id = $1',
-            [managerId]
+            'UPDATE managers SET is_online = true, last_seen = now(), current_url = $2 WHERE user_id = $1',
+            [managerId, currentUrl || null]
+        );
+        // Auto-marcar offline managers sin heartbeat reciente
+        await pool.query(
+            "UPDATE managers SET is_online = false WHERE is_online = true AND last_seen < NOW() - INTERVAL '6 minutes'"
         );
         res.json({ success: true });
     } catch (err) {
@@ -2455,6 +2460,7 @@ app.get('/admin/online-managers', async (req, res) => {
                 m.is_premium,
                 m.last_login,
                 m.last_seen,
+                m.current_url,
                 r.name AS country_name
              FROM managers m
              LEFT JOIN leagues_regions r ON r.region_id = m.country_id
