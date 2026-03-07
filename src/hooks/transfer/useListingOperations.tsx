@@ -8,12 +8,9 @@ export const useListingOperations = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { team } = useUserTeam();
 
-  const listPlayerForSale = async (playerId: number, askingPrice: number) => {
-    if (!team?.team_id) {
-      toast.error("Team not found");
-      return false;
-    }
-
+  const listPlayerForSale = async (playerId: number, askingPrice: number, sellerTeamIdOverride?: number | null) => {
+    // Permitir seller_team_id null para Free agent
+    const sellerTeamId = sellerTeamIdOverride !== undefined ? sellerTeamIdOverride : team?.team_id;
     setIsProcessing(true);
     try {
       await apiFetch('/transfer-listings', {
@@ -21,7 +18,7 @@ export const useListingOperations = () => {
         body: JSON.stringify({
           player_id: playerId,
           asking_price: askingPrice,
-          seller_team_id: team.team_id,
+          seller_team_id: sellerTeamId ?? null,
         }),
       });
 
