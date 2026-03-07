@@ -3519,17 +3519,25 @@ app.get('/transfer-listings', async (req, res) => {
 // POST /transfer-listings — create new listing
 app.post('/transfer-listings', async (req, res) => {
     const { player_id, asking_price, seller_team_id } = req.body;
+    console.log('POST /transfer-listings body:', req.body);
+    console.log('Tipos:', {
+        player_id: typeof player_id,
+        asking_price: typeof asking_price,
+        seller_team_id: typeof seller_team_id
+    });
     if (!player_id || !asking_price) {
+        console.log('❌ Faltan datos requeridos:', { player_id, asking_price });
         return res.status(400).json({ error: 'Faltan datos requeridos' });
     }
     try {
         const result = await pool.query(
             `INSERT INTO transfer_listings (player_id, asking_price, seller_team_id, is_active, views, bids, hotlists)
              VALUES ($1, $2, $3, true, 0, 0, 0) RETURNING *`,
-            [player_id, asking_price, seller_team_id || null]
+            [player_id, asking_price, seller_team_id ?? null]
         );
         res.json({ success: true, listing: result.rows[0] });
     } catch (err) {
+        console.log('❌ Error al insertar en transfer_listings:', err);
         res.status(500).json({ error: err.message });
     }
 });
