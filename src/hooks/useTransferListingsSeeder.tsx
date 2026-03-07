@@ -44,7 +44,7 @@ export const useTransferListingsSeeder = () => {
           body: JSON.stringify({
             player_id: player.player_id,
             asking_price: askingPrice,
-            seller_team_id: null
+            seller_team_id: null // explícito para jugadores libres
           })
         });
       }
