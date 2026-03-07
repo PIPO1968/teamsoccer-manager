@@ -40,15 +40,16 @@ export const DynamicAdminForm = ({
   onSave,
   onCancel,
   countries = [],
-  teams = [],
+  teams: teamsProp = [],
   series = []
 }: DynamicAdminFormProps) => {
+  // Asegura que teams siempre sea un array
+  const teams = Array.isArray(teamsProp) ? teamsProp : [];
   const [formData, setFormData] = useState(data);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    console.log('Form data updated:', data);
     setFormData(data);
   }, [data]);
 
@@ -102,7 +103,14 @@ export const DynamicAdminForm = ({
     }
 
     // Special handling for team_id
-    if (field.name === 'team_id' && teams.length > 0) {
+    if (field.name === 'team_id') {
+      if (teams.length === 0) {
+        return (
+          <div key={field.name} className="space-y-2 text-yellow-600">
+            No hay equipos disponibles para seleccionar.
+          </div>
+        );
+      }
       return (
         <div key={field.name} className="space-y-2">
           <Label htmlFor={field.name}>Team</Label>

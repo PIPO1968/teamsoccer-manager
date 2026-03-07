@@ -50,7 +50,7 @@ interface FieldConfig {
 const editableFields = [
   'first_name', 'last_name', 'position', 'age', 'nationality_id',
   'team_id', 'value', 'wage', 'rating', 'pace', 'finishing', 'passing',
-  'defense', 'dribbling', 'heading', 'stamina', 'goalkeeper', 'fitness', 'form',
+  'defense', 'dribbling', 'heading', 'stamina', 'fitness', 'form',
   'personality', 'experience', 'leadership', 'loyalty'
 ];
 
@@ -71,6 +71,32 @@ const PlayerAdminTool = () => {
     loadTeams();
     loadCountries();
   }, []);
+
+  // Campos por defecto para el formulario de creación
+  const defaultFields: FieldConfig[] = [
+    { name: 'first_name', type: 'text', nullable: false, default: '', isEditable: true },
+    { name: 'last_name', type: 'text', nullable: false, default: '', isEditable: true },
+    { name: 'position', type: 'text', nullable: false, default: 'MID', isEditable: true },
+    { name: 'age', type: 'integer', nullable: false, default: 20, isEditable: true },
+    { name: 'nationality_id', type: 'integer', nullable: false, default: 1, isEditable: true },
+    { name: 'team_id', type: 'integer', nullable: true, default: null, isEditable: true },
+    { name: 'value', type: 'integer', nullable: false, default: 100000, isEditable: true },
+    { name: 'wage', type: 'integer', nullable: false, default: 5000, isEditable: true },
+    { name: 'rating', type: 'integer', nullable: false, default: 65, isEditable: true },
+    { name: 'pace', type: 'integer', nullable: false, default: 10, isEditable: true },
+    { name: 'finishing', type: 'integer', nullable: false, default: 10, isEditable: true },
+    { name: 'passing', type: 'integer', nullable: false, default: 10, isEditable: true },
+    { name: 'defense', type: 'integer', nullable: false, default: 10, isEditable: true },
+    { name: 'dribbling', type: 'integer', nullable: false, default: 10, isEditable: true },
+    { name: 'heading', type: 'integer', nullable: false, default: 10, isEditable: true },
+    { name: 'stamina', type: 'integer', nullable: false, default: 10, isEditable: true },
+    { name: 'fitness', type: 'integer', nullable: false, default: 100, isEditable: true },
+    { name: 'form', type: 'text', nullable: false, default: 'Average', isEditable: true },
+    { name: 'personality', type: 'integer', nullable: false, default: 5, isEditable: true },
+    { name: 'experience', type: 'integer', nullable: false, default: 5, isEditable: true },
+    { name: 'leadership', type: 'integer', nullable: false, default: 5, isEditable: true },
+    { name: 'loyalty', type: 'integer', nullable: false, default: 5, isEditable: true }
+  ];
 
   const loadPlayers = async () => {
     try {
@@ -220,13 +246,15 @@ const PlayerAdminTool = () => {
   ];
 
   if (selectedPlayer) {
+    // Si no hay campos generados dinámicamente, usar los campos por defecto
+    const formFields = fields.length > 0 ? fields : defaultFields;
     return (
       <AdminGuard requiredLevel={3}>
         <div className="container mx-auto p-6">
           <DynamicAdminForm
             title={isCreating ? "New Player" : "Player"}
             data={selectedPlayer}
-            fields={fields}
+            fields={formFields}
             onSave={handleSavePlayer}
             onCancel={() => { setSelectedPlayer(null); setIsCreating(false); }}
             countries={countries}
