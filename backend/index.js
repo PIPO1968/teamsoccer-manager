@@ -1,3 +1,12 @@
+// Endpoint temporal: obtener todos los region_id de leagues_regions
+app.get('/leagues-regions', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT region_id FROM leagues_regions ORDER BY region_id ASC');
+        res.json({ success: true, regions: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 import express from 'express';
 import dotenv from 'dotenv';
 import { Pool } from 'pg';

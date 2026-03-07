@@ -1,4 +1,5 @@
 
+
 import { useState } from "react";
 import { apiFetch } from "@/services/apiClient";
 import { toast } from "sonner";
@@ -10,22 +11,43 @@ export const useTransferListingsSeeder = () => {
   const seedTransferListings = async () => {
     setIsSeeding(true);
     try {
-      console.log("Starting to seed transfer listings");
+      console.log("Obteniendo países (region_id) de la base de datos...");
+      // 1. Obtener todos los region_id de leagues_regions
+      const regionsRes = await apiFetch<{ success: boolean; regions: { region_id: number }[] }>(
+        '/leagues-regions',
+        { method: 'GET' }
+      );
+      const regionIds = Array.isArray(regionsRes.regions)
+        ? regionsRes.regions.map(r => r.region_id)
+        : [1, 2, 3]; // fallback mínimo
+      if (!regionIds.length) {
+        toast.error("No se encontraron países en la base de datos");
+        setIsSeeding(false);
+        return;
+      }
 
+      // 2. Generar jugadores variados
+      const positions = [
+        'GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'LM', 'RM', 'CAM', 'LW', 'RW', 'ST'
+      ];
+      const forms = ['Good', 'Excellent', 'Average', 'Poor'];
       const newPlayers = Array.from({ length: 10 }, () => {
-        const position = faker.helpers.arrayElement([
-          'GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'LM', 'RM', 'CAM', 'LW', 'RW', 'ST'
-        ]);
+        const position = faker.helpers.arrayElement(positions);
+        const nationality_id = faker.helpers.arrayElement(regionIds);
+        const age = faker.number.int({ min: 17, max: 36 });
+        const rating = faker.number.int({ min: 58, max: 92 });
+        const value = Math.round((Math.pow(rating / 60, 3.5) * 2000000) * (1 + faker.number.float({ min: -0.2, max: 0.2 })) / 50000) * 50000;
+        const wage = Math.round(value / faker.number.int({ min: 350, max: 600 }) / 500) * 500;
         return {
           first_name: faker.person.firstName(),
           last_name: faker.person.lastName(),
           position,
-          nationality_id: faker.number.int({ min: 1, max: 3 }),
-          age: faker.number.int({ min: 18, max: 35 }),
-          value: faker.number.int({ min: 500000, max: 5000000 }),
+          nationality_id,
+          age,
+          value,
           team_id: null,
-          wage: faker.number.int({ min: 5000, max: 20000 }),
-          rating: faker.number.int({ min: 60, max: 90 }),
+          wage,
+          rating,
           pace: faker.number.int({ min: 30, max: 99 }),
           finishing: faker.number.int({ min: 30, max: 99 }),
           passing: faker.number.int({ min: 30, max: 99 }),
@@ -36,7 +58,7 @@ export const useTransferListingsSeeder = () => {
           goalkeeper: position === 'GK' ? faker.number.int({ min: 60, max: 99 }) : faker.number.int({ min: 10, max: 30 }),
           crosses: faker.number.int({ min: 10, max: 99 }),
           fitness: faker.number.int({ min: 80, max: 100 }),
-          form: 'Good',
+          form: faker.helpers.arrayElement(forms),
           personality: faker.number.int({ min: 1, max: 100 }),
           experience: faker.number.int({ min: 1, max: 100 }),
           leadership: faker.number.int({ min: 1, max: 100 }),
@@ -46,17 +68,16 @@ export const useTransferListingsSeeder = () => {
         };
       });
 
+      // 3. Insertar jugadores
       const insertedData = await apiFetch<{ success: boolean; players: any[] }>(
         '/admin/players/batch',
         { method: 'POST', body: JSON.stringify({ players: newPlayers }) }
       );
-
       const insertedPlayers = insertedData.players;
       if (!insertedPlayers || insertedPlayers.length === 0) {
         toast.error("Failed to create new players");
         return;
       }
-
       console.log("Successfully inserted players:", insertedPlayers.length);
 
       for (const player of insertedPlayers) {
