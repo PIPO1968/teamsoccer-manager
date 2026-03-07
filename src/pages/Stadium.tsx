@@ -22,7 +22,7 @@ const Stadium = () => {
   const { stadium, isLoading, error, refetch } = useStadiumData(stadiumId);
   const { matches, isLoading: matchesLoading } = useStadiumMatches(stadiumId);
   const { league, isLoading: leagueLoading } = useTeamLeague(stadium?.team_id.toString());
-  const { finances } = useTeamFinances(stadium?.team_id.toString());
+  const { finances, refetch: refetchFinances } = useTeamFinances(stadium?.team_id.toString());
   const { manager } = useAuth();
   const { t } = useLanguage();
 
@@ -85,7 +85,7 @@ const Stadium = () => {
             currentBasic={stadium.seats_basic ?? 0}
             currentCovered={stadium.seats_covered ?? 0}
             currentVip={stadium.seats_vip ?? 0}
-            onExpanded={() => refetch?.()}
+            onExpanded={() => { refetch?.(); refetchFinances?.(); }}
           />
         </div>
       )}

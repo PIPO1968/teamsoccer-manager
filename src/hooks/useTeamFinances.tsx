@@ -27,28 +27,28 @@ export const useTeamFinances = (teamId: string | undefined) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchFinances = async () => {
+    if (!teamId) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const data = await apiFetch<{ success: boolean; finances: TeamFinances }>(
+        `/teams/${parseInt(teamId)}/finances`
+      );
+      setFinances(data.finances);
+      setIsLoading(false);
+    } catch (err) {
+      console.error("Error fetching finances:", err);
+      setError(err instanceof Error ? err.message : "Error fetching financial data");
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchFinances = async () => {
-      if (!teamId) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const data = await apiFetch<{ success: boolean; finances: TeamFinances }>(
-          `/teams/${parseInt(teamId)}/finances`
-        );
-        setFinances(data.finances);
-        setIsLoading(false);
-      } catch (err) {
-        console.error("Error fetching finances:", err);
-        setError(err instanceof Error ? err.message : "Error fetching financial data");
-        setIsLoading(false);
-      }
-    };
-
     fetchFinances();
   }, [teamId]);
 
-  return { finances, isLoading, error };
+  return { finances, isLoading, error, refetch: fetchFinances };
 };
