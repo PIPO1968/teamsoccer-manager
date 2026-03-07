@@ -12,6 +12,7 @@ dotenv.config({ path: './.env' });
 
 const app = express();
 
+// ...existing code...
 // Endpoint temporal: obtener todos los region_id de leagues_regions
 app.get('/leagues-regions', async (req, res) => {
     try {
