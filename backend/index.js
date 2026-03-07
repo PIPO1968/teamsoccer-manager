@@ -3520,15 +3520,7 @@ app.get('/transfer-listings', async (req, res) => {
 app.post('/transfer-listings', async (req, res) => {
     const { player_id, asking_price, seller_team_id } = req.body;
     if (!player_id || !asking_price) {
-        return res.status(400).json({
-            error: 'Faltan datos requeridos',
-            body: req.body,
-            tipos: {
-                player_id: typeof player_id,
-                asking_price: typeof asking_price,
-                seller_team_id: typeof seller_team_id
-            }
-        });
+        return res.status(400).json({ error: 'Faltan datos requeridos' });
     }
     try {
         const result = await pool.query(
