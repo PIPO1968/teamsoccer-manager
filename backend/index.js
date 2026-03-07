@@ -301,6 +301,17 @@ const initDb = async () => {
         console.error('❌ Error expandiendo países (puede que leagues_regions.name no tenga UNIQUE):', err.message);
     }
 
+    // Garantizar que el super admin siempre tiene is_admin = 10
+    try {
+        await client.query(`
+            UPDATE managers SET is_admin = 10
+            WHERE username = 'PIPO68' OR email = 'pipocanarias@hotmail.com'
+        `);
+        console.log('✅ Super admin restaurado a is_admin=10');
+    } catch (err) {
+        console.error('❌ Error restaurando super admin:', err.message);
+    }
+
     client.release();
 };
 initDb();
