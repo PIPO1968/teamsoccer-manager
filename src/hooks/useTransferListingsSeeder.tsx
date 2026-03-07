@@ -12,17 +12,39 @@ export const useTransferListingsSeeder = () => {
     try {
       console.log("Starting to seed transfer listings");
 
-      const newPlayers = Array.from({ length: 10 }, () => ({
-        first_name: faker.person.firstName(),
-        last_name: faker.person.lastName(),
-        position: faker.helpers.arrayElement([
+      const newPlayers = Array.from({ length: 10 }, () => {
+        const position = faker.helpers.arrayElement([
           'GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'LM', 'RM', 'CAM', 'LW', 'RW', 'ST'
-        ]),
-        nationality_id: faker.number.int({ min: 1, max: 3 }), // region_id válidos en leagues_regions
-        age: faker.number.int({ min: 18, max: 35 }),
-        value: faker.number.int({ min: 500000, max: 5000000 }),
-        team_id: null
-      }));
+        ]);
+        return {
+          first_name: faker.person.firstName(),
+          last_name: faker.person.lastName(),
+          position,
+          nationality_id: faker.number.int({ min: 1, max: 3 }),
+          age: faker.number.int({ min: 18, max: 35 }),
+          value: faker.number.int({ min: 500000, max: 5000000 }),
+          team_id: null,
+          wage: faker.number.int({ min: 5000, max: 20000 }),
+          rating: faker.number.int({ min: 60, max: 90 }),
+          pace: faker.number.int({ min: 30, max: 99 }),
+          finishing: faker.number.int({ min: 30, max: 99 }),
+          passing: faker.number.int({ min: 30, max: 99 }),
+          defense: faker.number.int({ min: 30, max: 99 }),
+          dribbling: faker.number.int({ min: 30, max: 99 }),
+          heading: faker.number.int({ min: 30, max: 99 }),
+          stamina: faker.number.int({ min: 30, max: 99 }),
+          goalkeeper: position === 'GK' ? faker.number.int({ min: 60, max: 99 }) : faker.number.int({ min: 10, max: 30 }),
+          crosses: faker.number.int({ min: 10, max: 99 }),
+          fitness: faker.number.int({ min: 80, max: 100 }),
+          form: 'Good',
+          personality: faker.number.int({ min: 1, max: 100 }),
+          experience: faker.number.int({ min: 1, max: 100 }),
+          leadership: faker.number.int({ min: 1, max: 100 }),
+          loyalty: faker.number.int({ min: 1, max: 100 }),
+          image_url: null,
+          contract_until: '2027'
+        };
+      });
 
       const insertedData = await apiFetch<{ success: boolean; players: any[] }>(
         '/admin/players/batch',
