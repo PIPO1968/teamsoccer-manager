@@ -145,31 +145,31 @@ const PlayerAdminTool = () => {
     if (isCreating) {
       const { player_id, ...createData } = playerData;
       const insertData = {
-        first_name: createData.first_name || '',
-        last_name: createData.last_name || '',
-        position: createData.position || 'MID',
-        age: Number(createData.age) || 20,
-        nationality_id: Number(createData.nationality_id) || 1,
-        team_id: createData.team_id ? Number(createData.team_id) : null,
-        value: Number(createData.value) || 100000,
-        wage: Number(createData.wage) || 5000,
-        rating: Number(createData.rating) || 65,
-        pace: Number(createData.pace) || 10,
-        finishing: Number(createData.finishing) || 10,
-        passing: Number(createData.passing) || 10,
-        defense: Number(createData.defense) || 10,
-        dribbling: Number(createData.dribbling) || 10,
-        heading: Number(createData.heading) || 10,
-        stamina: Number(createData.stamina) || 10,
-        ...(createData.fitness && { fitness: Number(createData.fitness) }),
-        ...(createData.form && { form: createData.form }),
-        ...(createData.personality && { personality: Number(createData.personality) }),
-        ...(createData.experience && { experience: Number(createData.experience) }),
-        ...(createData.leadership && { leadership: Number(createData.leadership) }),
-        ...(createData.loyalty && { loyalty: Number(createData.loyalty) }),
+        first_name: createData.first_name ?? '',
+        last_name: createData.last_name ?? '',
+        position: createData.position ?? 'MID',
+        age: Number(createData.age) > 0 ? Number(createData.age) : 20,
+        nationality_id: Number(createData.nationality_id) > 0 ? Number(createData.nationality_id) : 1,
+        team_id: createData.team_id === null || createData.team_id === undefined || createData.team_id === '' ? null : Number(createData.team_id),
+        value: Number(createData.value) > 0 ? Number(createData.value) : 100000,
+        wage: Number(createData.wage) > 0 ? Number(createData.wage) : 5000,
+        rating: Number(createData.rating) > 0 ? Number(createData.rating) : 65,
+        pace: Number(createData.pace) > 0 ? Number(createData.pace) : 10,
+        finishing: Number(createData.finishing) > 0 ? Number(createData.finishing) : 10,
+        passing: Number(createData.passing) > 0 ? Number(createData.passing) : 10,
+        defense: Number(createData.defense) > 0 ? Number(createData.defense) : 10,
+        dribbling: Number(createData.dribbling) > 0 ? Number(createData.dribbling) : 10,
+        heading: Number(createData.heading) > 0 ? Number(createData.heading) : 10,
+        stamina: Number(createData.stamina) > 0 ? Number(createData.stamina) : 10,
+        fitness: Number(createData.fitness) > 0 ? Number(createData.fitness) : 100,
+        form: createData.form ?? 'Average',
+        personality: Number(createData.personality) > 0 ? Number(createData.personality) : 5,
+        experience: Number(createData.experience) > 0 ? Number(createData.experience) : 5,
+        leadership: Number(createData.leadership) > 0 ? Number(createData.leadership) : 5,
+        loyalty: Number(createData.loyalty) > 0 ? Number(createData.loyalty) : 5,
         image_url: (() => {
           const country = countries.find(c => c.region_id === Number(createData.nationality_id));
-          return getPlayerImageUrl(country ? country.name : "", createData.first_name || '', createData.last_name || '');
+          return getPlayerImageUrl(country ? country.name : "", createData.first_name ?? '', createData.last_name ?? '');
         })()
       };
       await apiFetch('/admin/players', { method: 'POST', body: JSON.stringify(insertData) });
@@ -222,11 +222,29 @@ const PlayerAdminTool = () => {
 
   const handleCreateNew = () => {
     setSelectedPlayer({
-      player_id: 0, first_name: '', last_name: '', position: 'MID', age: 20,
-      nationality_id: 1, team_id: 0, value: 100000, wage: 5000, rating: 65,
-      pace: 10, finishing: 10, passing: 10, defense: 10,
-      dribbling: 10, heading: 10, stamina: 10,
-      fitness: 100, form: 'Average', personality: 5, experience: 5, leadership: 5, loyalty: 5
+      player_id: 0,
+      first_name: '',
+      last_name: '',
+      position: 'MID',
+      age: 20,
+      nationality_id: 1,
+      team_id: null, // null para "Sin equipo" por defecto
+      value: 100000,
+      wage: 5000,
+      rating: 65,
+      pace: 10,
+      finishing: 10,
+      passing: 10,
+      defense: 10,
+      dribbling: 10,
+      heading: 10,
+      stamina: 10,
+      fitness: 100,
+      form: 'Average',
+      personality: 5,
+      experience: 5,
+      leadership: 5,
+      loyalty: 5
     });
     setIsCreating(true);
   };
