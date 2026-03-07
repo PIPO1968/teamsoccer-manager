@@ -4291,8 +4291,8 @@ app.post('/admin/players/batch', async (req, res) => {
         const inserted = [];
         for (const p of players) {
             const r = await client.query(
-                'INSERT INTO players (first_name,last_name,position,age,nationality,value,team_id) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *',
-                [p.first_name, p.last_name, p.position, p.age, p.nationality, p.value, p.team_id || null]
+                'INSERT INTO players (first_name,last_name,position,age,nationality_id,value,team_id) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *',
+                [p.first_name, p.last_name, p.position, p.age, p.nationality_id, p.value, p.team_id || null]
             );
             inserted.push(r.rows[0]);
         }
