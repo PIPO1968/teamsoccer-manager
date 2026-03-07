@@ -68,15 +68,22 @@ export const StadiumVisualization = ({ stadium }: StadiumVisualizationProps) => 
   const { t } = useLanguage();
   const cap = stadium?.stadium_capacity ?? 2500;
 
-  // Estándar: Gradas=2000(80%), Básicos=480(19.2%), Cubiertos=20(0.8%), VIP=0
-  const terraces = Math.floor(cap * 0.80);   // tribuna norte — azul
-  const basicSeats = Math.floor(cap * 0.192);  // esquinas — morado
-  const roofSeats = Math.floor(cap * 0.008);  // laterales E/O — ámbar
-  const vipSeats = 0;                         // tribuna sur — verde (inicia vacía)
+  const sStanding = stadium?.seats_standing ?? 0;
+  const sBasic = stadium?.seats_basic ?? 0;
+  const sCovered = stadium?.seats_covered ?? 0;
+  const sVip = stadium?.seats_vip ?? 0;
+
+  // Si no hay asientos asignados aún, usar distribución proporcional para no mostrar vacío
+  const hasAssigned = sStanding + sBasic + sCovered + sVip > 0;
+  const terraces = hasAssigned ? sStanding : Math.floor(cap * 0.80);
+  const basicSeats = hasAssigned ? sBasic : Math.floor(cap * 0.192);
+  const roofSeats = hasAssigned ? sCovered : Math.floor(cap * 0.008);
+  const vipSeats = sVip;
 
   const tRows = Math.ceil(Math.min(terraces / (MAX_CAPACITY * 0.80), 1) * ROWS);
   const bRows = Math.ceil(Math.min(basicSeats / (MAX_CAPACITY * 0.192), 1) * ROWS);
   const rCols = Math.ceil(Math.min(roofSeats / (MAX_CAPACITY * 0.008), 1) * ROWS);
+  const vipRows = Math.ceil(Math.min(vipSeats / 500, 1) * ROWS);
 
   // Layout (viewBox 420×340):
   // Pitch: (80,78) 260×184
@@ -102,8 +109,8 @@ export const StadiumVisualization = ({ stadium }: StadiumVisualizationProps) => 
 
           {/* North – Terraces */}
           <HStand x={80} y={5} w={260} h={68} filledRows={tRows} color={C.terraces} fromBottom={true} />
-          {/* South – Palcos VIP (inicia vacío) */}
-          <HStand x={80} y={267} w={260} h={68} filledRows={0} color={C.basic} fromBottom={false} />
+          {/* South – Palcos VIP */}
+          <HStand x={80} y={267} w={260} h={68} filledRows={vipRows} color={C.basic} fromBottom={false} />
           {/* West – Seats under roof */}
           <VStand x={5} y={78} w={70} h={184} filledCols={rCols} color={C.roof} fromRight={false} />
           {/* East – Seats under roof */}
