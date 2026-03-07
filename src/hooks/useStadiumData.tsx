@@ -11,6 +11,10 @@ export type StadiumData = {
   team_name: string;
   team_logo: string | null;
   country?: string;
+  seats_standing?: number;
+  seats_basic?: number;
+  seats_covered?: number;
+  seats_vip?: number;
 };
 
 export const useStadiumData = (stadiumId: string | undefined) => {
@@ -18,28 +22,28 @@ export const useStadiumData = (stadiumId: string | undefined) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchStadium = async () => {
+    if (!stadiumId) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const data = await apiFetch<{ success: boolean; stadium: StadiumData }>(
+        `/stadiums/${parseInt(stadiumId)}`
+      );
+      setStadium(data.stadium);
+      setIsLoading(false);
+    } catch (err) {
+      console.error("Error fetching stadium:", err);
+      setError(err instanceof Error ? err.message : "Error fetching stadium data");
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchStadium = async () => {
-      if (!stadiumId) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const data = await apiFetch<{ success: boolean; stadium: StadiumData }>(
-          `/stadiums/${parseInt(stadiumId)}`
-        );
-        setStadium(data.stadium);
-        setIsLoading(false);
-      } catch (err) {
-        console.error("Error fetching stadium:", err);
-        setError(err instanceof Error ? err.message : "Error fetching stadium data");
-        setIsLoading(false);
-      }
-    };
-
     fetchStadium();
   }, [stadiumId]);
 
-  return { stadium, isLoading, error };
+  return { stadium, isLoading, error, refetch: fetchStadium };
 };

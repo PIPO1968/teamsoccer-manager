@@ -8,7 +8,19 @@ import { useLanguage } from "@/contexts/LanguageContext";
 interface StadiumAttendanceSectionProps {
     matches: StadiumMatch[];
     stadiumCapacity: number;
+    seatsStanding?: number;
+    seatsBasic?: number;
+    seatsCovered?: number;
+    seatsVip?: number;
 }
+
+// Precio de entrada por tipo de asiento (ingreso por espectador)
+const TICKET_PRICE = {
+    standing: 15,
+    basic: 30,
+    covered: 55,
+    vip: 150,
+} as const;
 
 // Deterministic attendance based on match_id (55–93% of capacity)
 const getAttendance = (matchId: number, capacity: number): number => {
@@ -17,7 +29,28 @@ const getAttendance = (matchId: number, capacity: number): number => {
     return Math.floor(capacity * pct);
 };
 
-const getEarnings = (attendance: number): number => attendance * 18;
+/**
+ * Calcula ingresos ponderados por tipo de asiento.
+ * Los asientos sin asignar se tratan como gradas (€15).
+ */
+const getWeightedEarnings = (
+    attendance: number,
+    totalCapacity: number,
+    seatsStanding: number,
+    seatsBasic: number,
+    seatsCovered: number,
+    seatsVip: number,
+): number => {
+    if (totalCapacity <= 0) return 0;
+    const fillRatio = attendance / totalCapacity;
+    const unassigned = Math.max(0, totalCapacity - seatsStanding - seatsBasic - seatsCovered - seatsVip);
+    return Math.floor(
+        (seatsStanding + unassigned) * fillRatio * TICKET_PRICE.standing +
+        seatsBasic * fillRatio * TICKET_PRICE.basic +
+        seatsCovered * fillRatio * TICKET_PRICE.covered +
+        seatsVip * fillRatio * TICKET_PRICE.vip,
+    );
+};
 
 const formatDate = (dateString: string) => {
     try {
@@ -30,6 +63,10 @@ const formatDate = (dateString: string) => {
 export const StadiumAttendanceSection = ({
     matches,
     stadiumCapacity,
+    seatsStanding = 0,
+    seatsBasic = 0,
+    seatsCovered = 0,
+    seatsVip = 0,
 }: StadiumAttendanceSectionProps) => {
     const { t } = useLanguage();
 
@@ -75,7 +112,7 @@ export const StadiumAttendanceSection = ({
                         <div className="divide-y divide-gray-100">
                             {played.map((match, idx) => {
                                 const attendance = getAttendance(match.match_id, stadiumCapacity);
-                                const earnings = getEarnings(attendance);
+                                const earnings = getWeightedEarnings(attendance, stadiumCapacity, seatsStanding, seatsBasic, seatsCovered, seatsVip);
                                 const pct = Math.round((attendance / stadiumCapacity) * 100);
 
                                 return (

@@ -134,6 +134,11 @@ const initDb = async () => {
                 created_at TIMESTAMPTZ DEFAULT NOW()
             )
         `);
+        // Columnas de desglose de asientos en estadios
+        await client.query(`ALTER TABLE stadiums ADD COLUMN IF NOT EXISTS seats_standing INTEGER DEFAULT 0`);
+        await client.query(`ALTER TABLE stadiums ADD COLUMN IF NOT EXISTS seats_basic INTEGER DEFAULT 0`);
+        await client.query(`ALTER TABLE stadiums ADD COLUMN IF NOT EXISTS seats_covered INTEGER DEFAULT 0`);
+        await client.query(`ALTER TABLE stadiums ADD COLUMN IF NOT EXISTS seats_vip INTEGER DEFAULT 0`);
         console.log('✅ Tablas verificadas/creadas correctamente');
     } catch (err) {
         console.error('❌ Error creando tablas:', err.message);
@@ -1002,6 +1007,10 @@ app.get('/stadiums/:id', async (req, res) => {
                 s.capacity AS stadium_capacity,
                 s.build_date,
                 s.team_id,
+                s.seats_standing,
+                s.seats_basic,
+                s.seats_covered,
+                s.seats_vip,
                 t.name AS team_name,
                 t.club_logo AS team_logo,
                 r.name AS country
@@ -1014,6 +1023,110 @@ app.get('/stadiums/:id', async (req, res) => {
         res.json({ success: true, stadium: result.rows[0] || null });
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+// Ampliar estadio: añadir asientos y descontar del presupuesto
+app.post('/stadiums/:id/expand', async (req, res) => {
+    const stadiumId = parseInt(req.params.id, 10);
+    const { managerId, standingSeats = 0, basicSeats = 0, coveredSeats = 0, vipSeats = 0 } = req.body;
+    if (!stadiumId || !managerId) return res.status(400).json({ error: 'Faltan datos' });
+
+    const PRICE_STANDING = 80;
+    const PRICE_BASIC = 150;
+    const PRICE_COVERED = 300;
+    const PRICE_VIP = 1500;
+    const MAX_CAPACITY = 80000;
+    const MAX_STANDING = 50000;
+    const MAX_BASIC = 20000;
+    const MAX_COVERED = 9500;
+    const MAX_VIP = 500;
+
+    const totalSeats = parseInt(standingSeats) + parseInt(basicSeats) + parseInt(coveredSeats) + parseInt(vipSeats);
+    if (totalSeats <= 0) return res.status(400).json({ error: 'Debes añadir al menos un asiento' });
+
+    const totalCost =
+        parseInt(standingSeats) * PRICE_STANDING +
+        parseInt(basicSeats) * PRICE_BASIC +
+        parseInt(coveredSeats) * PRICE_COVERED +
+        parseInt(vipSeats) * PRICE_VIP;
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Verificar que el manager es dueño del equipo del estadio
+        const stadRes = await client.query(
+            `SELECT s.stadium_id, s.capacity, s.seats_standing, s.seats_basic, s.seats_covered, s.seats_vip, s.team_id
+             FROM stadiums s
+             JOIN teams t ON t.team_id = s.team_id
+             WHERE s.stadium_id = $1 AND t.manager_id = $2`,
+            [stadiumId, managerId]
+        );
+        if (stadRes.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(403).json({ error: 'No eres el propietario de este estadio' });
+        }
+        const stad = stadRes.rows[0];
+
+        // Verificar topes por tipo de asiento
+        if ((stad.seats_standing || 0) + parseInt(standingSeats) > MAX_STANDING)
+            return res.status(400).json({ error: `Máximo de gradas: ${MAX_STANDING.toLocaleString()}` });
+        if ((stad.seats_basic || 0) + parseInt(basicSeats) > MAX_BASIC)
+            return res.status(400).json({ error: `Máximo de asientos básicos: ${MAX_BASIC.toLocaleString()}` });
+        if ((stad.seats_covered || 0) + parseInt(coveredSeats) > MAX_COVERED)
+            return res.status(400).json({ error: `Máximo de asientos cubiertos: ${MAX_COVERED.toLocaleString()}` });
+        if ((stad.seats_vip || 0) + parseInt(vipSeats) > MAX_VIP)
+            return res.status(400).json({ error: `Máximo de palcos VIP: ${MAX_VIP.toLocaleString()}` });
+
+        // Verificar capacidad máxima total
+        const newCapacity = stad.capacity + totalSeats;
+        if (newCapacity > MAX_CAPACITY) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: `La capacidad máxima es ${MAX_CAPACITY.toLocaleString()} asientos` });
+        }
+
+        // Verificar saldo suficiente
+        const finRes = await client.query(
+            'SELECT cash_balance FROM team_finances WHERE team_id = $1',
+            [stad.team_id]
+        );
+        if (finRes.rows.length === 0 || finRes.rows[0].cash_balance < totalCost) {
+            await client.query('ROLLBACK');
+            const balance = finRes.rows[0]?.cash_balance || 0;
+            return res.status(400).json({
+                error: `Saldo insuficiente. Tienes €${balance.toLocaleString()} y necesitas €${totalCost.toLocaleString()}`
+            });
+        }
+
+        // Actualizar estadio
+        await client.query(
+            `UPDATE stadiums SET
+                capacity = capacity + $1,
+                seats_standing = seats_standing + $2,
+                seats_basic = seats_basic + $3,
+                seats_covered = seats_covered + $4,
+                seats_vip = seats_vip + $5
+             WHERE stadium_id = $6`,
+            [totalSeats, standingSeats, basicSeats, coveredSeats, vipSeats, stadiumId]
+        );
+
+        // Descontar del presupuesto
+        await client.query(
+            `UPDATE team_finances
+             SET cash_balance = cash_balance - $1,
+                 stadium_building_expenses = COALESCE(stadium_building_expenses, 0) + $1
+             WHERE team_id = $2`,
+            [totalCost, stad.team_id]
+        );
+
+        await client.query('COMMIT');
+        res.json({ success: true, newCapacity, totalCost });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
     }
 });
 
