@@ -302,6 +302,104 @@ initDb();
 
 const ADMIN_USERNAME = 'PIPO68';
 
+// Activación completa: garantiza que el manager tiene equipo, jugadores, estadio, finanzas y liga
+const fullyActivateManager = async (client, managerId) => {
+    // 1. Obtener o crear equipo
+    let teamRes = await client.query(
+        'SELECT team_id, name, country_id, series_id FROM teams WHERE manager_id = $1 LIMIT 1',
+        [managerId]
+    );
+    let team_id, country_id, team_name;
+    if (teamRes.rows.length === 0) {
+        // Sin equipo: crear uno con datos del manager
+        const mRes = await client.query(
+            'SELECT username, country_id FROM managers WHERE user_id = $1',
+            [managerId]
+        );
+        if (mRes.rows.length === 0) return;
+        const mgr = mRes.rows[0];
+        country_id = mgr.country_id;
+        team_name = `${mgr.username} FC`;
+        const newTeam = await client.query(
+            'INSERT INTO teams (name, manager_id, country_id) VALUES ($1, $2, $3) RETURNING team_id',
+            [team_name, managerId, country_id]
+        );
+        team_id = newTeam.rows[0].team_id;
+    } else {
+        team_id = teamRes.rows[0].team_id;
+        country_id = teamRes.rows[0].country_id;
+        team_name = teamRes.rows[0].name;
+    }
+
+    // 2. Garantizar finanzas
+    const finRes = await client.query(
+        'SELECT 1 FROM team_finances WHERE team_id = $1',
+        [team_id]
+    );
+    if (finRes.rowCount === 0) {
+        await client.query(
+            'INSERT INTO team_finances (team_id, cash_balance) VALUES ($1, 1000000)',
+            [team_id]
+        );
+    }
+
+    // 3. Garantizar estadio
+    const stadRes = await client.query(
+        'SELECT 1 FROM stadiums WHERE team_id = $1',
+        [team_id]
+    );
+    if (stadRes.rowCount === 0) {
+        await client.query(
+            'INSERT INTO stadiums (name, team_id, capacity) VALUES ($1, $2, 2500)',
+            [`${team_name} Stadium`, team_id]
+        );
+    }
+
+    // 4. Garantizar jugadores (mínimo 18)
+    const plRes = await client.query(
+        'SELECT COUNT(*)::int AS total FROM players WHERE team_id = $1',
+        [team_id]
+    );
+    if (plRes.rows[0].total < 18) {
+        await createInitialPlayers(client, team_id, country_id);
+    }
+
+    // 5. Asignar liga (serie) si aún no la tiene
+    const serRes = await client.query(
+        'SELECT series_id FROM teams WHERE team_id = $1',
+        [team_id]
+    );
+    if (!serRes.rows[0]?.series_id && country_id) {
+        const botRes = await client.query(
+            `SELECT t.team_id AS bot_team_id, t.series_id AS bot_series_id FROM teams t
+             JOIN series s ON s.series_id = t.series_id
+             WHERE t.is_bot = 1 AND s.region_id = $1
+             ORDER BY s.division ASC, s.group_number ASC, t.team_id ASC LIMIT 1`,
+            [country_id]
+        );
+        if (botRes.rows.length > 0) {
+            const { bot_team_id, bot_series_id } = botRes.rows[0];
+            await client.query(
+                'UPDATE teams SET series_id = $1, is_bot = 0, updated_at = NOW() WHERE team_id = $2',
+                [bot_series_id, team_id]
+            );
+            await client.query('DELETE FROM players WHERE team_id = $1', [bot_team_id]);
+            await client.query('DELETE FROM teams WHERE team_id = $1', [bot_team_id]);
+        } else {
+            const div1 = await client.query(
+                'SELECT series_id FROM series WHERE region_id = $1 AND division = 1 AND group_number = 1 LIMIT 1',
+                [country_id]
+            );
+            if (div1.rows[0]) {
+                await client.query(
+                    'UPDATE teams SET series_id = $1, updated_at = NOW() WHERE team_id = $2',
+                    [div1.rows[0].series_id, team_id]
+                );
+            }
+        }
+    }
+};
+
 const randBetween = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 const randFrom = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
@@ -2385,17 +2483,30 @@ app.put('/admin/managers/:id', async (req, res) => {
 
     values.push(managerId);
 
+    const newStatus = req.body.status;
+    const client = await pool.connect();
     try {
-        const result = await pool.query(
+        await client.query('BEGIN');
+        const result = await client.query(
             `UPDATE managers SET ${updates.join(', ')} WHERE user_id = $${values.length} RETURNING user_id`,
             values
         );
         if (result.rowCount === 0) {
+            await client.query('ROLLBACK');
+            client.release();
             return res.status(404).json({ error: 'Manager no encontrado' });
         }
+        // Si se activa el manager, asegurar que tiene todo: liga, jugadores, estadio, finanzas
+        if (newStatus === 'active') {
+            await fullyActivateManager(client, managerId);
+        }
+        await client.query('COMMIT');
         res.json({ success: true });
     } catch (err) {
+        await client.query('ROLLBACK');
         res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
     }
 });
 
@@ -2537,24 +2648,35 @@ app.post('/admin/activate-manager', async (req, res) => {
     if (!adminUsername || !managerId) {
         return res.status(400).json({ error: 'Faltan datos' });
     }
+    const client = await pool.connect();
     try {
-        const adminResult = await pool.query(
+        const adminResult = await client.query(
             'SELECT is_admin FROM managers WHERE username = $1',
             [adminUsername]
         );
         if (adminResult.rows.length === 0 || adminResult.rows[0].is_admin < 4) {
+            client.release();
             return res.status(403).json({ error: 'No autorizado' });
         }
-        const updateResult = await pool.query(
+        await client.query('BEGIN');
+        const updateResult = await client.query(
             'UPDATE managers SET status = $1 WHERE user_id = $2 RETURNING user_id, status',
             ['active', managerId]
         );
         if (updateResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            client.release();
             return res.status(404).json({ error: 'Manager no encontrado' });
         }
+        // Asegurar que el manager tiene todo: liga, jugadores, estadio, finanzas
+        await fullyActivateManager(client, managerId);
+        await client.query('COMMIT');
         res.json({ success: true, manager: updateResult.rows[0] });
     } catch (err) {
+        await client.query('ROLLBACK');
         res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
     }
 });
 
@@ -4024,46 +4146,8 @@ app.post('/manager-license/claim', async (req, res) => {
 
         await client.query('BEGIN');
         await client.query('UPDATE managers SET status = $1 WHERE user_id = $2', ['active', managerId]);
-
-        // Obtener el equipo del manager y su país
-        const teamRes = await client.query(
-            'SELECT team_id, name, country_id FROM teams WHERE manager_id = $1 LIMIT 1',
-            [managerId]
-        );
-        if (teamRes.rows.length > 0) {
-            const { team_id, name: teamName, country_id } = teamRes.rows[0];
-            if (country_id) {
-                // Buscar primer BOT libre de su país, rellenando desde Div1 hacia abajo
-                const botRes = await client.query(
-                    `SELECT t.team_id AS bot_team_id, t.series_id AS bot_series_id FROM teams t
-                     JOIN series s ON s.series_id = t.series_id
-                     WHERE t.is_bot = 1 AND s.region_id = $1
-                     ORDER BY s.division ASC, s.group_number ASC, t.team_id ASC LIMIT 1`,
-                    [country_id]
-                );
-                if (botRes.rows.length > 0) {
-                    const { bot_team_id, bot_series_id } = botRes.rows[0];
-                    // Fusionar: mover el equipo real al slot BOT
-                    await client.query(
-                        'UPDATE teams SET series_id = $1, is_bot = 0, updated_at = NOW() WHERE team_id = $2',
-                        [bot_series_id, team_id]
-                    );
-                    // Eliminar el equipo BOT que ocupaba ese slot
-                    await client.query('DELETE FROM players WHERE team_id = $1', [bot_team_id]);
-                    await client.query('DELETE FROM teams WHERE team_id = $1', [bot_team_id]);
-                } else {
-                    // No hay BOT libre: asignar Div1 directamente sin desplazar
-                    const div1 = await client.query(
-                        'SELECT series_id FROM series WHERE region_id = $1 AND division = 1 AND group_number = 1 LIMIT 1',
-                        [country_id]
-                    );
-                    if (div1.rows[0]) {
-                        await client.query('UPDATE teams SET series_id = $1, updated_at = NOW() WHERE team_id = $2', [div1.rows[0].series_id, team_id]);
-                    }
-                }
-            }
-        }
-
+        // Garantizar que el manager tiene todo: liga, jugadores, estadio, finanzas
+        await fullyActivateManager(client, managerId);
         await client.query('COMMIT');
         res.json({ success: true });
     } catch (err) {
