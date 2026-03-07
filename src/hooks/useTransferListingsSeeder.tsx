@@ -18,7 +18,7 @@ export const useTransferListingsSeeder = () => {
         position: faker.helpers.arrayElement([
           'GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'LM', 'RM', 'CAM', 'LW', 'RW', 'ST'
         ]),
-        nationality: faker.location.country(),
+        nationality_id: faker.number.int({ min: 1, max: 3 }), // region_id válidos en leagues_regions
         age: faker.number.int({ min: 18, max: 35 }),
         value: faker.number.int({ min: 500000, max: 5000000 }),
         team_id: null
