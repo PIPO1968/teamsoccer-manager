@@ -25,12 +25,17 @@ async function migrateAdditional() {
         await pool.query(schemaSql);
         console.log('Migración adicional aplicada o ya existe.');
 
-        // Ejecutar migración forzada para nationality
-        const forcePath = path.join(__dirname, 'sql', '20260307_force_add_nationality_to_players.sql');
-        if (fs.existsSync(forcePath)) {
-            const forceSql = fs.readFileSync(forcePath, 'utf8');
-            await pool.query(forceSql);
-            console.log('Migración forzada de nationality aplicada.');
+        // Ejecutar todas las migraciones incrementales en /sql/migrations
+        const migrationsDir = path.join(__dirname, 'sql', 'migrations');
+        if (fs.existsSync(migrationsDir)) {
+            const migrationFiles = fs.readdirSync(migrationsDir)
+                .filter(f => f.endsWith('.sql'))
+                .sort();
+            for (const file of migrationFiles) {
+                const migrationSql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
+                await pool.query(migrationSql);
+                console.log(`Migración incremental aplicada: ${file}`);
+            }
         }
     } catch (err) {
         console.error('Error en la migración adicional:', err);

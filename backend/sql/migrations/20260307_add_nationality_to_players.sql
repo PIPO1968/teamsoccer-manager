@@ -1,0 +1,2 @@
+-- Migración incremental: añade columna nationality a players
+ALTER TABLE players ADD COLUMN IF NOT EXISTS nationality text;
