@@ -315,7 +315,19 @@ const fullyActivateManager = async (client, managerId) => {
         [managerId]
     );
     if (teamRes.rows.length === 0) return; // sin equipo = error de registro, no intervenir
-    const { team_id, name: team_name, country_id, series_id } = teamRes.rows[0];
+    let { team_id, name: team_name, country_id, series_id } = teamRes.rows[0];
+
+    // Si el equipo no tiene country_id, usar el del manager como fallback y actualizarlo
+    if (!country_id) {
+        const mgrRes = await client.query(
+            'SELECT country_id FROM managers WHERE user_id = $1', [managerId]
+        );
+        if (mgrRes.rows[0]?.country_id) {
+            country_id = mgrRes.rows[0].country_id;
+            await client.query('UPDATE teams SET country_id = $1 WHERE team_id = $2', [country_id, team_id]);
+            console.log(`ℹ️ Team ${team_id} country_id actualizado a ${country_id} desde el manager`);
+        }
+    }
 
     // 1. Garantizar finanzas
     const finRes = await client.query(
@@ -350,8 +362,20 @@ const fullyActivateManager = async (client, managerId) => {
         await createInitialPlayers(client, team_id, country_id);
     }
 
-    // 4. Asignar liga (serie) si aún no la tiene
-    if (!series_id && country_id) {
+    // 4. Asignar liga (serie) si aún no la tiene o si la serie asignada es de otra región
+    let needsSeries = !series_id;
+    if (series_id && country_id) {
+        // Verificar que la serie actual pertenece al país del equipo
+        const checkSeries = await client.query(
+            'SELECT 1 FROM series WHERE series_id = $1 AND region_id = $2', [series_id, country_id]
+        );
+        if (checkSeries.rowCount === 0) {
+            needsSeries = true; // Serie pertenece a otro país — reasignar
+            console.log(`ℹ️ Team ${team_id} tiene series_id ${series_id} de otra región. Reasignando...`);
+        }
+    }
+
+    if (needsSeries && country_id) {
         const botRes = await client.query(
             `SELECT t.team_id AS bot_team_id, t.series_id AS bot_series_id FROM teams t
              JOIN series s ON s.series_id = t.series_id
@@ -367,6 +391,7 @@ const fullyActivateManager = async (client, managerId) => {
             );
             await client.query('DELETE FROM players WHERE team_id = $1', [bot_team_id]);
             await client.query('DELETE FROM teams WHERE team_id = $1', [bot_team_id]);
+            console.log(`✅ Team ${team_id} asignado a serie ${bot_series_id} (reemplazando bot ${bot_team_id})`);
         } else {
             const div1 = await client.query(
                 'SELECT series_id FROM series WHERE region_id = $1 AND division = 1 AND group_number = 1 LIMIT 1',
@@ -377,6 +402,9 @@ const fullyActivateManager = async (client, managerId) => {
                     'UPDATE teams SET series_id = $1, updated_at = NOW() WHERE team_id = $2',
                     [div1.rows[0].series_id, team_id]
                 );
+                console.log(`✅ Team ${team_id} asignado a Div1 serie ${div1.rows[0].series_id}`);
+            } else {
+                console.warn(`⚠️ No se encontró serie Div1 para region_id ${country_id}`);
             }
         }
     }
@@ -2728,6 +2756,24 @@ app.post('/admin/activate-manager', async (req, res) => {
         await fullyActivateManager(client, managerId);
         await client.query('COMMIT');
         res.json({ success: true, manager: updateResult.rows[0] });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
+// Admin: forzar setup completo de cualquier manager ya activo
+app.post('/admin/fix-manager-setup', async (req, res) => {
+    const { managerId } = req.body;
+    if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        await fullyActivateManager(client, managerId);
+        await client.query('COMMIT');
+        res.json({ success: true, message: `Setup completado para manager ${managerId}` });
     } catch (err) {
         await client.query('ROLLBACK');
         res.status(500).json({ error: err.message });
