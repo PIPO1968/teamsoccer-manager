@@ -115,6 +115,8 @@ const initDb = async () => {
         // Añadir coach_level a equipos si no existe
         await client.query(`ALTER TABLE teams ADD COLUMN IF NOT EXISTS coach_level TEXT DEFAULT 'poor'`);
         await client.query(`ALTER TABLE teams ADD COLUMN IF NOT EXISTS series_id INTEGER REFERENCES series(series_id) ON DELETE SET NULL`);
+        // Corrección de capacidad: estadios con el valor antiguo por defecto (15000) → 2500
+        await client.query(`UPDATE stadiums SET capacity = 2500 WHERE capacity = 15000`);
         console.log('✅ Tablas verificadas/creadas correctamente');
     } catch (err) {
         console.error('❌ Error creando tablas:', err.message);
