@@ -1,6 +1,6 @@
 
 import { Link } from "react-router-dom";
-import { Clock, Eye, MapPin } from "lucide-react";
+import { Clock, Eye, MapPin, Globe, Wifi } from "lucide-react";
 import { AdminBadge, PremiumBadge } from "./OnlineManagerBadges";
 import { formatLastLogin, formatCurrentLocation } from "@/utils/admin/onlineManagerUtils";
 
@@ -12,6 +12,8 @@ interface OnlineManager {
   last_login: string;
   country_name?: string;
   current_url?: string;
+  last_ip?: string;
+  connection_country?: string;
 }
 
 interface OnlineManagerCardProps {
@@ -28,10 +30,10 @@ export const OnlineManagerCard = ({ manager }: OnlineManagerCardProps) => {
           </div>
           <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
         </div>
-        
+
         <div>
           <div className="flex items-center gap-2">
-            <Link 
+            <Link
               to={`/manager/${manager.user_id}`}
               className="font-semibold text-blue-600 hover:text-blue-800 hover:underline"
             >
@@ -55,11 +57,23 @@ export const OnlineManagerCard = ({ manager }: OnlineManagerCardProps) => {
               <MapPin className="h-3 w-3" />
               Currently viewing: <span className="font-medium">{formatCurrentLocation(manager.current_url)}</span>
             </div>
+            {manager.last_ip && (
+              <div className="flex items-center gap-1">
+                <Wifi className="h-3 w-3" />
+                IP: <span className="font-mono font-medium">{manager.last_ip}</span>
+                {manager.connection_country && (
+                  <>
+                    <Globe className="h-3 w-3 ml-1" />
+                    <span>{manager.connection_country}</span>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      <Link 
+      <Link
         to={`/manager/${manager.user_id}`}
         className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 px-3 py-1 rounded-md hover:bg-blue-50 transition-colors"
       >

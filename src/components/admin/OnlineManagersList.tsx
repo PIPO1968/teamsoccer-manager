@@ -11,6 +11,8 @@ interface OnlineManager {
   last_login: string;
   country_name?: string;
   current_url?: string;
+  last_ip?: string;
+  connection_country?: string;
 }
 
 interface OnlineManagersListProps {

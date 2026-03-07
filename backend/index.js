@@ -116,6 +116,8 @@ const initDb = async () => {
         await client.query(`ALTER TABLE teams ADD COLUMN IF NOT EXISTS coach_level TEXT DEFAULT 'poor'`);
         await client.query(`ALTER TABLE teams ADD COLUMN IF NOT EXISTS series_id INTEGER REFERENCES series(series_id) ON DELETE SET NULL`);
         await client.query(`ALTER TABLE managers ADD COLUMN IF NOT EXISTS current_url TEXT`);
+        await client.query(`ALTER TABLE managers ADD COLUMN IF NOT EXISTS last_ip TEXT`);
+        await client.query(`ALTER TABLE managers ADD COLUMN IF NOT EXISTS connection_country TEXT`);
         // Corrección de capacidad: estadios con el valor antiguo por defecto (15000) → 2500
         await client.query(`UPDATE stadiums SET capacity = 2500 WHERE capacity = 15000`);
         console.log('✅ Tablas verificadas/creadas correctamente');
@@ -616,6 +618,21 @@ app.post('/login', async (req, res) => {
     }
 });
 
+// Geolocalización de IP usando ip-api.com (gratuito, sin clave)
+const geolocateIp = async (ip) => {
+    // Ignorar IPs locales/privadas
+    if (!ip || ip === '::1' || ip.startsWith('127.') || ip.startsWith('10.') ||
+        ip.startsWith('192.168.') || ip.startsWith('172.')) return null;
+    try {
+        const res = await fetch(`http://ip-api.com/json/${ip}?fields=country,countryCode,query`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        return data.status === 'success' ? `${data.country} (${data.countryCode})` : null;
+    } catch {
+        return null;
+    }
+};
+
 // Endpoint para logout
 app.post('/logout', async (req, res) => {
     const { managerId } = req.body;
@@ -635,16 +652,24 @@ app.post('/logout', async (req, res) => {
 app.post('/heartbeat', async (req, res) => {
     const { managerId, currentUrl } = req.body;
     if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
+    // Capturar IP real (Railway pasa la IP real en x-forwarded-for)
+    const rawIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || null;
     try {
         await pool.query(
-            'UPDATE managers SET is_online = true, last_seen = now(), current_url = $2 WHERE user_id = $1',
-            [managerId, currentUrl || null]
+            'UPDATE managers SET is_online = true, last_seen = now(), current_url = $2, last_ip = $3 WHERE user_id = $1',
+            [managerId, currentUrl || null, rawIp]
         );
         // Auto-marcar offline managers sin heartbeat reciente
         await pool.query(
             "UPDATE managers SET is_online = false WHERE is_online = true AND last_seen < NOW() - INTERVAL '6 minutes'"
         );
         res.json({ success: true });
+        // Geo-lookup asíncrono (no bloquea la respuesta)
+        geolocateIp(rawIp).then(country => {
+            if (country) {
+                pool.query('UPDATE managers SET connection_country = $1 WHERE user_id = $2', [country, managerId]).catch(() => { });
+            }
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -2461,6 +2486,8 @@ app.get('/admin/online-managers', async (req, res) => {
                 m.last_login,
                 m.last_seen,
                 m.current_url,
+                m.last_ip,
+                m.connection_country,
                 r.name AS country_name
              FROM managers m
              LEFT JOIN leagues_regions r ON r.region_id = m.country_id
