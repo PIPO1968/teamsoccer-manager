@@ -25,11 +25,11 @@ async function migrateAdditional() {
         await pool.query(schemaSql);
         console.log('Migración adicional aplicada o ya existe.');
 
-        // Ejecutar todas las migraciones incrementales en /sql/migrations
+        // Ejecutar todas las migraciones incrementales en /sql/migrations (excepto nationality)
         const migrationsDir = path.join(__dirname, 'sql', 'migrations');
         if (fs.existsSync(migrationsDir)) {
             const migrationFiles = fs.readdirSync(migrationsDir)
-                .filter(f => f.endsWith('.sql'))
+                .filter(f => f.endsWith('.sql') && !f.includes('nationality'))
                 .sort();
             for (const file of migrationFiles) {
                 const migrationSql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
