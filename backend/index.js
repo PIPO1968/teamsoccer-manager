@@ -3,6 +3,8 @@ import dotenv from 'dotenv';
 import { Pool } from 'pg';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
+import https from 'https';
+import http from 'http';
 
 // Forzar redeploy Railway - 2026-03-05
 
@@ -619,19 +621,24 @@ app.post('/login', async (req, res) => {
 });
 
 // Geolocalización de IP usando ip-api.com (gratuito, sin clave)
-const geolocateIp = async (ip) => {
+const geolocateIp = (ip) => new Promise((resolve) => {
     // Ignorar IPs locales/privadas
-    if (!ip || ip === '::1' || ip.startsWith('127.') || ip.startsWith('10.') ||
-        ip.startsWith('192.168.') || ip.startsWith('172.')) return null;
-    try {
-        const res = await fetch(`http://ip-api.com/json/${ip}?fields=country,countryCode,query`);
-        if (!res.ok) return null;
-        const data = await res.json();
-        return data.status === 'success' ? `${data.country} (${data.countryCode})` : null;
-    } catch {
-        return null;
+    if (!ip || ip === '::1' || ip === '127.0.0.1' || ip.startsWith('10.') ||
+        ip.startsWith('192.168.') || /^172\.(1[6-9]|2\d|3[01])\./.test(ip)) {
+        return resolve(null);
     }
-};
+    const url = `http://ip-api.com/json/${ip}?fields=status,country,countryCode`;
+    http.get(url, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+            try {
+                const json = JSON.parse(data);
+                resolve(json.status === 'success' ? `${json.country} (${json.countryCode})` : null);
+            } catch { resolve(null); }
+        });
+    }).on('error', () => resolve(null));
+});
 
 // Endpoint para logout
 app.post('/logout', async (req, res) => {
