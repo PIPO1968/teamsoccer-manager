@@ -1,12 +1,3 @@
-// Endpoint temporal: obtener todos los region_id de leagues_regions
-app.get('/leagues-regions', async (req, res) => {
-    try {
-        const result = await pool.query('SELECT region_id FROM leagues_regions ORDER BY region_id ASC');
-        res.json({ success: true, regions: result.rows });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
 import express from 'express';
 import dotenv from 'dotenv';
 import { Pool } from 'pg';
@@ -18,6 +9,18 @@ import http from 'http';
 // Forzar redeploy Railway - 2026-03-05
 
 dotenv.config({ path: './.env' });
+
+const app = express();
+
+// Endpoint temporal: obtener todos los region_id de leagues_regions
+app.get('/leagues-regions', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT region_id FROM leagues_regions ORDER BY region_id ASC');
+        res.json({ success: true, regions: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 const app = express();
 // CORS global usando paquete cors y función para origin
