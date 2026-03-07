@@ -1,3 +1,5 @@
+-- Añadir columna nationality a players para el mercado de transferencias
+ALTER TABLE players ADD COLUMN IF NOT EXISTS nationality text;
 -- Railway Postgres schema for TeamSoccer
 -- Run this in Railway console or via psql.
 

@@ -1,3 +1,12 @@
+// Endpoint temporal: obtener todos los region_id de leagues_regions
+app.get('/leagues-regions', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT region_id FROM leagues_regions ORDER BY region_id ASC');
+        res.json({ success: true, regions: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 import express from 'express';
 import dotenv from 'dotenv';
 import { Pool } from 'pg';
@@ -2461,7 +2470,7 @@ app.put('/threads/:id/sticky', async (req, res) => {
 app.get('/transfer-listings', async (req, res) => {
     try {
         const result = await pool.query(
-            `SELECT tl.id, tl.player_id, tl.team_id, tl.asking_price, tl.is_active, tl.created_at,
+            `SELECT tl.id, tl.player_id, tl.seller_team_id, tl.asking_price, tl.is_active, tl.created_at,
                     p.first_name, p.last_name, p.position, p.age,
                     p.finishing, p.pace, p.passing, p.defense, p.dribbling, p.heading, p.stamina,
                     p.value, p.wage, p.fitness, p.rating,
@@ -2469,7 +2478,7 @@ app.get('/transfer-listings', async (req, res) => {
                     r.name AS nationality
              FROM transfer_listings tl
              JOIN players p ON p.player_id = tl.player_id
-             LEFT JOIN teams t ON t.team_id = tl.team_id
+             LEFT JOIN teams t ON t.team_id = tl.seller_team_id
              LEFT JOIN leagues_regions r ON r.region_id = p.nationality_id
              WHERE tl.is_active = true ORDER BY tl.created_at DESC`
         );
@@ -2568,7 +2577,7 @@ app.get('/managers/:id/bids', async (req, res) => {
              FROM transfer_bids tb
              JOIN transfer_listings tl ON tl.id = tb.listing_id
              JOIN players p ON p.player_id = tl.player_id
-             LEFT JOIN teams t2 ON t2.team_id = tl.team_id
+             LEFT JOIN teams t2 ON t2.team_id = tl.seller_team_id
              WHERE tb.team_id = (SELECT team_id FROM teams WHERE manager_id = $1 LIMIT 1)
              ORDER BY tb.created_at DESC`,
             [managerId]
@@ -4291,8 +4300,8 @@ app.post('/admin/players/batch', async (req, res) => {
         const inserted = [];
         for (const p of players) {
             const r = await client.query(
-                'INSERT INTO players (first_name,last_name,position,age,nationality,value,team_id) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *',
-                [p.first_name, p.last_name, p.position, p.age, p.nationality, p.value, p.team_id || null]
+                'INSERT INTO players (first_name,last_name,position,age,nationality_id,value,team_id) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *',
+                [p.first_name, p.last_name, p.position, p.age, p.nationality_id, p.value, p.team_id || null]
             );
             inserted.push(r.rows[0]);
         }

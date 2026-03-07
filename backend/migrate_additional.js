@@ -19,10 +19,24 @@ const pool = new Pool({
 
 async function migrateAdditional() {
     try {
+        // Ejecutar migración adicional principal
         const schemaPath = path.join(__dirname, 'sql', 'railway_schema_additional.sql');
         const schemaSql = fs.readFileSync(schemaPath, 'utf8');
         await pool.query(schemaSql);
         console.log('Migración adicional aplicada o ya existe.');
+
+        // Ejecutar todas las migraciones incrementales en /sql/migrations (excepto nationality)
+        const migrationsDir = path.join(__dirname, 'sql', 'migrations');
+        if (fs.existsSync(migrationsDir)) {
+            const migrationFiles = fs.readdirSync(migrationsDir)
+                .filter(f => f.endsWith('.sql') && !f.includes('nationality'))
+                .sort();
+            for (const file of migrationFiles) {
+                const migrationSql = fs.readFileSync(path.join(migrationsDir, file), 'utf8');
+                await pool.query(migrationSql);
+                console.log(`Migración incremental aplicada: ${file}`);
+            }
+        }
     } catch (err) {
         console.error('Error en la migración adicional:', err);
     } finally {
