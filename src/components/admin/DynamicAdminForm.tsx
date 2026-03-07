@@ -102,48 +102,41 @@ export const DynamicAdminForm = ({
       );
     }
 
-    // Special handling for team_id
+    // Autocompletado para team_id
     if (field.name === 'team_id') {
-      // Log visual para depuración
-      if (!Array.isArray(teams)) {
-        return <div key={field.name} style={{ color: 'red' }}>Error: teams no es un array válido</div>;
-      }
-      if (teams.length === 0) {
-        return (
-          <div key={field.name} className="space-y-2 text-yellow-600">
-            No hay equipos disponibles para seleccionar.<br />
-            <pre style={{ fontSize: '0.8em', color: '#888', maxHeight: 100, overflow: 'auto' }}>{JSON.stringify(teams, null, 2)}</pre>
-          </div>
-        );
-      }
-      // Protección: si hay demasiados equipos, no renderizar el selector
-      if (teams.length > 1000) {
-        return <div key={field.name} style={{ color: 'red' }}>Demasiados equipos para mostrar el selector.</div>;
-      }
-      // Mostrar log visual de los equipos cargados
+      const [teamSearch, setTeamSearch] = useState('');
+      // Filtrar equipos por nombre
+      const filteredTeams = teams.filter(team =>
+        team.name && team.name.toLowerCase().includes(teamSearch.toLowerCase())
+      );
       return (
         <div key={field.name} className="space-y-2">
           <Label htmlFor={field.name}>Team</Label>
-          <div style={{ fontSize: '0.8em', color: '#888', maxHeight: 100, overflow: 'auto' }}>
-            Equipos cargados: {teams.length}
-            <pre>{JSON.stringify(teams.slice(0, 5), null, 2)}{teams.length > 5 ? '\n...más' : ''}</pre>
+          <Input
+            id={field.name + '_search'}
+            placeholder="Escribe el nombre del equipo..."
+            value={teamSearch}
+            onChange={e => setTeamSearch(e.target.value)}
+            className="mb-2"
+          />
+          <div style={{ maxHeight: 150, overflowY: 'auto', border: '1px solid #eee', borderRadius: 4 }}>
+            <div
+              style={{ padding: 6, cursor: 'pointer', background: value === null ? '#e0e0e0' : 'transparent' }}
+              onClick={() => setFormData(prev => ({ ...prev, [field.name]: null }))}
+            >
+              Sin equipo
+            </div>
+            {filteredTeams.slice(0, 30).map(team => (
+              <div
+                key={team.team_id}
+                style={{ padding: 6, cursor: 'pointer', background: value === team.team_id ? '#e0e0e0' : 'transparent' }}
+                onClick={() => setFormData(prev => ({ ...prev, [field.name]: team.team_id }))}
+              >
+                {team.name}
+              </div>
+            ))}
+            {filteredTeams.length === 0 && <div style={{ padding: 6, color: '#888' }}>No se encontraron equipos</div>}
           </div>
-          <Select
-            value={value?.toString() || ''}
-            onValueChange={(newValue) => setFormData(prev => ({ ...prev, [field.name]: newValue === 'null' ? null : parseInt(newValue) }))}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select team" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="null">No Team</SelectItem>
-              {teams.map((team) => (
-                <SelectItem key={team.team_id} value={team.team_id.toString()}>
-                  {team.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
       );
     }
