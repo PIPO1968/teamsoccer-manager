@@ -60,6 +60,23 @@ const Help = () => {
               </p>
             </CardContent>
           </Card>
+
+          {/* Sobre TeamSoccer y su motor de juego */}
+          <Card className="border-l-4 border-l-blue-500">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xl text-blue-600 flex items-center gap-2">
+                Sobre TeamSoccer y su motor de juego
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-gray-700">
+                Resumen general sobre el funcionamiento del{' '}
+                <a href="/ayuda/motor-juego" className="text-blue-600 underline hover:text-blue-800">
+                  motor de juego
+                </a>.
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

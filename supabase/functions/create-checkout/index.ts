@@ -22,30 +22,30 @@ serve(async (req) => {
 
   try {
     logStep("Function started");
-    
+
     // Get Stripe secret key from environment
     const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
     if (!STRIPE_SECRET_KEY) {
       throw new Error("STRIPE_SECRET_KEY is not set in the environment");
     }
-    
+
     // Initialize Stripe with the API key
     const stripe = new Stripe(STRIPE_SECRET_KEY, {
       apiVersion: "2023-10-16",
     });
-    
+
     const { user } = await req.json();
     logStep("Received request for user", user);
-    
+
     if (!user) {
       throw new Error("User ID is required");
     }
-    
+
     // Set the premium duration (30 days from now)
     const premiumExpiresAt = new Date();
     premiumExpiresAt.setDate(premiumExpiresAt.getDate() + 30);
     logStep("Premium will expire at", premiumExpiresAt.toISOString());
-    
+
     // Create a one-time payment checkout session with Stripe
     try {
       const session = await stripe.checkout.sessions.create({
@@ -54,7 +54,7 @@ serve(async (req) => {
           {
             price_data: {
               currency: "usd",
-              product_data: { 
+              product_data: {
                 name: "TeamSoccer: Premium",
                 description: "Unlock premium features for 30 days"
               },
@@ -71,8 +71,8 @@ serve(async (req) => {
           premium_expires_at: premiumExpiresAt.toISOString(),
         },
       });
-      
-      logStep("Created checkout session", { 
+
+      logStep("Created checkout session", {
         sessionId: session.id,
         url: session.url,
         expiresAt: premiumExpiresAt.toISOString()
@@ -83,13 +83,13 @@ serve(async (req) => {
         status: 200,
       });
     } catch (stripeError) {
-      logStep("Stripe API error", { 
-        error: stripeError.message, 
+      logStep("Stripe API error", {
+        error: stripeError.message,
         type: stripeError.type,
         code: stripeError.code
       });
-      
-      return new Response(JSON.stringify({ 
+
+      return new Response(JSON.stringify({
         error: stripeError.message,
         type: "stripe_error",
         code: stripeError.code || "unknown"
