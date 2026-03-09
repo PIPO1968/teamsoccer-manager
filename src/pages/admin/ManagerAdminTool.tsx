@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/services/apiClient";
-import { UserCog, Search, Wrench } from "lucide-react";
+import { UserCog, Search, Wrench, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -113,6 +113,38 @@ const ManagerAdminTool = () => {
     }
   };
 
+  const [repairingAll, setRepairingAll] = useState(false);
+  const handleRepairAllLeagues = async () => {
+    setRepairingAll(true);
+    try {
+      const data = await apiFetch<{ success: boolean; total: number; results: { managerId: number; status: string; error?: string }[] }>(
+        '/admin/repair-all-leagues',
+        { method: 'POST' }
+      );
+      const errors = data.results.filter(r => r.status === 'error');
+      if (errors.length > 0) {
+        toast({
+          title: `Reparación: ${data.total - errors.length}/${data.total} OK`,
+          description: `Errores: ${errors.map(e => e.managerId).join(', ')}`,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: `Reparación completada`,
+          description: data.total === 0 ? 'No había managers sin liga.' : `${data.total} manager(s) reparados.`,
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Error al reparar ligas',
+        variant: 'destructive',
+      });
+    } finally {
+      setRepairingAll(false);
+    }
+  };
+
   const handleSaveManager = async (managerData: Record<string, any>) => {
     if (!selectedManager) return;
 
@@ -208,7 +240,18 @@ const ManagerAdminTool = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>All Managers</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>All Managers</CardTitle>
+              <Button
+                variant="outline"
+                className="gap-2 text-green-700 border-green-400 hover:bg-green-50"
+                onClick={handleRepairAllLeagues}
+                disabled={repairingAll}
+              >
+                <ShieldCheck className="h-4 w-4" />
+                {repairingAll ? 'Reparando...' : 'Repair All Leagues'}
+              </Button>
+            </div>
             <div className="flex items-center gap-2">
               <Search className="h-4 w-4" />
               <Input

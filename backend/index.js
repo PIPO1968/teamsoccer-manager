@@ -352,8 +352,18 @@ const initDb = async () => {
             WHERE m.status = 'active' AND t.series_id IS NULL
         `);
         for (const row of unassigned.rows) {
-            await fullyActivateManager(client, row.user_id);
-            console.log(`✅ Liga reparada para manager ${row.user_id}`);
+            const repairClient = await pool.connect();
+            try {
+                await repairClient.query('BEGIN');
+                await fullyActivateManager(repairClient, row.user_id);
+                await repairClient.query('COMMIT');
+                console.log(`✅ Liga reparada para manager ${row.user_id}`);
+            } catch (repairErr) {
+                await repairClient.query('ROLLBACK');
+                console.error(`❌ Error reparando manager ${row.user_id}:`, repairErr.message);
+            } finally {
+                repairClient.release();
+            }
         }
         if (unassigned.rows.length > 0) console.log(`✅ ${unassigned.rows.length} manager(s) reparados`);
     } catch (err) {
@@ -2998,6 +3008,35 @@ app.post('/admin/fix-manager-setup', async (req, res) => {
     }
 });
 
+// Admin: reparar liga de TODOS los managers activos sin liga asignada
+app.post('/admin/repair-all-leagues', async (req, res) => {
+    try {
+        const unassigned = await pool.query(`
+            SELECT m.user_id FROM managers m
+            JOIN teams t ON t.manager_id = m.user_id
+            WHERE m.status = 'active' AND t.series_id IS NULL
+        `);
+        const results = [];
+        for (const row of unassigned.rows) {
+            const client = await pool.connect();
+            try {
+                await client.query('BEGIN');
+                await fullyActivateManager(client, row.user_id);
+                await client.query('COMMIT');
+                results.push({ managerId: row.user_id, status: 'ok' });
+            } catch (err) {
+                await client.query('ROLLBACK');
+                results.push({ managerId: row.user_id, status: 'error', error: err.message });
+            } finally {
+                client.release();
+            }
+        }
+        res.json({ success: true, total: unassigned.rows.length, results });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Admin: aprobar manager (waiting_list → carnet_pending)
 app.post('/admin/approve-manager', async (req, res) => {
     const { managerId } = req.body;
@@ -4499,7 +4538,7 @@ app.get('/leagues/:regionId', async (req, res) => {
             [regionId]
         );
         const managersResult = await pool.query(
-            'SELECT COUNT(DISTINCT manager_id)::int AS total FROM teams WHERE country_id = $1 AND manager_id IS NOT NULL',
+            'SELECT COUNT(DISTINCT manager_id)::int AS total FROM teams WHERE country_id = $1 AND manager_id IS NOT NULL AND series_id IS NOT NULL',
             [regionId]
         );
 
@@ -4507,11 +4546,7 @@ app.get('/leagues/:regionId', async (req, res) => {
         try {
             const seriesResult = await pool.query(
                 `SELECT s.series_id, s.division, s.group_number,
-                        (SELECT COUNT(DISTINCT team_id)::int FROM (
-                            SELECT home_team_id AS team_id FROM matches WHERE series_id = s.series_id
-                            UNION
-                            SELECT away_team_id FROM matches WHERE series_id = s.series_id
-                        ) t) AS team_count
+                        (SELECT COUNT(*)::int FROM teams t2 WHERE t2.series_id = s.series_id) AS team_count
                  FROM series s
                  WHERE s.region_id = $1
                  ORDER BY s.division ASC, s.group_number ASC`,
