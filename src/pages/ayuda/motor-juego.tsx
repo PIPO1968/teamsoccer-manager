@@ -130,9 +130,58 @@ const MotorJuego = () => {
                         <span className="block mt-6 mb-2 font-bold">HABILIDADES FÍSICAS:</span>
                         <div className="ml-4">-Además de las habilidades mencionadas, estas dos habilidades son muy importantes para todos los jugadores: <strong>"VELOCIDAD"</strong> y <strong>"RESISTENCIA"</strong> (que potenciarán las acciones de los jugadores sobre el campo de juego).</div>
                     </div>
+                    {/* Bloque de Finanzas */}
+                    <div className="bg-white rounded-lg shadow p-6 border-l-4 border-l-yellow-500 mt-8">
+                        <h2 className="text-2xl font-semibold text-yellow-700 mb-4">FINANZAS</h2>
+                        <div className="text-gray-700">
+                            <strong className="block mb-2">FINANZAS</strong>
+                            <span className="block font-bold mt-4 mb-2">ECONOMÍA:</span>
+                            <p className="mb-2">Todos los clubes obtienen un club <strong>"base"</strong> y podrán comprar tantos equipos secundarios como quieran en la tienda, pero siguiendo unas normas de economía únicas de TeamSoccer que evita las trampas entre clubes propios… (únicamente de equipos de diferente país/liga)</p>
+                            <p className="mb-2">Ejemplo de manager que ha comprado 3 equipos secundarios:</p>
+                            <ul className="ml-6 mb-2 list-disc">
+                                <li><strong>1 EQUIPO</strong> — (<span className="font-bold">EQUIPO BASE</span>). [No permitida su venta]</li>
+                                <li><strong>2 PREMIUM</strong> — (<span className="font-bold">2º-EQUIPO SECUNDARIO</span>). [Se puede vender]</li>
+                                <li><strong>3 PREMIUM</strong> — (<span className="font-bold">3º-EQUIPO SECUNDARIO</span>). [Se puede vender]</li>
+                            </ul>
+                            <p className="mb-2 font-bold text-red-700">¡IMPORTANTE! Todos los clubes secundarios tendrán su propia economía independiente.</p>
+                            <p className="mb-2">Los clubes madre no se pueden vender nunca, pero sí se permite la venta de los equipos secundarios, únicamente al <strong>"banco de TeamSoccer"</strong> por el valor de los <span className="font-bold">$$$</span> que tenga conseguidos cada equipo secundario con la venta de jugadores y entradas al estadio. (Solo se pueden vender a cambio de <span className="font-bold">TSCredits</span>, recibiendo 1 TSCredit por cada 10.000$).</p>
+                            <p className="mb-2">Esto puede ocurrir cuando un manager tiene demasiados segundos equipos y no es capaz de dirigirlos bien, cuando está cansado de alguno de ellos o cuando quiere competir en competiciones especiales de TSCredits.</p>
+                            <p className="mb-2">(De esta forma conseguimos en TeamSoccer que los managers que apoyan e invierten en el juego, no pierdan sus segundos equipos sin recibir nada a cambio)</p>
+                            <p className="mb-2">-P.D.-No hay que confundir <span className="font-bold">$$$</span> = economía del club con <span className="font-bold">TScredits</span> = torneos, rooms, copas, etc (PREMIUM)</p>
+                            <p className="mb-2">En TeamSoccer solo se pueden conseguir <span className="font-bold">$$$</span> de 2 formas: (vendiendo jugadores al TS-BANK y con la venta de entradas de aficionados al estadio)</p>
+                            <p className="mb-2">-P.D.2- Los managers únicamente pueden vender clubes al <span className="font-bold">"TS-BANK"</span> a cambio de TSCredits, convirtiendo los clubes secundarios en equipos BOT y también jugadores, vendiéndolos al <span className="font-bold">"TS-BANK"</span> y únicamente TS-BANK los pondrá de nuevo en venta en el mercado de transferencias por un valor de compra de 1.000$ para que pueda pujar por ellos cualquier manager.</p>
+                            <ol className="ml-6 mb-2 list-decimal">
+                                <li>
+                                    <span className="font-bold">Venta de jugadores al "TS-BANK" (banco de TeamSoccer)</span>, únicamente por el valor incluido en su ficha ...Este valor irá subiendo o bajando según su edad y habilidades de la siguiente forma:
+                                    <ul className="ml-6 mt-2 list-disc">
+                                        <li>Según suma total de habilidades:<br />Multiplicar suma total de habilidades X(100);<br /><span className="italic">Ejemplo: Para un jugador con suma total de habilidades de 500 [Valor total 500 X 100=50.000$]</span></li>
+                                        <li>Según la edad variará su valor total:</li>
+                                    </ul>
+                                    <ul className="ml-10 mt-2 list-none">
+                                        <li><span className="font-bold">18 años</span> = Su valor total X 10 <span className="italic">[Valor de venta 50.000 X10=500.000$]</span></li>
+                                        <li><span className="font-bold">19 años</span> = Su valor total X 8 <span className="italic">[Valor de venta 50.000 X8=400.000$]</span></li>
+                                        <li><span className="font-bold">20 años</span> = Su valor total X 6 <span className="italic">[Valor de venta 50.000 X6=300.000$]</span></li>
+                                        <li><span className="font-bold">21 años</span> = Su valor total X 5 <span className="italic">[Valor de venta 50.000 X5=250.000$]</span></li>
+                                        <li><span className="font-bold">22 años</span> = Su valor total X 4 <span className="italic">[Valor de venta 50.000 X4=200.000$]</span></li>
+                                        <li><span className="font-bold">23 años</span> = Su valor total X 3 <span className="italic">[Valor de venta 50.000 X3=150.000$]</span></li>
+                                        <li><span className="font-bold">24 años</span> = Su valor total X 2 <span className="italic">[Valor de venta 50.000 X2=100.000$]</span></li>
+                                        <li><span className="font-bold">25 años</span> = Su valor total X 1 <span className="italic">[Valor de venta 50.000 X1=50.000$]</span></li>
+                                        <li><span className="font-bold">26 años</span> = Su valor total X 0.8 <span className="italic">[Valor de venta 50.000 X0.8=40.000$]</span></li>
+                                        <li><span className="font-bold">27 años</span> = Su valor total X 0.6 <span className="italic">[Valor de venta 50.000 X0.6=30.000$]</span></li>
+                                        <li><span className="font-bold">28 años</span> = Su valor total X 0.5 <span className="italic">[Valor de venta 50.000 X0.5=25.000$]</span></li>
+                                        <li><span className="font-bold">29 años</span> = Su valor total X 0.3 <span className="italic">[Valor de venta 50.000 X0.3=15.000$]</span></li>
+                                        <li><span className="font-bold">(+29 años)</span> = Su valor total X 0.1 <span className="italic">[Valor de venta 50.000 X0.1=5.000$]</span></li>
+                                    </ul>
+                                    <p className="mt-2">Según este baremo, un jugador de 21 años con un total de habilidades de 390, su valor de venta en $ sería de: (390 X100= 39.000) X 5 = <span className="font-bold">195.000$</span></p>
+                                    <p className="mt-2">Todo jugador recién comprado, no podrá ser vendido hasta que pase al menos una temporada completa en dicho club que lo compra. (Así se evita la compra-venta fraudulenta ya que al pasar una temporada completa, tiene un año más y pierde valor)</p>
+                                </li>
+                            </ol>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
+        </div >
     );
 };
 
