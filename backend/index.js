@@ -1078,6 +1078,27 @@ app.put('/teams/:id/logo', async (req, res) => {
     }
 });
 
+// Obtener datos de liga de un equipo
+app.get('/teams/:id/league', async (req, res) => {
+    const teamId = parseInt(req.params.id, 10);
+    if (!teamId) return res.status(400).json({ error: 'teamId invalido' });
+    try {
+        const result = await pool.query(
+            `SELECT s.series_id, s.series_id AS league_id, s.division, s.group_number,
+                    lr.name AS region_name
+             FROM teams t
+             JOIN series s ON s.series_id = t.series_id
+             JOIN leagues_regions lr ON lr.region_id = s.region_id
+             WHERE t.team_id = $1`,
+            [teamId]
+        );
+        if (result.rows.length === 0) return res.json({ success: true, league: null });
+        res.json({ success: true, league: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Obtener jugadores de un equipo
 app.get('/teams/:id/players', async (req, res) => {
     const teamId = parseInt(req.params.id, 10);
