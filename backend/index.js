@@ -381,7 +381,7 @@ const ADMIN_USERNAME = 'PIPO68';
 const setupBotTeam = async (client, teamId, teamName, countryId) => {
     const finRes = await client.query('SELECT 1 FROM team_finances WHERE team_id = $1', [teamId]);
     if (finRes.rowCount === 0) {
-        await client.query('INSERT INTO team_finances (team_id, cash_balance) VALUES ($1, 500000)', [teamId]);
+        await client.query('INSERT INTO team_finances (team_id, cash_balance) VALUES ($1, 1000000)', [teamId]);
     }
     const stadRes = await client.query('SELECT 1 FROM stadiums WHERE team_id = $1', [teamId]);
     if (stadRes.rowCount === 0) {
