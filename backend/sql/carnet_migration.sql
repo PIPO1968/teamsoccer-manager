@@ -18,9 +18,9 @@ CREATE TABLE IF NOT EXISTS manager_license_progress (
   UNIQUE (manager_id, test_key)
 );
 
--- Seed default tests (idempotent via ON CONFLICT DO NOTHING)
+-- Seed actualizado (visit_premium en lugar de visit_dashboard)
 INSERT INTO manager_license_tests (test_key, title, description, reward_amount, sort_order) VALUES
-('visit_dashboard',       'Explora tu Panel',        'Visita la página Resumen de tu club',           50000, 1),
+('visit_premium',         'Premium Gratis',          'Visita la tienda y activa tus 30 días Premium gratis', 0,     1),
 ('visit_team',            'Conoce tu Equipo',        'Visita la página de tu equipo',                 50000, 2),
 ('visit_players',         'Gestiona tus Jugadores',  'Visita la lista de jugadores',                  50000, 3),
 ('visit_transfer_market', 'Mercado de Fichajes',     'Visita el Mercado de Transferencias',           75000, 4),
@@ -31,3 +31,6 @@ INSERT INTO manager_license_tests (test_key, title, description, reward_amount, 
 ('visit_forums',          'Los Foros',               'Visita los Foros de la comunidad',              50000, 9),
 ('visit_community',       'La Comunidad',            'Visita la página de Comunidad',                 50000, 10)
 ON CONFLICT (test_key) DO NOTHING;
+
+-- Eliminar visit_dashboard si existe (obsoleto)
+DELETE FROM manager_license_tests WHERE test_key = 'visit_dashboard';

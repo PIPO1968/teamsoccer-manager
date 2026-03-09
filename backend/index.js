@@ -159,6 +159,57 @@ const initDb = async () => {
         console.error('❌ Error creando tablas:', err.message);
     }
 
+    // Seed países: insertar los 129 países ANTES de crear series (evita BD vacía)
+    try {
+        // Asegurar UNIQUE constraint en name (por si el schema se aplicó sin él)
+        await client.query(`
+            DO $$ BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint
+                    WHERE conname = 'leagues_regions_name_key'
+                    AND conrelid = 'leagues_regions'::regclass
+                ) THEN
+                    ALTER TABLE leagues_regions ADD CONSTRAINT leagues_regions_name_key UNIQUE (name);
+                END IF;
+            END $$;
+        `);
+        await client.query(`
+            INSERT INTO leagues_regions (name)
+            SELECT v.name FROM (VALUES
+                ('Spain'), ('England'), ('France'),
+                ('Germany'), ('Italy'), ('Portugal'), ('Netherlands'), ('Belgium'),
+                ('Argentina'), ('Brazil'), ('Colombia'), ('Uruguay'), ('Chile'), ('Ecuador'),
+                ('Mexico'), ('United States'), ('Canada'), ('Japan'), ('South Korea'),
+                ('Australia'), ('China'), ('India'), ('Saudi Arabia'), ('Iran'),
+                ('Qatar'), ('United Arab Emirates'), ('Iraq'), ('Kuwait'), ('Oman'),
+                ('Jordan'), ('Bahrain'), ('Egypt'), ('Morocco'), ('Tunisia'),
+                ('Algeria'), ('Senegal'), ('Nigeria'), ('Ghana'), ('Cameroon'),
+                ('Ivory Coast'), ('South Africa'), ('Kenya'), ('Tanzania'), ('Ethiopia'),
+                ('Sweden'), ('Norway'), ('Denmark'), ('Finland'), ('Switzerland'),
+                ('Austria'), ('Czech Republic'), ('Hungary'), ('Romania'), ('Croatia'),
+                ('Serbia'), ('Greece'), ('Turkey'), ('Ukraine'), ('Russia'),
+                ('Poland'), ('Slovakia'), ('Bulgaria'), ('Belarus'), ('Lithuania'),
+                ('Latvia'), ('Estonia'), ('Slovenia'), ('Montenegro'), ('Albania'),
+                ('Bosnia and Herzegovina'), ('North Macedonia'), ('Georgia'), ('Armenia'), ('Azerbaijan'),
+                ('Cyprus'), ('Malta'), ('Iceland'), ('Luxembourg'), ('Ireland'),
+                ('Scotland'), ('Wales'), ('Northern Ireland'), ('Costa Rica'), ('Honduras'),
+                ('El Salvador'), ('Guatemala'), ('Panama'), ('Jamaica'), ('Peru'),
+                ('Paraguay'), ('Bolivia'), ('Venezuela'), ('New Zealand'), ('Indonesia'),
+                ('Vietnam'), ('Thailand'), ('Malaysia'), ('Singapore'), ('Philippines'),
+                ('Pakistan'), ('Bangladesh'), ('Kazakhstan'), ('Uzbekistan'), ('Tajikistan'),
+                ('Dominican Republic'), ('Trinidad and Tobago'), ('Haiti'), ('Cuba'), ('Zambia'),
+                ('Zimbabwe'), ('Uganda'), ('DR Congo'), ('Burkina Faso'), ('Mali'),
+                ('Sudan'), ('Libya'), ('Rwanda'), ('Mozambique'), ('Angola'),
+                ('Namibia'), ('Botswana'), ('Gabon'), ('Benin'), ('Togo'),
+                ('Niger'), ('Sierra Leone'), ('Liberia'), ('Mauritania'), ('Somalia')
+            ) AS v(name)
+            WHERE NOT EXISTS (SELECT 1 FROM leagues_regions lr WHERE lr.name = v.name)
+        `);
+        console.log('✅ Países verificados');
+    } catch (err) {
+        console.error('❌ Error seeding países:', err.message);
+    }
+
     // Seed series: crear 4 divisiones + 8 equipos BOT por serie por cada región que no las tenga
     try {
         const regionsResult = await client.query('SELECT region_id FROM leagues_regions ORDER BY region_id ASC');
@@ -293,45 +344,11 @@ const initDb = async () => {
             ('visit_community',       'La Comunidad',            'Visita la página de Comunidad',               50000, 10)
             ON CONFLICT (test_key) DO NOTHING
         `);
+        // Eliminar test obsoleto visit_dashboard (reemplazado por visit_premium)
+        await client.query(`DELETE FROM manager_license_tests WHERE test_key = 'visit_dashboard'`);
         console.log('✅ Pruebas del Carnet verificadas');
     } catch (err) {
         console.error('❌ Error seeding carnet tests:', err.message);
-    }
-
-    // Expandir países (bloque separado — ON CONFLICT requiere UNIQUE en leagues_regions.name)
-    try {
-        await client.query(`
-            INSERT INTO leagues_regions (name) VALUES
-            ('Germany'), ('Italy'), ('Portugal'), ('Netherlands'), ('Belgium'),
-            ('Argentina'), ('Brazil'), ('Colombia'), ('Uruguay'), ('Chile'), ('Ecuador'),
-            ('Mexico'), ('United States'), ('Canada'), ('Japan'), ('South Korea'),
-            ('Australia'), ('China'), ('India'), ('Saudi Arabia'), ('Iran'),
-            ('Qatar'), ('United Arab Emirates'), ('Iraq'), ('Kuwait'), ('Oman'),
-            ('Jordan'), ('Bahrain'), ('Egypt'), ('Morocco'), ('Tunisia'),
-            ('Algeria'), ('Senegal'), ('Nigeria'), ('Ghana'), ('Cameroon'),
-            ('Ivory Coast'), ('South Africa'), ('Kenya'), ('Tanzania'), ('Ethiopia'),
-            ('Sweden'), ('Norway'), ('Denmark'), ('Finland'), ('Switzerland'),
-            ('Austria'), ('Czech Republic'), ('Hungary'), ('Romania'), ('Croatia'),
-            ('Serbia'), ('Greece'), ('Turkey'), ('Ukraine'), ('Russia'),
-            ('Poland'), ('Slovakia'), ('Bulgaria'), ('Belarus'), ('Lithuania'),
-            ('Latvia'), ('Estonia'), ('Slovenia'), ('Montenegro'), ('Albania'),
-            ('Bosnia and Herzegovina'), ('North Macedonia'), ('Georgia'), ('Armenia'), ('Azerbaijan'),
-            ('Cyprus'), ('Malta'), ('Iceland'), ('Luxembourg'), ('Ireland'),
-            ('Scotland'), ('Wales'), ('Northern Ireland'), ('Costa Rica'), ('Honduras'),
-            ('El Salvador'), ('Guatemala'), ('Panama'), ('Jamaica'), ('Peru'),
-            ('Paraguay'), ('Bolivia'), ('Venezuela'), ('New Zealand'), ('Indonesia'),
-            ('Vietnam'), ('Thailand'), ('Malaysia'), ('Singapore'), ('Philippines'),
-            ('Pakistan'), ('Bangladesh'), ('Kazakhstan'), ('Uzbekistan'), ('Tajikistan'),
-            ('Dominican Republic'), ('Trinidad and Tobago'), ('Haiti'), ('Cuba'), ('Zambia'),
-            ('Zimbabwe'), ('Uganda'), ('DR Congo'), ('Burkina Faso'), ('Mali'),
-            ('Sudan'), ('Libya'), ('Rwanda'), ('Mozambique'), ('Angola'),
-            ('Namibia'), ('Botswana'), ('Gabon'), ('Benin'), ('Togo'),
-            ('Niger'), ('Sierra Leone'), ('Liberia'), ('Mauritania'), ('Somalia')
-            ON CONFLICT (name) DO NOTHING
-        `);
-        console.log('✅ Países verificados');
-    } catch (err) {
-        console.error('❌ Error expandiendo países (puede que leagues_regions.name no tenga UNIQUE):', err.message);
     }
 
     // Garantizar que el super admin siempre tiene is_admin = 10
