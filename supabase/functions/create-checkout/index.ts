@@ -1,6 +1,7 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@12.5.0";
+import { serve } from "https://deno.land/std@0.203.0/http/mod.ts";
+// import Stripe from "https://deno.land/x/stripe@v12.5.0/mod.ts";
+import Stripe from "npm:stripe@12.5.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,7 +13,7 @@ const logStep = (step: string, details?: any) => {
   console.log(`[CREATE-CHECKOUT] ${step}${details ? ': ' + JSON.stringify(details) : ''}`);
 };
 
-serve(async (req) => {
+serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, {
@@ -24,7 +25,7 @@ serve(async (req) => {
     logStep("Function started");
 
     // Get Stripe secret key from environment
-    const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
+    const STRIPE_SECRET_KEY = (globalThis as any).process?.env?.STRIPE_SECRET_KEY ?? undefined;
     if (!STRIPE_SECRET_KEY) {
       throw new Error("STRIPE_SECRET_KEY is not set in the environment");
     }
@@ -83,24 +84,42 @@ serve(async (req) => {
         status: 200,
       });
     } catch (stripeError) {
+      let errorMessage = "Unknown error";
+      let errorType = "unknown";
+      let errorCode = "unknown";
+      if (stripeError && typeof stripeError === "object") {
+        if ("message" in stripeError && typeof (stripeError as any).message === "string") {
+          errorMessage = (stripeError as any).message;
+        }
+        if ("type" in stripeError && typeof (stripeError as any).type === "string") {
+          errorType = (stripeError as any).type;
+        }
+        if ("code" in stripeError && typeof (stripeError as any).code === "string") {
+          errorCode = (stripeError as any).code;
+        }
+      }
+
       logStep("Stripe API error", {
-        error: stripeError.message,
-        type: stripeError.type,
-        code: stripeError.code
+        error: errorMessage,
+        type: errorType,
+        code: errorCode
       });
 
       return new Response(JSON.stringify({
-        error: stripeError.message,
+        error: errorMessage,
         type: "stripe_error",
-        code: stripeError.code || "unknown"
+        code: errorCode
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
       });
     }
   } catch (error) {
-    logStep("Error creating checkout session", { error: error.message });
-    return new Response(JSON.stringify({ error: error.message }), {
+    const errorMessage = (error && typeof error === "object" && "message" in error && typeof (error as any).message === "string")
+      ? (error as any).message
+      : String(error);
+    logStep("Error creating checkout session", { error: errorMessage });
+    return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });
