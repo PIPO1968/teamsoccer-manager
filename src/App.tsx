@@ -129,7 +129,7 @@ const App = () => {
                 <Route path="/community" element={<Layout><Community /></Layout>} />
 
                 <Route path="/help" element={<Layout><Help /></Layout>} />
-                <Route path="/ayuda/motor-juego" element={<Layout><MotorJuego />} />
+                <Route path="/ayuda/motor-juego" element={<Layout><MotorJuego /></Layout>} />
 
                 <Route path="/admin" element={<Layout><AdminArea /></Layout>} />
                 <Route path="/admin/online-managers" element={<Layout><OnlineManagers /></Layout>} />
