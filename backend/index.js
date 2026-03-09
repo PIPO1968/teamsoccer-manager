@@ -393,6 +393,64 @@ const setupBotTeam = async (client, teamId, teamName, countryId) => {
     }
 };
 
+// Expande divisiones cuando se agotan los BOTs de la región (Div 5, 6, 7...)
+const expandLeaguesIfNeeded = async (client, countryId) => {
+    const botCount = await client.query(
+        `SELECT COUNT(*)::int AS total FROM teams t
+         JOIN series s ON s.series_id = t.series_id
+         WHERE t.is_bot = 1 AND s.region_id = $1`,
+        [countryId]
+    );
+    if (botCount.rows[0].total > 0) return; // Aún quedan BOTs, no hace falta expandir
+
+    const maxDiv = await client.query(
+        'SELECT MAX(division)::int AS max_div FROM series WHERE region_id = $1',
+        [countryId]
+    );
+    const currentMax = maxDiv.rows[0].max_div || 4;
+    const nextDiv = currentMax + 1;
+    const numGroups = Math.pow(2, nextDiv - 1); // Div5=16, Div6=32, Div7=64...
+
+    const parentSeries = await client.query(
+        'SELECT series_id, group_number FROM series WHERE region_id = $1 AND division = $2 ORDER BY group_number ASC',
+        [countryId, currentMax]
+    );
+
+    console.log(`🏆 Región ${countryId}: creando División ${nextDiv} con ${numGroups} grupos`);
+    const botNames = ['Athletic', 'United', 'City', 'Rovers', 'Wanderers', 'Rangers', 'Dynamo', 'Sporting'];
+
+    for (let g = 1; g <= numGroups; g++) {
+        const parent = parentSeries.rows[Math.floor((g - 1) / 2)];
+        const r = await client.query(
+            'INSERT INTO series (division, group_number, region_id, season, parent_series_id) VALUES ($1, $2, $3, 1, $4) RETURNING series_id',
+            [nextDiv, g, countryId, parent?.series_id || null]
+        );
+        const sid = r.rows[0].series_id;
+        for (let t = 0; t < 8; t++) {
+            const newBot = await client.query(
+                'INSERT INTO teams (name, manager_id, country_id, is_bot, series_id) VALUES ($1, NULL, $2, 1, $3) RETURNING team_id',
+                [`${botNames[t]} FC`, countryId, sid]
+            );
+            await setupBotTeam(client, newBot.rows[0].team_id, `${botNames[t]} FC`, countryId);
+        }
+    }
+    console.log(`✅ División ${nextDiv} creada: ${numGroups} grupos × 8 BOTs = ${numGroups * 8} equipos nuevos`);
+};
+
+// Convierte el equipo de un manager en BOT cuando es expulsado o desactivado
+const deactivateManagerTeam = async (client, managerId) => {
+    const botNames = ['Athletic', 'United', 'City', 'Rovers', 'Wanderers', 'Rangers', 'Dynamo', 'Sporting'];
+    const newName = `${botNames[Math.floor(Math.random() * botNames.length)]} FC`;
+    const res = await client.query(
+        `UPDATE teams SET is_bot = 1, manager_id = NULL, name = $1, updated_at = NOW()
+         WHERE manager_id = $2 RETURNING team_id`,
+        [newName, managerId]
+    );
+    if (res.rowCount > 0) {
+        console.log(`♻️ Equipo del manager ${managerId} convertido a BOT (${newName})`);
+    }
+};
+
 // Activación completa: garantiza que el manager tiene jugadores, estadio, finanzas y liga
 const fullyActivateManager = async (client, managerId) => {
     // Obtener equipo provisional (creado en el registro)
@@ -483,6 +541,8 @@ const fullyActivateManager = async (client, managerId) => {
         await client.query('DELETE FROM teams WHERE team_id = $1', [team_id]);
 
         console.log(`✅ Manager ${managerId} heredó el equipo BOT ${bot_team_id} en serie ${bot_series_id} como "${team_name}"`);
+        // Si agotamos los BOTs de la región, expandir con una nueva división
+        await expandLeaguesIfNeeded(client, country_id);
     } else {
         // Fallback sin BOTs disponibles: asignar serie Div1 directamente al equipo existente
         const div1 = await client.query(
@@ -2832,6 +2892,9 @@ app.put('/admin/managers/:id', async (req, res) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
+        // Leer status actual antes de actualizar
+        const currentMgr = await client.query('SELECT status FROM managers WHERE user_id = $1', [managerId]);
+        const previousStatus = currentMgr.rows[0]?.status;
         const result = await client.query(
             `UPDATE managers SET ${updates.join(', ')} WHERE user_id = $${values.length} RETURNING user_id`,
             values
@@ -2844,6 +2907,10 @@ app.put('/admin/managers/:id', async (req, res) => {
         // Si se activa el manager, asegurar que tiene todo: liga, jugadores, estadio, finanzas
         if (newStatus === 'active') {
             await fullyActivateManager(client, managerId);
+        }
+        // Si era activo y ahora se desactiva/expulsa, convertir su equipo en BOT
+        if (previousStatus === 'active' && newStatus && newStatus !== 'active') {
+            await deactivateManagerTeam(client, managerId);
         }
         await client.query('COMMIT');
         res.json({ success: true });
