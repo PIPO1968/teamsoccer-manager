@@ -314,11 +314,10 @@ const initDb = async () => {
                 if (added >= needed) break;
                 const fullName = `${n} FC`;
                 if (!usedNames.has(fullName)) {
-                    const newBot = await client.query(
-                        'INSERT INTO teams (name, manager_id, country_id, is_bot, series_id) VALUES ($1, NULL, $2, 1, $3) RETURNING team_id',
+                    await client.query(
+                        'INSERT INTO teams (name, manager_id, country_id, is_bot, series_id) VALUES ($1, NULL, $2, 1, $3)',
                         [fullName, s.region_id, s.series_id]
                     );
-                    await setupBotTeam(client, newBot.rows[0].team_id, fullName, s.region_id);
                     added++;
                 }
             }
@@ -5119,7 +5118,7 @@ async function autoRepairLeagues() {
 }
 setInterval(autoRepairLeagues, 5 * 60 * 1000);
 
-// Inicialización de fondo: configura equipos BOT existentes sin jugadores en lotes de 30
+// Inicialización de fondo: configura equipos BOT existentes sin jugadores en lotes de 100
 async function initBotsInBackground() {
     try {
         const bots = await pool.query(`
@@ -5127,30 +5126,29 @@ async function initBotsInBackground() {
             FROM teams t
             WHERE t.is_bot = 1
             AND (SELECT COUNT(*) FROM players p WHERE p.team_id = t.team_id) < 18
-            LIMIT 30
+            LIMIT 100
         `);
         if (bots.rows.length === 0) {
             console.log('✅ Todos los equipos BOT están configurados con jugadores');
             return;
         }
-        for (const bot of bots.rows) {
-            const client = await pool.connect();
-            try {
-                await client.query('BEGIN');
-                await setupBotTeam(client, bot.team_id, bot.name, bot.country_id);
-                await client.query('COMMIT');
-            } catch (err) {
-                await client.query('ROLLBACK');
-                console.error(`❌ Error iniciando BOT ${bot.team_id}:`, err.message);
-            } finally {
-                client.release();
+        const client = await pool.connect();
+        try {
+            for (const bot of bots.rows) {
+                try {
+                    await setupBotTeam(client, bot.team_id, bot.name, bot.country_id);
+                } catch (err) {
+                    console.error(`❌ Error iniciando BOT ${bot.team_id}:`, err.message);
+                }
             }
+        } finally {
+            client.release();
         }
         console.log(`🤖 ${bots.rows.length} BOTs configurados, procesando siguiente lote...`);
-        setTimeout(initBotsInBackground, 5000);
+        setTimeout(initBotsInBackground, 2000);
     } catch (err) {
         console.error('❌ Error en initBotsInBackground:', err.message);
-        setTimeout(initBotsInBackground, 60000);
+        setTimeout(initBotsInBackground, 30000);
     }
 }
 setTimeout(initBotsInBackground, 15000);
