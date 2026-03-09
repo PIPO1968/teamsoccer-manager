@@ -97,7 +97,7 @@ const App = () => {
                 <Route path="/matches/:teamId" element={<Layout><Matches /></Layout>} />
                 <Route path="/match/:matchId" element={<Layout><MatchView /></Layout>} />
                 <Route path="/match/:matchId/lineup" element={<Layout><LineupPage /></Layout>} />
-                <Route path="/match-viewer/:matchId" element={<MatchViewer />} />
+                <Route path="/match-viewer" element={<Layout><MatchViewer /></Layout>} />
 
                 <Route path="/series/:seriesId" element={<Layout><Series /></Layout>} />
                 <Route path="/series/:seriesId/fixtures" element={<Layout><SeriesFixtures /></Layout>} />

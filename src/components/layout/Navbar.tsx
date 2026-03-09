@@ -1,6 +1,6 @@
 
 import { Link } from "react-router-dom";
-import { Globe, HelpCircle, Home, Menu, MailboxIcon, MessageCircle, Crown, UserRound, Users, LogOut } from "lucide-react";
+import { Globe, HelpCircle, Home, Menu, MailboxIcon, MessageCircle, Crown, UserRound, Users, LogOut, Tv2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useMessages } from "@/hooks/useMessages";
@@ -21,6 +21,7 @@ const Navbar = () => {
     { name: t('nav.rooms'), icon: Users, path: "/rooms" },
     { name: t('nav.forums'), icon: MessageCircle, path: "/forums" },
     { name: t('nav.community'), icon: Globe, path: "/community" },
+    { name: t('nav.matchViewer'), icon: Tv2, path: "/match-viewer" },
   ];
 
   return (
@@ -42,8 +43,8 @@ const Navbar = () => {
                 key={item.name}
                 to={item.path}
                 className={`px-3 py-1 rounded-md font-medium text-sm flex items-center gap-1.5 hover:bg-teamsoccer-green-dark ${window.location.pathname === item.path
-                    ? "bg-teamsoccer-green-dark"
-                    : "text-white/90"
+                  ? "bg-teamsoccer-green-dark"
+                  : "text-white/90"
                   }`}
               >
                 <item.icon className="h-4 w-4" />
