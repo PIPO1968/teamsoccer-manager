@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const CARNET_ALLOWED_PATHS = [
   '/carnet',
+  '/shop',
   '/dashboard',
   '/team/',
   '/matches',

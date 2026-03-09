@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch } from "@/services/apiClient";
 import { toast } from "sonner";
@@ -9,7 +10,8 @@ import ErrorDetailsDialog from "@/components/shop/ErrorDetailsDialog";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const Shop = () => {
-  const { manager } = useAuth();
+  const { manager, signIn } = useAuth();
+  const navigate = useNavigate();
   const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -85,6 +87,31 @@ const Shop = () => {
     }
   };
 
+  const handleActivateFreePremium = async () => {
+    if (!manager) return;
+    setIsLoading(true);
+    try {
+      const data = await apiFetch<{ success: boolean; premiumActivated?: boolean; alreadyCompleted?: boolean }>(
+        `/manager-license/complete/visit_premium`,
+        { method: 'POST', body: JSON.stringify({ managerId: manager.user_id }) }
+      );
+      if (data.alreadyCompleted) {
+        toast.info('Ya tienes el Premium activado.');
+      } else if (data.premiumActivated) {
+        toast.success('¡30 días Premium activados! Bienvenido al club.');
+        const info = await apiFetch<{ is_premium: number; premium_expires_at: string | null }>(`/managers/${manager.user_id}/info`);
+        const updatedManager = { ...manager, is_premium: (info as any).is_premium, premium_expires_at: (info as any).premium_expires_at };
+        localStorage.setItem('manager', JSON.stringify(updatedManager));
+        signIn(updatedManager);
+      }
+      navigate('/carnet');
+    } catch (err) {
+      toast.error('Error al activar el Premium gratuito.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="text-center mb-8">
@@ -100,6 +127,7 @@ const Shop = () => {
         manager={manager}
         isLoading={isLoading}
         handlePurchase={handlePurchase}
+        onActivateFreePremium={handleActivateFreePremium}
       />
 
       {/* Error Dialog */}

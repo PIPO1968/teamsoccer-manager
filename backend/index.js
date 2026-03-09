@@ -280,7 +280,7 @@ const initDb = async () => {
     try {
         await client.query(`
             INSERT INTO manager_license_tests (test_key, title, description, reward_amount, sort_order) VALUES
-            ('visit_dashboard',       'Explora tu Panel',        'Visita la página Resumen de tu club',         50000, 1),
+            ('visit_premium',         'Premium Gratis',          'Visita la tienda y activa tus 30 días Premium gratis', 0,     1),
             ('visit_team',            'Conoce tu Equipo',        'Visita la página de tu equipo',               50000, 2),
             ('visit_players',         'Gestiona tus Jugadores',  'Visita la lista de jugadores',                50000, 3),
             ('visit_transfer_market', 'Mercado de Fichajes',     'Visita el Mercado de Transferencias',         75000, 4),
@@ -342,6 +342,22 @@ const initDb = async () => {
         console.log('✅ Super admin restaurado a is_admin=10');
     } catch (err) {
         console.error('❌ Error restaurando super admin:', err.message);
+    }
+
+    // Auto-reparar managers activos cuyo equipo no tiene liga asignada
+    try {
+        const unassigned = await client.query(`
+            SELECT m.user_id FROM managers m
+            JOIN teams t ON t.manager_id = m.user_id
+            WHERE m.status = 'active' AND t.series_id IS NULL
+        `);
+        for (const row of unassigned.rows) {
+            await fullyActivateManager(client, row.user_id);
+            console.log(`✅ Liga reparada para manager ${row.user_id}`);
+        }
+        if (unassigned.rows.length > 0) console.log(`✅ ${unassigned.rows.length} manager(s) reparados`);
+    } catch (err) {
+        console.error('❌ Error en auto-reparación de managers:', err.message);
     }
 
     client.release();
@@ -4377,9 +4393,9 @@ app.get('/manager-license', async (req, res) => {
 });
 
 // Recompensas hardcodeadas — independiente del estado de la tabla manager_license_tests
-// visit_dashboard = null → activa 30 días Premium en lugar de dar dinero
+// visit_premium = null → activa 30 días Premium en lugar de dar dinero
 const CARNET_REWARDS = {
-    visit_dashboard: null,   // 30 días Premium
+    visit_premium: null,   // 30 días Premium
     visit_team: 25000,
     visit_players: 25000,
     visit_transfer_market: 25000,

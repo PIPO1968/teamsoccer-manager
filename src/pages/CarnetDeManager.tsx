@@ -12,7 +12,7 @@ const getTestRoute = (
   stadiumId: number | null
 ): string => {
   switch (testKey) {
-    case 'visit_dashboard': return '/dashboard';
+    case 'visit_premium': return '/shop';
     case 'visit_team': return teamId ? `/team/${teamId}` : '/dashboard';
     case 'visit_players': return teamId ? `/team/${teamId}/players` : '/dashboard';
     case 'visit_transfer_market': return '/transfer-market';

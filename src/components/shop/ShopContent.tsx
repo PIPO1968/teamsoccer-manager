@@ -10,6 +10,7 @@ interface ShopContentProps {
   manager: any;
   isLoading: boolean;
   handlePurchase: (plan: string) => Promise<void>;
+  onActivateFreePremium?: () => Promise<void>;
 }
 
 const FEATURES = [
@@ -28,7 +29,7 @@ const FEATURES = [
   "50 TScredits",
 ];
 
-const ShopContent = ({ manager, isLoading, handlePurchase }: ShopContentProps) => {
+const ShopContent = ({ manager, isLoading, handlePurchase, onActivateFreePremium }: ShopContentProps) => {
   const { formatPrice } = useCurrency(manager?.country_name);
 
   const isPremium =
@@ -171,6 +172,18 @@ const ShopContent = ({ manager, isLoading, handlePurchase }: ShopContentProps) =
         <CardContent className="text-center text-sm text-muted-foreground">
           Premium Gratis para nuevos managers (30 días)
         </CardContent>
+        {manager?.status === 'carnet_pending' && onActivateFreePremium && (
+          <CardFooter className="justify-center">
+            <Button
+              className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold"
+              onClick={onActivateFreePremium}
+              disabled={isLoading}
+            >
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Activar mis 30 días Premium gratis
+            </Button>
+          </CardFooter>
+        )}
       </Card>
 
       {/* Block 6: Additional Team — RECOMMENDED */}

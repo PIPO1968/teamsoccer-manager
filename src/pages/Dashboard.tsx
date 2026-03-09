@@ -7,11 +7,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { GAME_NAME } from "@/config/constants";
 import { useAuth } from "@/contexts/AuthContext";
 import { WaitingListDashboard } from "@/components/dashboard/WaitingListDashboard";
-import { useCompleteCarnetTest } from '@/hooks/useManagerLicense';
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const Dashboard = () => {
-  useCompleteCarnetTest('visit_dashboard');
   const { isWaitingList } = useAuth();
   const { t } = useLanguage();
   const {
@@ -150,7 +148,7 @@ const Dashboard = () => {
                   <div key={i} className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       <div className={`w-2 h-8 rounded-full ${match.result === "Win" ? "bg-green-500" :
-                          match.result === "Draw" ? "bg-yellow-500" : "bg-red-500"
+                        match.result === "Draw" ? "bg-yellow-500" : "bg-red-500"
                         }`} />
                       <div>
                         <p className="text-sm font-medium flex items-center">
