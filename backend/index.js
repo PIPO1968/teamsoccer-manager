@@ -4881,7 +4881,7 @@ app.get('/series/:id', async (req, res) => {
             ...t,
             goal_difference: t.goals_for - t.goals_against,
             form: t.form.slice(-5)
-        })).sort((a, b) => b.points - a.points || (b.goal_difference - a.goal_difference) || (b.goals_for - a.goals_for));
+        })).sort((a, b) => b.points - a.points || (b.goal_difference - a.goal_difference) || (b.goals_for - a.goals_for) || a.is_bot - b.is_bot || a.team_id - b.team_id);
 
         res.json({
             success: true,
