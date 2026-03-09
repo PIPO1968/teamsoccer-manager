@@ -1,4 +1,4 @@
-{/* Bloque de Finanzas */ }
+{/* Bloque de Finanzas (dentro del return) */ }
 <div className="bg-white rounded-lg shadow p-6 border-l-4 border-l-yellow-500 mt-8">
     <h2 className="text-2xl font-semibold text-yellow-700 mb-4">FINANZAS</h2>
     <div className="text-gray-700">
