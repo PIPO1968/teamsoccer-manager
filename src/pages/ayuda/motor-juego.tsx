@@ -180,7 +180,8 @@ const MotorJuego = () => {
                     </div>
                 </div>
             </div>
-            );
+        </div>
+    );
 };
 
-            export default MotorJuego;
+export default MotorJuego;
