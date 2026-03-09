@@ -2638,6 +2638,9 @@ app.get('/world/stats', async (req, res) => {
         const managersResult = await pool.query(
             'SELECT COUNT(*)::int AS total FROM managers'
         );
+        const waitingManagersResult = await pool.query(
+            "SELECT COUNT(*)::int AS total FROM managers WHERE status IN ('waiting_list', 'carnet_pending')"
+        );
         // Online = last_seen en los últimos 5 minutos (cubre cierres de pestaña sin logout)
         const onlineResult = await pool.query(
             "SELECT COUNT(*)::int AS total FROM managers WHERE is_online = true AND last_seen > NOW() - INTERVAL '5 minutes'"
@@ -2670,6 +2673,7 @@ app.get('/world/stats', async (req, res) => {
             stats: {
                 totalRegions: regionsResult.rows[0]?.total || 0,
                 totalManagers: managersResult.rows[0]?.total || 0,
+                totalWaitingManagers: waitingManagersResult.rows[0]?.total || 0,
                 onlineManagers: onlineResult.rows[0]?.total || 0,
                 totalTeams: teamsResult.rows[0]?.total || 0,
                 totalLeagues: totalLeaguesResult.rows[0]?.total || 0,

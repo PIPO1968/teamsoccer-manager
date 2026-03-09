@@ -5,6 +5,7 @@ import { apiFetch } from "@/services/apiClient";
 export type WorldStats = {
   totalRegions: number;
   totalManagers: number;
+  totalWaitingManagers: number;
   onlineManagers: number;
   totalTeams: number;
   totalLeagues: number;
