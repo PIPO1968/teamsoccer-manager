@@ -545,6 +545,52 @@ const fullyActivateManager = async (client, managerId) => {
 
     if (!country_id) return;
 
+    // Comprobar si el equipo ya está completamente configurado (jugadores + estadio + finanzas)
+    // En ese caso, solo mover la serie en vez de destruir el equipo con un takeover completo
+    const plCheck = await client.query('SELECT COUNT(*)::int AS total FROM players WHERE team_id = $1', [team_id]);
+    const stadCheck = await client.query('SELECT 1 FROM stadiums WHERE team_id = $1', [team_id]);
+    const finCheck = await client.query('SELECT 1 FROM team_finances WHERE team_id = $1', [team_id]);
+    const isFullySetup = plCheck.rows[0].total >= 18 && stadCheck.rowCount > 0 && finCheck.rowCount > 0;
+
+    if (isFullySetup) {
+        // Equipo ya configurado con serie incorrecta: mover directamente a la serie correcta
+        const botToRemove = await client.query(
+            `SELECT t.team_id AS bot_team_id, t.series_id AS bot_series_id FROM teams t
+             JOIN series s ON s.series_id = t.series_id
+             WHERE t.is_bot = 1 AND s.region_id = $1
+             ORDER BY s.division ASC, s.group_number ASC, t.team_id ASC LIMIT 1`,
+            [country_id]
+        );
+        if (botToRemove.rows.length > 0) {
+            const { bot_team_id, bot_series_id } = botToRemove.rows[0];
+            // Limpiar el BOT del slot de destino
+            await client.query('DELETE FROM players WHERE team_id = $1', [bot_team_id]);
+            await client.query('DELETE FROM team_finances WHERE team_id = $1', [bot_team_id]);
+            await client.query('DELETE FROM stadiums WHERE team_id = $1', [bot_team_id]);
+            await client.query('DELETE FROM teams WHERE team_id = $1', [bot_team_id]);
+            // Mover el equipo real a la serie correcta
+            await client.query(
+                'UPDATE teams SET series_id = $1, country_id = $2, updated_at = NOW() WHERE team_id = $3',
+                [bot_series_id, country_id, team_id]
+            );
+            console.log(`✅ Manager ${managerId}: equipo ${team_id} movido de serie incorrecta a serie ${bot_series_id} (${country_id})`);
+            await expandLeaguesIfNeeded(client, country_id);
+        } else {
+            // Sin BOT disponible: asignar Div1 directamente
+            const div1 = await client.query(
+                'SELECT series_id FROM series WHERE region_id = $1 AND division = 1 AND group_number = 1 LIMIT 1',
+                [country_id]
+            );
+            if (div1.rows[0]) {
+                await client.query(
+                    'UPDATE teams SET series_id = $1, country_id = $2, updated_at = NOW() WHERE team_id = $3',
+                    [div1.rows[0].series_id, country_id, team_id]
+                );
+            }
+        }
+        return;
+    }
+
     // Necesita serie: buscar un equipo BOT en el mismo país para heredar
     const botRes = await client.query(
         `SELECT t.team_id AS bot_team_id, t.series_id AS bot_series_id FROM teams t
