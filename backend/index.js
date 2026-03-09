@@ -762,10 +762,11 @@ app.get('/managers/:id', async (req, res) => {
 
     try {
         const managerResult = await pool.query(
-            `SELECT m.user_id, m.username, m.email, m.country_id, m.is_admin, m.status,
-                    m.is_premium, m.premium_expires_at, t.team_id
+            `SELECT m.user_id, m.username, m.email, m.country_id, r.name AS country_name,
+                    m.is_admin, m.status, m.is_premium, m.premium_expires_at, t.team_id
              FROM managers m
              LEFT JOIN teams t ON t.manager_id = m.user_id
+             LEFT JOIN leagues_regions r ON r.region_id = m.country_id
              WHERE m.user_id = $1`,
             [managerId]
         );
@@ -4169,7 +4170,13 @@ app.put('/groups/:id/logo', async (req, res) => {
 app.get('/managers/:id/info', async (req, res) => {
     const { id } = req.params;
     try {
-        const mResult = await pool.query(`SELECT username, is_admin, is_premium, premium_expires_at FROM managers WHERE user_id = $1`, [id]);
+        const mResult = await pool.query(
+            `SELECT m.username, m.is_admin, m.is_premium, m.premium_expires_at, r.name AS country_name
+             FROM managers m
+             LEFT JOIN leagues_regions r ON r.region_id = m.country_id
+             WHERE m.user_id = $1`,
+            [id]
+        );
         if (!mResult.rows.length) return res.status(404).json({ error: 'Manager no encontrado' });
         const manager = mResult.rows[0];
         const tResult = await pool.query(`SELECT name, team_id FROM teams WHERE manager_id = $1`, [id]);
@@ -4181,7 +4188,8 @@ app.get('/managers/:id/info', async (req, res) => {
             team_id: team?.team_id || null,
             is_admin: manager.is_admin || 0,
             is_premium: manager.is_premium || 0,
-            premium_expires_at: manager.premium_expires_at || null
+            premium_expires_at: manager.premium_expires_at || null,
+            country_name: manager.country_name || null
         });
     } catch (err) {
         res.status(500).json({ error: err.message });

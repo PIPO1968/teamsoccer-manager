@@ -27,10 +27,11 @@ const Shop = () => {
             is_premium: number;
             premium_expires_at: string | null;
             is_admin: number;
+            country_name: string | null;
           }>(`/managers/${manager.user_id}/info`);
 
           if (data) {
-            const updatedManager = { ...manager, is_premium: data.is_premium, premium_expires_at: data.premium_expires_at, is_admin: data.is_admin };
+            const updatedManager = { ...manager, is_premium: data.is_premium, premium_expires_at: data.premium_expires_at, is_admin: data.is_admin, country_name: data.country_name ?? manager.country_name };
             localStorage.setItem('manager', JSON.stringify(updatedManager));
           }
         } catch (error) {
@@ -44,7 +45,7 @@ const Shop = () => {
     fetchManagerData();
   }, [manager?.user_id]);
 
-  const handlePurchasePremium = async () => {
+  const handlePurchase = async (plan: string) => {
     if (!manager) {
       toast.error(t('shop.loginRequired'));
       return;
@@ -52,13 +53,13 @@ const Shop = () => {
 
     setIsLoading(true);
     try {
-      console.log("Initiating checkout with user ID:", manager.user_id);
+      console.log("Initiating checkout with user ID:", manager.user_id, "plan:", plan);
 
       // Llama a la API Express para crear la sesión de checkout
       const response = await fetch('/api/payments/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user: manager.user_id })
+        body: JSON.stringify({ user: manager.user_id, plan })
       });
       if (!response.ok) throw new Error('No se pudo crear la sesión de pago');
       const data = await response.json();
@@ -98,7 +99,7 @@ const Shop = () => {
       <ShopContent
         manager={manager}
         isLoading={isLoading}
-        handlePurchasePremium={handlePurchasePremium}
+        handlePurchase={handlePurchase}
       />
 
       {/* Error Dialog */}

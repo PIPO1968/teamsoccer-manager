@@ -12,6 +12,8 @@ interface Manager {
   premium_expires_at?: string;
   team_id?: number;
   status?: string;
+  country_id?: number;
+  country_name?: string;
 }
 
 interface AuthContextType {
