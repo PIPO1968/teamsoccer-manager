@@ -1,4 +1,63 @@
-{/* Bloque de Finanzas (dentro del return) */ }
+// ...existing code...
+{/* Bloque de habilidades de jugadores */ }
+<div className="bg-white rounded-lg shadow p-6 border-l-4 border-l-green-500 mt-8">
+    <h2 className="text-2xl font-semibold text-green-700 mb-4">JUGADORES<span className="font-normal">(HABILIDADES)</span></h2>
+    <div className="text-gray-700">
+        <strong>HABILIDADES DE LOS JUGADORES POR ORDEN DE INFLUENCIA</strong>
+        <br />
+        <span className="block mt-4 mb-2 font-bold">HABILIDADES TÉCNICAS:</span>
+        {/* ...bloques de habilidades... */}
+        <div className="mb-4">
+            <span className="font-bold text-blue-700">*PORTERO:</span>
+            <div className="ml-4">Su función principal es evitar que el balón traspase la portería y sacarlo con agilidad del área</div>
+            <div className="ml-4">-<strong>PORTERIA</strong>, <strong>CONTROL DE BALON</strong>, (<strong>PASES</strong>)</div>
+        </div>
+        <div className="mb-4">
+            <span className="font-bold text-green-700">*DEFENSA CENTRAL:</span>
+            <div className="ml-4">Su función principal es robar el balón a los atacantes, evitar que lleguen al área de su portero y que rematen a gol y pasar el balón con precisión a sus compañeros.</div>
+            <div className="ml-4">-<strong>DEFENSA</strong>, <strong>CONTROL DE BALON</strong>, (<strong>CABECEO</strong>, <strong>PASES</strong>, <strong>REGATE</strong>)</div>
+        </div>
+        <div className="mb-4">
+            <span className="font-bold text-lime-700">*DEFENSA LATERAL:</span>
+            <div className="ml-4">Su función principal es evitar que los atacantes laterales avancen, evitar sus centros y pases a los atacantes y sacar el balón con precisión hacia sus compañeros con pases.</div>
+            <div className="ml-4">-<strong>DEFENSA</strong>, <strong>CONTROL DE BALON</strong>, (<strong>PASES</strong>, <strong>REGATE</strong>)</div>
+        </div>
+        <div className="mb-4">
+            <span className="font-bold text-amber-700">*CARRILERO O DEFENSA LATERAL OFENSIVO:</span>
+            <div className="ml-4">Su función principal es aportar a la defensa lateral y al contraataque con centros y pases largos a sus compañeros de ataque.</div>
+            <div className="ml-4">-<strong>DEFENSA</strong>, <strong>CONTROL DE BALON</strong>, (<strong>CENTROS</strong>, <strong>PASES</strong>, <strong>REGATE</strong>)</div>
+        </div>
+        <div className="mb-4">
+            <span className="font-bold text-cyan-700">*MEDIOCENTRO DEFENSIVO:</span>
+            <div className="ml-4">Su función principal es apoyar a la defensa y aportar posesión de balón al mediocampo.</div>
+            <div className="ml-4">-<strong>DEFENSA</strong>, <strong>CREACION</strong>, (<strong>CONTROL DE BALON</strong>, <strong>REGATE</strong>, <strong>PASES</strong>)</div>
+        </div>
+        <div className="mb-4">
+            <span className="font-bold text-cyan-900">*MEDIOCENTRO:</span>
+            <div className="ml-4">Su función principal es generar posesión de balón al mediocampo, aportando tanto en defensa como en ataque.</div>
+            <div className="ml-4">-<strong>REGATE</strong>, <strong>CREACION</strong>, (<strong>CONTROL DE BALON</strong>, <strong>PASES</strong>, <strong>DEFENSA</strong>)</div>
+        </div>
+        <div className="mb-4">
+            <span className="font-bold text-orange-700">*MEDIOCENTRO OFENSIVO:</span>
+            <div className="ml-4">Su función principal es aportar tanto posesión de balón al mediocampo como al ataque, generando, tanto pases a sus compañeros delanteros como disparos a portería.</div>
+            <div className="ml-4">-<strong>REGATE</strong>, <strong>CREACION</strong>, (<strong>PASES</strong>, <strong>CONTROL DE BALON</strong>, <strong>FINALIZACION</strong>)</div>
+        </div>
+        <div className="mb-4">
+            <span className="font-bold text-fuchsia-700">*MEDIOCENTRO LATERAL O EXTREMO:</span>
+            <div className="ml-4">Su función principal es aportar posesión de balón al mediocampo y dar tanto pases como centros a sus compañeros atacantes.</div>
+            <div className="ml-4">-<strong>REGATE</strong>, <strong>CREACION</strong>, (<strong>CONTROL DE BALON</strong>, <strong>CENTROS</strong>, <strong>PASES</strong>)</div>
+        </div>
+        <div className="mb-4">
+            <span className="font-bold text-red-700">*DELANTERO:</span>
+            <div className="ml-4">Su función principal es marcar gol, bien de cabeceo o de pie.</div>
+            <div className="ml-4">-<strong>FINALIZACION</strong>, <strong>CONTROL DE BALON</strong>, (<strong>REGATE</strong>, <strong>CABECEO</strong>)</div>
+        </div>
+        <span className="block mt-6 mb-2 font-bold">HABILIDADES FÍSICAS:</span>
+        <div className="ml-4">-Además de las habilidades mencionadas, estas dos habilidades son muy importantes para todos los jugadores: <strong>"VELOCIDAD"</strong> y <strong>"RESISTENCIA"</strong> (que potenciarán las acciones de los jugadores sobre el campo de juego).</div>
+    </div>
+</div>
+
+{/* Bloque de Finanzas */ }
 <div className="bg-white rounded-lg shadow p-6 border-l-4 border-l-yellow-500 mt-8">
     <h2 className="text-2xl font-semibold text-yellow-700 mb-4">FINANZAS</h2>
     <div className="text-gray-700">
@@ -46,6 +105,7 @@
         </ol>
     </div>
 </div>
+// ...existing code...
 import React from "react";
 
 const MotorJuego = () => {
