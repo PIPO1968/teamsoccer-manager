@@ -2642,6 +2642,10 @@ app.get('/world/stats', async (req, res) => {
             "SELECT COUNT(*)::int AS total FROM managers WHERE is_online = true AND last_seen > NOW() - INTERVAL '5 minutes'"
         );
 
+        const totalLeaguesResult = await pool.query(
+            'SELECT COUNT(*)::int AS total FROM series'
+        );
+
         const leaguesResult = await pool.query(
             `SELECT
                 r.region_id,
@@ -2667,6 +2671,7 @@ app.get('/world/stats', async (req, res) => {
                 totalManagers: managersResult.rows[0]?.total || 0,
                 onlineManagers: onlineResult.rows[0]?.total || 0,
                 totalTeams: teamsResult.rows[0]?.total || 0,
+                totalLeagues: totalLeaguesResult.rows[0]?.total || 0,
                 leagues
             }
         });

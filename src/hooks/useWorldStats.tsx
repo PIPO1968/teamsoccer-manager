@@ -7,6 +7,7 @@ export type WorldStats = {
   totalManagers: number;
   onlineManagers: number;
   totalTeams: number;
+  totalLeagues: number;
   leagues: {
     league_id: number;
     region_id: number;
