@@ -3139,6 +3139,35 @@ app.post('/admin/repair-all-leagues', async (req, res) => {
     }
 });
 
+// Admin: diagnóstico de estado de managers y sus equipos
+app.get('/admin/debug-leagues', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT
+                m.user_id, m.username, m.status, m.country_id AS manager_country,
+                t.team_id, t.name AS team_name, t.series_id, t.is_bot,
+                t.country_id AS team_country,
+                s.division, s.group_number, s.region_id AS series_region,
+                lr.name AS country_name
+            FROM managers m
+            LEFT JOIN teams t ON t.manager_id = m.user_id
+            LEFT JOIN series s ON s.series_id = t.series_id
+            LEFT JOIN leagues_regions lr ON lr.region_id = COALESCE(t.country_id, m.country_id)
+            WHERE m.status = 'active'
+            ORDER BY m.user_id ASC
+        `);
+        const issues = result.rows.filter(r => !r.series_id);
+        res.json({
+            success: true,
+            total: result.rows.length,
+            issues: issues.length,
+            managers: result.rows
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Admin: aprobar manager (waiting_list → carnet_pending)
 app.post('/admin/approve-manager', async (req, res) => {
     const { managerId } = req.body;
