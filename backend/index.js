@@ -4845,5 +4845,35 @@ app.listen(PORT, () => {
     console.log(`Servidor backend escuchando en puerto ${PORT}`);
 });
 
+// Reparación automática cada 5 minutos: managers activos sin liga asignada
+async function autoRepairLeagues() {
+    try {
+        const unassigned = await pool.query(`
+            SELECT m.user_id FROM managers m
+            JOIN teams t ON t.manager_id = m.user_id
+            WHERE m.status = 'active' AND t.series_id IS NULL
+        `);
+        if (unassigned.rows.length === 0) return;
+        console.log(`🔧 Auto-reparación: ${unassigned.rows.length} manager(s) sin liga detectados`);
+        for (const row of unassigned.rows) {
+            const client = await pool.connect();
+            try {
+                await client.query('BEGIN');
+                await fullyActivateManager(client, row.user_id);
+                await client.query('COMMIT');
+                console.log(`✅ Liga auto-reparada para manager ${row.user_id}`);
+            } catch (err) {
+                await client.query('ROLLBACK');
+                console.error(`❌ Error auto-reparando manager ${row.user_id}:`, err.message);
+            } finally {
+                client.release();
+            }
+        }
+    } catch (err) {
+        console.error('❌ Error en autoRepairLeagues:', err.message);
+    }
+}
+setInterval(autoRepairLeagues, 5 * 60 * 1000);
+
 
 
