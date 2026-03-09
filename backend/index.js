@@ -5038,16 +5038,21 @@ app.listen(PORT, () => {
     console.log(`Servidor backend escuchando en puerto ${PORT}`);
 });
 
-// Reparación automática cada 5 minutos: managers activos sin liga asignada
+// Reparación automática cada 5 minutos: managers activos sin liga o con liga del país incorrecto
 async function autoRepairLeagues() {
     try {
         const unassigned = await pool.query(`
             SELECT m.user_id FROM managers m
             JOIN teams t ON t.manager_id = m.user_id
-            WHERE m.status = 'active' AND t.series_id IS NULL
+            LEFT JOIN series s ON s.series_id = t.series_id
+            WHERE m.status = 'active'
+              AND (
+                t.series_id IS NULL
+                OR (t.country_id IS NOT NULL AND s.region_id IS DISTINCT FROM t.country_id)
+              )
         `);
         if (unassigned.rows.length === 0) return;
-        console.log(`🔧 Auto-reparación: ${unassigned.rows.length} manager(s) sin liga detectados`);
+        console.log(`🔧 Auto-reparación: ${unassigned.rows.length} manager(s) con liga incorrecta/nula detectados`);
         for (const row of unassigned.rows) {
             const client = await pool.connect();
             try {
