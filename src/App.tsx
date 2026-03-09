@@ -58,6 +58,7 @@ import TeamAdminTool from "./pages/admin/TeamAdminTool";
 import PlayerAdminTool from "./pages/admin/PlayerAdminTool";
 import OnlineManagers from "./pages/admin/OnlineManagers";
 import Help from "./pages/Help";
+import MotorJuego from "./pages/ayuda/motor-juego";
 import Community from "./pages/Community";
 import AccessDenied from "./pages/AccessDenied";
 import PlayerImageGallery from "./pages/admin/PlayerImageGallery";
@@ -128,6 +129,7 @@ const App = () => {
                 <Route path="/community" element={<Layout><Community /></Layout>} />
 
                 <Route path="/help" element={<Layout><Help /></Layout>} />
+                <Route path="/ayuda/motor-juego" element={<Layout><MotorJuego />} />
 
                 <Route path="/admin" element={<Layout><AdminArea /></Layout>} />
                 <Route path="/admin/online-managers" element={<Layout><OnlineManagers /></Layout>} />
