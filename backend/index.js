@@ -328,6 +328,30 @@ const initDb = async () => {
         console.warn('⚠️ Error rellenando BOT teams:', err.message);
     }
 
+    // Limpiar equipos sobrantes en series con más de 8 equipos
+    try {
+        const overfull = await client.query(`
+            SELECT series_id, COUNT(*)::int AS total
+            FROM teams WHERE series_id IS NOT NULL
+            GROUP BY series_id HAVING COUNT(*) > 8
+        `);
+        for (const s of overfull.rows) {
+            const excess = s.total - 8;
+            await client.query(`
+                DELETE FROM teams WHERE team_id IN (
+                    SELECT team_id FROM teams
+                    WHERE series_id = $1 AND is_bot = 1
+                    ORDER BY team_id DESC
+                    LIMIT $2
+                )
+            `, [s.series_id, excess]);
+            console.log(`🧹 Serie ${s.series_id}: eliminados ${excess} BOT(s) sobrantes`);
+        }
+        if (overfull.rows.length > 0) console.log('✅ Series normalizadas a 8 equipos');
+    } catch (err) {
+        console.warn('⚠️ Error limpiando series sobrantes:', err.message);
+    }
+
     // Seed pruebas del Carnet (bloque separado — siempre se intenta)
     try {
         await client.query(`
