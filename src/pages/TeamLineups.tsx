@@ -29,14 +29,81 @@ const TeamLineups = () => {
   const [selectedPosition, setSelectedPosition] = useState<number | null>(null);
   const [selectedZone, setSelectedZone] = useState<number | null>(null);
 
-  const handleSave = () => {
-    // TODO: Implementar guardado real en backend
-    setIsSaved(true);
+  const handleSave = async () => {
+    if (!teamId) return;
+
+    // Convertir playersInPositions al formato del backend
+    const positions = Object.entries(playersInPositions).map(([positionIndex, player]) => ({
+      player_id: player.player_id,
+      position_index: parseInt(positionIndex, 10),
+      zone_orders: tacticalOrders[parseInt(positionIndex, 10)] || {}
+    }));
+
+    // Convertir playersInBench al formato del backend
+    const substitutes = Object.entries(playersInBench).map(([benchIndex, player]) => ({
+      player_id: player.player_id,
+      bench_index: parseInt(benchIndex, 10)
+    }));
+
+    try {
+      const response = await fetch(`/api/teams/${teamId}/lineup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slotName: selectedSlot,
+          formationName: '1-4-4-2',
+          positions,
+          substitutes,
+          isDefault: false
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setIsSaved(true);
+      }
+    } catch (error) {
+      console.error('Error guardando alineación:', error);
+    }
   };
 
-  const handleSaveAsDefault = () => {
-    // TODO: Implementar guardado como predeterminada en backend
-    setIsDefaultSaved(true);
+  const handleSaveAsDefault = async () => {
+    if (!teamId) return;
+
+    // Convertir playersInPositions al formato del backend
+    const positions = Object.entries(playersInPositions).map(([positionIndex, player]) => ({
+      player_id: player.player_id,
+      position_index: parseInt(positionIndex, 10),
+      zone_orders: tacticalOrders[parseInt(positionIndex, 10)] || {}
+    }));
+
+    // Convertir playersInBench al formato del backend
+    const substitutes = Object.entries(playersInBench).map(([benchIndex, player]) => ({
+      player_id: player.player_id,
+      bench_index: parseInt(benchIndex, 10)
+    }));
+
+    try {
+      const response = await fetch(`/api/teams/${teamId}/lineup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slotName: selectedSlot,
+          formationName: '1-4-4-2',
+          positions,
+          substitutes,
+          isDefault: true
+        })
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setIsSaved(true);
+        setIsDefaultSaved(true);
+      }
+    } catch (error) {
+      console.error('Error guardando alineación predeterminada:', error);
+    }
   };
 
   const handlePositionClick = (zone: number, positionIndex: number) => {
@@ -155,12 +222,74 @@ const TeamLineups = () => {
   const isPremium = manager?.is_premium === 1;
   const maxSlots = isPremium ? 5 : 3;
 
-  // Resetear estado de guardado al cambiar de slot
+  // Cargar alineación al montar o cambiar de slot
   useEffect(() => {
-    // Aquí se cargaría el estado guardado del backend en el futuro
-    setIsSaved(false);
-    setIsDefaultSaved(false);
-  }, [selectedSlot]);
+    const loadLineup = async () => {
+      if (!teamId) return;
+
+      try {
+        const response = await fetch(`/api/teams/${teamId}/lineup/${selectedSlot}`);
+        const data = await response.json();
+
+        if (data.success && data.lineup) {
+          // Reconstruir playersInPositions desde positions
+          const newPositions: { [key: number]: any } = {};
+          if (data.lineup.positions && Array.isArray(data.lineup.positions)) {
+            for (const pos of data.lineup.positions) {
+              const player = players?.find(p => p.player_id === pos.player_id);
+              if (player) {
+                newPositions[pos.position_index] = player;
+              }
+            }
+          }
+          setPlayersInPositions(newPositions);
+
+          // Reconstruir playersInBench desde substitutes
+          const newBench: { [key: number]: any } = {};
+          if (data.lineup.substitutes && Array.isArray(data.lineup.substitutes)) {
+            for (const sub of data.lineup.substitutes) {
+              const player = players?.find(p => p.player_id === sub.player_id);
+              if (player) {
+                newBench[sub.bench_index] = player;
+              }
+            }
+          }
+          setPlayersInBench(newBench);
+
+          // Reconstruir tacticalOrders
+          const newOrders: { [key: number]: { zone: number; action: string } } = {};
+          if (data.lineup.positions && Array.isArray(data.lineup.positions)) {
+            for (const pos of data.lineup.positions) {
+              if (pos.zone_orders && pos.zone_orders.zone && pos.zone_orders.action) {
+                newOrders[pos.position_index] = {
+                  zone: pos.zone_orders.zone,
+                  action: pos.zone_orders.action
+                };
+              }
+            }
+          }
+          setTacticalOrders(newOrders);
+
+          // Marcar como guardada
+          setIsSaved(true);
+          setIsDefaultSaved(data.lineup.is_default || false);
+        } else {
+          // No hay alineación guardada, resetear todo
+          setPlayersInPositions({});
+          setPlayersInBench({});
+          setTacticalOrders({});
+          setIsSaved(false);
+          setIsDefaultSaved(false);
+        }
+      } catch (error) {
+        console.error('Error cargando alineación:', error);
+      }
+    };
+
+    if (players && players.length > 0) {
+      loadLineup();
+    }
+  }, [selectedSlot, teamId, players]);
 
   return (
     <div className="container mx-auto py-6 px-4">
