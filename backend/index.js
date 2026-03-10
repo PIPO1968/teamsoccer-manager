@@ -111,10 +111,20 @@ app.get('/leagues-regions', async (req, res) => {
 
 console.log('Intentando conectar a Postgres en:', process.env.PGHOST, process.env.PGPORT, process.env.PGDATABASE);
 
+
 // PGHOST puede incluir el puerto (ej: "host:15941"), lo separamos manualmente
 const pgHostRaw = process.env.PGHOST || 'localhost';
 const [pgHostname, pgHostPort] = pgHostRaw.includes(':') ? pgHostRaw.split(':') : [pgHostRaw, null];
 const pgPort = pgHostPort ? parseInt(pgHostPort) : (parseInt(process.env.PGPORT) || 5432);
+
+// Declaración ÚNICA de pool, visible para todo el archivo
+const pool = new Pool({
+    host: pgHostname,
+    user: process.env.PGUSER,
+    password: process.env.PGPASSWORD,
+    database: process.env.PGDATABASE,
+    port: pgPort,
+});
 
 
 
