@@ -18,6 +18,32 @@ dotenv.config({ path: './.env' });
 
 const app = express();
 
+// Endpoint /auth/me: devuelve el manager autenticado si hay sesión/cookie válida
+app.get('/auth/me', async (req, res) => {
+    // Suponiendo que usas cookies de sesión, por ejemplo req.session.managerId
+    // Si usas JWT, deberías extraer el token del header y validarlo aquí
+    // Aquí ejemplo simple: busca managerId en cookie o header
+    const managerId = req.session?.managerId || req.cookies?.managerId || req.headers['x-manager-id'];
+    if (!managerId) {
+        return res.json({ success: true, manager: null });
+    }
+    try {
+        const result = await pool.query(
+            `SELECT m.*, t.team_id
+             FROM managers m
+             LEFT JOIN teams t ON t.manager_id = m.user_id
+             WHERE m.user_id = $1`,
+            [managerId]
+        );
+        if (result.rows.length === 0) {
+            return res.json({ success: true, manager: null });
+        }
+        res.json({ success: true, manager: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ENDPOINT TEMPORAL: Eliminar todos los partidos (requiere clave secreta por seguridad)
 app.delete('/admin/delete-all-matches', async (req, res) => {
     const secret = req.headers['x-admin-secret'] || req.query.secret;
