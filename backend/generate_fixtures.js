@@ -210,6 +210,7 @@ async function main() {
         let playoffDate = getNextSaturday(FIRST_MATCH_DATE, TOTAL_ROUNDS + 1);
         await generatePlayoffs(client, seriesList, playoffDate);
     } catch (err) {
+        console.error('Error en generate_fixtures:', err);
     } finally {
         client.release();
         process.exit(0);
