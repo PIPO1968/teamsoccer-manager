@@ -1,8 +1,10 @@
 
 import SeriesStandingsTable from "./series/SeriesStandingsTable";
+import SeriesFixtures from "./series/SeriesFixtures";
 import DivisionNavigation from "./series/DivisionNavigation";
 import SeriesStatsBlock from "./series/SeriesStatsBlock";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link, useNavigate } from "react-router-dom";
 import { useParams } from "react-router-dom";
@@ -89,10 +91,20 @@ const Series = () => {
               higherSeries={higherSeries}
               lowerSeries={lowerSeries}
             />
-            <SeriesStandingsTable teams={league.teams} division={league.division} groupNumber={league.group_number} />
+            <Tabs defaultValue="standings" className="mt-4">
+              <TabsList className="mb-2">
+                <TabsTrigger value="standings">{t('series.standings')}</TabsTrigger>
+                <TabsTrigger value="fixtures">{t('series.fixtures')}</TabsTrigger>
+              </TabsList>
+              <TabsContent value="standings">
+                <SeriesStandingsTable teams={league.teams} division={league.division} groupNumber={league.group_number} />
+              </TabsContent>
+              <TabsContent value="fixtures">
+                <SeriesFixtures />
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </div>
-
         <SeriesStatsBlock seriesId={seriesId!} />
       </div>
     </div>
