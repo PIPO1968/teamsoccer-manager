@@ -9,6 +9,10 @@ export interface TeamMatch {
   away_team_id: number;
   home_team_name: string;
   away_team_name: string;
+  home_country_name: string;
+  away_country_name: string;
+  home_timezone: string;
+  away_timezone: string;
   home_score: number | null;
   away_score: number | null;
   match_date: string;

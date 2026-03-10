@@ -2,6 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TeamMatch } from "@/hooks/useTeamMatches";
 import { format, parseISO, isValid } from "date-fns";
+import { utcToZonedTime, format as formatTz } from "date-fns-tz";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { FileText, Eye, Clock, Settings } from "lucide-react";
@@ -16,22 +17,32 @@ export const MatchFeatureBlocks = ({ latestMatch, upcomingMatch }: MatchFeatureB
   const navigate = useNavigate();
   const { t } = useLanguage();
 
-  const formatMatchDate = (dateString: string) => {
+  // Formatea la fecha y hora en la zona horaria local del país local
+  const formatLocalDateTime = (dateString: string, timezone: string) => {
     try {
-      const date = parseISO(dateString);
-      if (!isValid(date)) return "Invalid date";
-      return format(date, "dd MMM yyyy");
-    } catch (error) {
-      return "Invalid date";
+      const utcDate = parseISO(dateString);
+      if (!isValid(utcDate)) return { date: "Invalid date", time: "" };
+      const zoned = utcToZonedTime(utcDate, timezone);
+      return {
+        date: formatTz(zoned, "dd MMM yyyy", { timeZone: timezone }),
+        time: formatTz(zoned, "HH:mm", { timeZone: timezone })
+      };
+    } catch {
+      return { date: "Invalid date", time: "" };
     }
   };
 
-  const formatMatchTime = (dateString: string) => {
+  // Calcula la diferencia horaria respecto a Inglaterra (Europe/London)
+  const getTimeDiffLabel = (timezone) => {
     try {
-      const date = parseISO(dateString);
-      if (!isValid(date)) return "";
-      return format(date, "HH:mm");
-    } catch (error) {
+      const utcDate = new Date();
+      const baseOffset = -utcToZonedTime(utcDate, "Europe/London").getTimezoneOffset();
+      const localOffset = -utcToZonedTime(utcDate, timezone).getTimezoneOffset();
+      const diff = (localOffset - baseOffset) / 60;
+      if (diff === 0) return "(UK time)";
+      if (diff > 0) return `(+${diff}h vs UK)`;
+      return `(${diff}h vs UK)`;
+    } catch {
       return "";
     }
   };
@@ -63,7 +74,11 @@ export const MatchFeatureBlocks = ({ latestMatch, upcomingMatch }: MatchFeatureB
           {latestMatch ? (
             <div className="space-y-4 flex flex-col h-full">
               <div className="text-sm text-gray-600">
-                {formatMatchDate(latestMatch.match_date)}
+                {(() => {
+                  const { date, time } = formatLocalDateTime(latestMatch.match_date, latestMatch.home_timezone);
+                  const diffLabel = getTimeDiffLabel(latestMatch.home_timezone);
+                  return <>{date} {time} <span className="text-gray-500">{latestMatch.home_country_name}</span> <span className="text-gray-400">{diffLabel}</span></>;
+                })()}
               </div>
               <div className="flex items-center justify-center space-x-4 flex-1">
                 <div className="text-center">
@@ -82,7 +97,7 @@ export const MatchFeatureBlocks = ({ latestMatch, upcomingMatch }: MatchFeatureB
               {latestMatch.result && (
                 <div className="text-center">
                   <span className={`text-sm font-medium ${latestMatch.result === "Win" ? "text-green-600" :
-                      latestMatch.result === "Draw" ? "text-yellow-600" : "text-red-600"
+                    latestMatch.result === "Draw" ? "text-yellow-600" : "text-red-600"
                     }`}>
                     {latestMatch.result}
                   </span>
@@ -119,7 +134,11 @@ export const MatchFeatureBlocks = ({ latestMatch, upcomingMatch }: MatchFeatureB
           {upcomingMatch ? (
             <div className="space-y-4 flex flex-col h-full">
               <div className="text-sm text-gray-600">
-                {formatMatchDate(upcomingMatch.match_date)} at {formatMatchTime(upcomingMatch.match_date)}
+                {(() => {
+                  const { date, time } = formatLocalDateTime(upcomingMatch.match_date, upcomingMatch.home_timezone);
+                  const diffLabel = getTimeDiffLabel(upcomingMatch.home_timezone);
+                  return <>{date} {time} <span className="text-gray-500">{upcomingMatch.home_country_name}</span> <span className="text-gray-400">{diffLabel}</span></>;
+                })()}
               </div>
               <div className="flex items-center justify-center space-x-4 flex-1">
                 <div className="text-center">

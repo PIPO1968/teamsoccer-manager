@@ -1259,6 +1259,10 @@ app.get('/teams/:id/finances', async (req, res) => {
 });
 
 // Obtener partidos de un equipo
+
+// NUEVO: obtener partidos de un equipo con país y zona horaria de local y visitante
+const { getTimezoneForCountry } = require('../src/utils/countryTimezones');
+
 app.get('/teams/:id/matches', async (req, res) => {
     const teamId = parseInt(req.params.id, 10);
     if (!teamId) return res.status(400).json({ error: 'teamId invalido' });
@@ -1270,6 +1274,10 @@ app.get('/teams/:id/matches', async (req, res) => {
                 m.away_team_id,
                 ht.name AS home_team_name,
                 at.name AS away_team_name,
+                ht.country_id AS home_country_id,
+                at.country_id AS away_country_id,
+                hreg.name AS home_country_name,
+                areg.name AS away_country_name,
                 m.home_score,
                 m.away_score,
                 m.match_date,
@@ -1279,19 +1287,33 @@ app.get('/teams/:id/matches', async (req, res) => {
             FROM matches m
             JOIN teams ht ON ht.team_id = m.home_team_id
             JOIN teams at ON at.team_id = m.away_team_id
+            LEFT JOIN leagues_regions hreg ON hreg.region_id = ht.country_id
+            LEFT JOIN leagues_regions areg ON areg.region_id = at.country_id
             WHERE m.home_team_id = $1 OR m.away_team_id = $1
             ORDER BY m.match_date DESC`,
             [teamId]
         );
-        const matches = result.rows.map(row => ({
-            ...row,
-            competition: row.is_friendly ? 'Friendly Match' : 'League Match',
-            result: row.status === 'completed'
-                ? (row.is_home
-                    ? (row.home_score > row.away_score ? 'Win' : row.home_score < row.away_score ? 'Loss' : 'Draw')
-                    : (row.away_score > row.home_score ? 'Win' : row.away_score < row.home_score ? 'Loss' : 'Draw'))
-                : null
-        }));
+
+        // Cargar utilitario de zonas horarias
+        const { getTimezoneForCountry } = require('../src/utils/countryTimezones');
+
+        const matches = result.rows.map(row => {
+            const home_timezone = getTimezoneForCountry(row.home_country_name);
+            const away_timezone = getTimezoneForCountry(row.away_country_name);
+            return {
+                ...row,
+                home_country_name: row.home_country_name,
+                away_country_name: row.away_country_name,
+                home_timezone,
+                away_timezone,
+                competition: row.is_friendly ? 'Friendly Match' : 'League Match',
+                result: row.status === 'completed'
+                    ? (row.is_home
+                        ? (row.home_score > row.away_score ? 'Win' : row.home_score < row.away_score ? 'Loss' : 'Draw')
+                        : (row.away_score > row.home_score ? 'Win' : row.away_score < row.home_score ? 'Loss' : 'Draw'))
+                    : null
+            };
+        });
         res.json({ success: true, matches });
     } catch (err) {
         res.status(500).json({ error: err.message });
