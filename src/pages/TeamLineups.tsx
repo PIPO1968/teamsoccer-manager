@@ -229,7 +229,7 @@ const TeamLineups = () => {
   useEffect(() => {
     let cancelled = false;
     const loadLineup = async () => {
-      if (!teamId || !players || players.length === 0) return;
+      if (!teamId || isLoading || !players || players.length === 0) return;
       try {
         const data = await apiFetch(`/teams/${teamId}/lineup/${selectedSlot}`);
         if (!cancelled) {
@@ -291,7 +291,7 @@ const TeamLineups = () => {
     };
     loadLineup();
     return () => { cancelled = true; };
-  }, [selectedSlot, teamId, players]);
+  }, [selectedSlot, teamId, players, isLoading]);
 
   return (
     <div className="container mx-auto py-6 px-4">
