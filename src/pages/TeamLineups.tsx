@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import PitchField from "@/components/lineups/PitchField";
 import BenchSlots from "@/components/lineups/BenchSlots";
+import TacticalOrdersDialog from "@/components/lineups/TacticalOrdersDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { PlayerAvatar } from "@/components/avatar/PlayerAvatar";
 
@@ -22,6 +23,11 @@ const TeamLineups = () => {
   const [selectedSlot, setSelectedSlot] = useState<string>("alineacion_1");
   const [playersInPositions, setPlayersInPositions] = useState<{ [key: number]: any }>({});
   const [playersInBench, setPlayersInBench] = useState<{ [key: number]: any }>({});
+  const [tacticalOrders, setTacticalOrders] = useState<{ [key: number]: { zone: number; action: string } }>({});
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogStep, setDialogStep] = useState<'zone' | 'action'>('zone');
+  const [selectedPosition, setSelectedPosition] = useState<number | null>(null);
+  const [selectedZone, setSelectedZone] = useState<number | null>(null);
 
   const handleSave = () => {
     // TODO: Implementar guardado
@@ -36,8 +42,31 @@ const TeamLineups = () => {
   };
 
   const handlePositionClick = (zone: number, positionIndex: number) => {
-    console.log(`Click en Zona ${zone}, Posición ${positionIndex}`);
-    // TODO: Abrir pop-up para asignar jugador
+    // Si hay un jugador en esta posición, abrir diálogo de órdenes tácticas
+    if (playersInPositions[positionIndex]) {
+      setSelectedPosition(positionIndex);
+      setDialogStep('zone');
+      setDialogOpen(true);
+    }
+  };
+
+  const handleZoneSelect = (zone: number) => {
+    setSelectedZone(zone);
+    setDialogStep('action');
+  };
+
+  const handleActionSelect = (action: string) => {
+    if (selectedPosition !== null && selectedZone !== null) {
+      setTacticalOrders(prev => ({
+        ...prev,
+        [selectedPosition]: { zone: selectedZone, action }
+      }));
+    }
+    // Cerrar diálogo y resetear
+    setDialogOpen(false);
+    setSelectedPosition(null);
+    setSelectedZone(null);
+    setDialogStep('zone');
   };
 
   const handleBenchClick = (slotIndex: number) => {
@@ -270,6 +299,25 @@ const TeamLineups = () => {
           </Card>
         </div>
       </div>
+
+      {/* Diálogo de órdenes tácticas */}
+      <TacticalOrdersDialog
+        open={dialogOpen}
+        onClose={() => {
+          setDialogOpen(false);
+          setSelectedPosition(null);
+          setSelectedZone(null);
+          setDialogStep('zone');
+        }}
+        step={dialogStep}
+        playerName={
+          selectedPosition !== null && playersInPositions[selectedPosition]
+            ? `${playersInPositions[selectedPosition].first_name} ${playersInPositions[selectedPosition].last_name}`
+            : undefined
+        }
+        onZoneSelect={handleZoneSelect}
+        onActionSelect={handleActionSelect}
+      />
     </div>
   );
 };
