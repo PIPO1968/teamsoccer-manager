@@ -1,6 +1,6 @@
 
 import SeriesStandingsTable from "./series/SeriesStandingsTable";
-import SeriesFixtures from "./series/SeriesFixtures";
+
 import DivisionNavigation from "./series/DivisionNavigation";
 import SeriesStatsBlock from "./series/SeriesStatsBlock";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -91,18 +91,7 @@ const Series = () => {
               higherSeries={higherSeries}
               lowerSeries={lowerSeries}
             />
-            <Tabs defaultValue="standings" className="mt-4">
-              <TabsList className="mb-2">
-                <TabsTrigger value="standings">{t('series.standings')}</TabsTrigger>
-                <TabsTrigger value="fixtures">{t('series.fixtures')}</TabsTrigger>
-              </TabsList>
-              <TabsContent value="standings">
-                <SeriesStandingsTable teams={league.teams} division={league.division} groupNumber={league.group_number} />
-              </TabsContent>
-              <TabsContent value="fixtures">
-                <SeriesFixtures />
-              </TabsContent>
-            </Tabs>
+            <SeriesStandingsTable teams={league.teams} division={league.division} groupNumber={league.group_number} />
           </CardContent>
         </div>
         <SeriesStatsBlock seriesId={seriesId!} />
