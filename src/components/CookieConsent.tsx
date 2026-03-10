@@ -8,26 +8,18 @@ const CookieConsent = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [showFloatingButton, setShowFloatingButton] = useState(false);
 
+  // Eliminado localStorage: el consentimiento solo se mantiene en memoria por sesión
   useEffect(() => {
-    // Check if user has already made a choice
-    const cookieConsent = localStorage.getItem('cookie-consent');
-    if (!cookieConsent) {
-      setIsVisible(true);
-      setShowFloatingButton(false);
-    } else {
-      setIsVisible(false);
-      setShowFloatingButton(true);
-    }
+    setIsVisible(true);
+    setShowFloatingButton(false);
   }, []);
 
   const handleAccept = () => {
-    localStorage.setItem('cookie-consent', 'accepted');
     setIsVisible(false);
     setShowFloatingButton(true);
   };
 
   const handleReject = () => {
-    localStorage.setItem('cookie-consent', 'rejected');
     setIsVisible(false);
     setShowFloatingButton(true);
   };
@@ -62,7 +54,7 @@ const CookieConsent = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex flex-col sm:flex-row gap-2 lg:flex-col lg:gap-2">
                 <Button
                   onClick={handleReject}
