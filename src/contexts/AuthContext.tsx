@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             await checkManagerTeam(parsedManager.user_id);
           }
         } catch (error) {
-          console.error('Error parsing stored manager data:', error);
+          // Eliminado log de depuración
           localStorage.removeItem('manager');
         }
       }
@@ -68,10 +68,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const fetchManagerData = async (managerId: number): Promise<Partial<Manager> | null> => {
     try {
       const response = await apiFetch<{ success: boolean; manager: Manager }>(`/managers/${managerId}`);
-      console.log('Fetched manager data:', response.manager);
+      // Eliminado log de depuración
       return response.manager;
     } catch (error) {
-      console.error('Error fetching manager data:', error);
+      // Eliminado log de depuración
       return null;
     }
   };
@@ -83,7 +83,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       );
       setHasTeam(!!response.team);
     } catch (error) {
-      console.error('Error checking manager team:', error);
+      // Eliminado log de depuración
       setHasTeam(false);
     }
   };
@@ -134,7 +134,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isWaitingList = manager?.status === 'waiting_list';
   const isCarnetPending = manager?.status === 'carnet_pending' && (manager?.is_admin ?? 0) < 10;
 
-  console.log('Auth context - manager status:', manager?.status, 'isWaitingList:', isWaitingList, 'isCarnetPending:', isCarnetPending, 'isPremium:', isPremium);
+  // Eliminado log de depuración
 
   return (
     <AuthContext.Provider value={{
