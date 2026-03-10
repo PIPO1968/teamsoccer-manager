@@ -21,6 +21,7 @@ const TeamLineups = () => {
   const [isDefaultSaved, setIsDefaultSaved] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<string>("alineacion_1");
   const [playersInPositions, setPlayersInPositions] = useState<{ [key: number]: any }>({});
+  const [playersInBench, setPlayersInBench] = useState<{ [key: number]: any }>({});
 
   const handleSave = () => {
     // TODO: Implementar guardado
@@ -48,7 +49,7 @@ const TeamLineups = () => {
     const player = players?.find(p => p.player_id === playerId);
     if (player) {
       setPlayersInPositions(prev => {
-        // Buscar si el jugador ya está en otra posición y liberarla
+        // Buscar si el jugador ya está en otra posición del campo y liberarla
         const newPositions = { ...prev };
         Object.keys(newPositions).forEach(key => {
           const posIdx = parseInt(key, 10);
@@ -61,6 +62,18 @@ const TeamLineups = () => {
         newPositions[positionIndex] = player;
         return newPositions;
       });
+
+      // También quitar del banquillo si estaba ahí
+      setPlayersInBench(prev => {
+        const newBench = { ...prev };
+        Object.keys(newBench).forEach(key => {
+          const benchIdx = parseInt(key, 10);
+          if (newBench[benchIdx]?.player_id === playerId) {
+            delete newBench[benchIdx];
+          }
+        });
+        return newBench;
+      });
     }
   };
 
@@ -69,6 +82,46 @@ const TeamLineups = () => {
       const newPositions = { ...prev };
       delete newPositions[positionIndex];
       return newPositions;
+    });
+  };
+
+  const handleBenchPlayerDropped = (benchIndex: number, playerId: number) => {
+    const player = players?.find(p => p.player_id === playerId);
+    if (player) {
+      setPlayersInBench(prev => {
+        // Buscar si el jugador ya está en otro slot del banquillo y liberarlo
+        const newBench = { ...prev };
+        Object.keys(newBench).forEach(key => {
+          const benchIdx = parseInt(key, 10);
+          if (newBench[benchIdx]?.player_id === playerId) {
+            delete newBench[benchIdx];
+          }
+        });
+
+        // Asignar el jugador al nuevo slot
+        newBench[benchIndex] = player;
+        return newBench;
+      });
+
+      // También quitar del campo si estaba ahí
+      setPlayersInPositions(prev => {
+        const newPositions = { ...prev };
+        Object.keys(newPositions).forEach(key => {
+          const posIdx = parseInt(key, 10);
+          if (newPositions[posIdx]?.player_id === playerId) {
+            delete newPositions[posIdx];
+          }
+        });
+        return newPositions;
+      });
+    }
+  };
+
+  const handleRemoveBenchPlayer = (benchIndex: number) => {
+    setPlayersInBench(prev => {
+      const newBench = { ...prev };
+      delete newBench[benchIndex];
+      return newBench;
     });
   };
 
@@ -127,10 +180,20 @@ const TeamLineups = () => {
                 <div className="space-y-2">
                   {players.map((player) => {
                     const fullName = `${player.first_name || ''} ${player.last_name || ''}`.trim() || 'Sin nombre';
+
+                    // Verificar si el jugador está en campo o banquillo
+                    const isInField = Object.values(playersInPositions).some(p => p?.player_id === player.player_id);
+                    const isInBench = Object.values(playersInBench).some(p => p?.player_id === player.player_id);
+                    const isPlaced = isInField || isInBench;
+
                     return (
                     <HoverCard key={player.player_id} openDelay={200}>
                       <HoverCardTrigger asChild>
-                        <div className="p-3 bg-gray-100 hover:bg-gray-200 rounded-lg border-2 border-gray-300 transition-all cursor-pointer">
+                        <div className={`p-3 rounded-lg border-2 transition-all cursor-pointer ${
+                          isPlaced
+                            ? 'bg-green-100 hover:bg-green-200 border-green-400'
+                            : 'bg-gray-100 hover:bg-gray-200 border-gray-300'
+                        }`}>
                           <div className="flex items-center gap-2">
                             <div
                               className="cursor-move hover:ring-2 hover:ring-blue-500 transition-all"
@@ -197,7 +260,12 @@ const TeamLineups = () => {
                 onPlayerDropped={handlePlayerDropped}
                 onRemovePlayer={handleRemovePlayer}
               />
-              <BenchSlots onSlotClick={handleBenchClick} />
+              <BenchSlots
+                onSlotClick={handleBenchClick}
+                playersInBench={playersInBench}
+                onPlayerDropped={handleBenchPlayerDropped}
+                onRemovePlayer={handleRemoveBenchPlayer}
+              />
             </CardContent>
           </Card>
         </div>
