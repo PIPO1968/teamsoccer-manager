@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { apiPost } from "@/services/apiClient";
 import { useParams } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTeamPlayers } from "@/hooks/useTeamPlayers";
@@ -49,21 +50,14 @@ const TeamLineups = () => {
     console.log('Guardando alineación:', { positions, substitutes });
 
     try {
-      const response = await fetch(`/teams/${teamId}/lineup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          slotName: selectedSlot,
-          formationName: '1-4-4-2',
-          positions,
-          substitutes,
-          isDefault: false
-        })
+      const data = await apiPost(`/teams/${teamId}/lineup`, {
+        slotName: selectedSlot,
+        formationName: '1-4-4-2',
+        positions,
+        substitutes,
+        isDefault: false
       });
-
-      const data = await response.json();
       console.log('Respuesta del servidor:', data);
-
       if (data.success) {
         setIsSaved(true);
         console.log('Alineación guardada exitosamente');
@@ -95,21 +89,14 @@ const TeamLineups = () => {
     console.log('Guardando como predeterminada:', { positions, substitutes });
 
     try {
-      const response = await fetch(`/teams/${teamId}/lineup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          slotName: selectedSlot,
-          formationName: '1-4-4-2',
-          positions,
-          substitutes,
-          isDefault: true
-        })
+      const data = await apiPost(`/teams/${teamId}/lineup`, {
+        slotName: selectedSlot,
+        formationName: '1-4-4-2',
+        positions,
+        substitutes,
+        isDefault: true
       });
-
-      const data = await response.json();
       console.log('Respuesta del servidor (predeterminada):', data);
-
       if (data.success) {
         setIsSaved(true);
         setIsDefaultSaved(true);
