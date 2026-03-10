@@ -45,6 +45,7 @@ export type PlayerData = {
   avatar_eyebrows?: number;
   avatar_shirt_color?: number;
   avatar_background_color?: number;
+  image_url?: string;
 };
 
 export const useTeamPlayers = (teamId: string | undefined) => {

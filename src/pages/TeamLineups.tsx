@@ -94,30 +94,32 @@ const TeamLineups = () => {
                 <p className="text-muted-foreground text-sm">Cargando jugadores...</p>
               ) : players && players.length > 0 ? (
                 <div className="space-y-2">
-                  {players.map((player) => (
+                  {players.map((player) => {
+                    const fullName = `${player.first_name || ''} ${player.last_name || ''}`.trim() || 'Sin nombre';
+                    return (
                     <div
                       key={player.player_id}
                       className="p-3 bg-gray-100 hover:bg-gray-200 rounded-lg cursor-move border-2 border-gray-300 transition-all"
                       draggable
-                      title={`${player.name} - ${player.position}`}
+                      title={`${fullName} - ${player.position}`}
                     >
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-gray-400 flex-shrink-0 overflow-hidden">
                           {player.image_url ? (
-                            <img src={player.image_url} alt={player.name} className="w-full h-full object-cover" />
+                            <img src={player.image_url} alt={fullName} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-xs text-white font-bold">
-                              {player.name ? player.name.substring(0, 2).toUpperCase() : '??'}
+                              {fullName.substring(0, 2).toUpperCase()}
                             </div>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold truncate">{player.name || 'Sin nombre'}</p>
+                          <p className="text-sm font-semibold truncate">{fullName}</p>
                           <p className="text-xs text-gray-600">{player.position || 'POS'} • Val: {player.rating || 0}</p>
                         </div>
                       </div>
                     </div>
-                  ))}
+                  )}))}
                 </div>
               ) : (
                 <p className="text-muted-foreground text-sm">No hay jugadores disponibles</p>
