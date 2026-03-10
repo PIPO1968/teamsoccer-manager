@@ -81,33 +81,37 @@ function getNextSaturday(date, weeks = 1) {
 
 // Genera el fixture round-robin para 8 equipos (14 jornadas)
 function generateRoundRobin(teams) {
-    // Algoritmo round-robin con alternancia L-V-L-V para todos los equipos
+    // Algoritmo round-robin estándar para n equipos (n par)
     const n = teams.length;
     if (n % 2 !== 0) throw new Error('El número de equipos debe ser par');
-    const rounds = Array.from({ length: 2 * (n - 1) }, () => []);
-    // Generar matriz de enfrentamientos
-    for (let i = 0; i < n; i++) {
-        let home = true;
-        for (let j = 0; j < n - 1; j++) {
-            let opponent = (i + j + 1) % n;
-            if (i === opponent) continue;
-            // Solo un partido por par y vuelta
-            if (i < opponent) {
-                // Primera vuelta
-                if (home) {
-                    rounds[j].push([teams[i], teams[opponent]]);
-                } else {
-                    rounds[j].push([teams[opponent], teams[i]]);
-                }
-                // Segunda vuelta (invirtiendo localía)
-                if (home) {
-                    rounds[j + n - 1].push([teams[opponent], teams[i]]);
-                } else {
-                    rounds[j + n - 1].push([teams[i], teams[opponent]]);
-                }
+    const rounds = [];
+    // Copia de los equipos para manipulación
+    let teamList = [...teams];
+    // Si n es par, no se necesita equipo fantasma
+    const numRounds = n - 1;
+    const matchesPerRound = n / 2;
+    // Primera vuelta
+    for (let round = 0; round < numRounds; round++) {
+        const roundMatches = [];
+        for (let match = 0; match < matchesPerRound; match++) {
+            const home = teamList[match];
+            const away = teamList[n - 1 - match];
+            // Alternar localía en cada jornada para el primer equipo
+            if (match === 0 && round % 2 === 1) {
+                roundMatches.push([away, home]);
+            } else {
+                roundMatches.push([home, away]);
             }
-            home = !home;
         }
+        rounds.push(roundMatches);
+        // Rotación de equipos (excepto el primero)
+        teamList = [teamList[0], ...teamList.slice(-1), ...teamList.slice(1, -1)];
+    }
+    // Segunda vuelta (invirtiendo localía)
+    for (let round = 0; round < numRounds; round++) {
+        const prevRound = rounds[round];
+        const returnMatches = prevRound.map(([home, away]) => [away, home]);
+        rounds.push(returnMatches);
     }
     return rounds;
 }
