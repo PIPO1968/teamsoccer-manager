@@ -81,8 +81,8 @@ function getNextSaturday(date, weeks = 1) {
 
 // Genera el fixture round-robin para 8 equipos (14 jornadas)
 function generateRoundRobin(teams) {
-    // Algoritmo round-robin con alternancia estricta local/visitante para todos los equipos
-    // Basado en Berger, pero ajustando la localía para que ningún equipo tenga dos partidos seguidos en casa o fuera
+    // Algoritmo round-robin con alternancia estricta L-V-L-V... para todos los equipos
+    // No clásico Berger, sino alternancia perfecta para todos
     const n = teams.length;
     let arr = [...teams];
     if (n % 2 !== 0) arr.push(null); // Si impar, añadir bye
@@ -93,22 +93,11 @@ function generateRoundRobin(teams) {
         for (let i = 0; i < n / 2; i++) {
             let home = arr[i];
             let away = arr[n - 1 - i];
-            // Alternancia estricta: para todos los equipos
-            // El primer equipo alterna localía cada jornada
-            if (i === 0) {
-                if (round % 2 === 0) {
-                    // Par: home, impar: away
-                    // Nada que hacer, home ya es local
-                } else {
-                    [home, away] = [away, home];
-                }
+            // Alternancia estricta: todos los equipos alternan localía cada jornada
+            if ((round + i) % 2 === 0) {
+                // home local, away visitante
             } else {
-                // Para el resto, alternar localía cada jornada
-                if ((round + i) % 2 === 0) {
-                    // Nada que hacer, home ya es local
-                } else {
-                    [home, away] = [away, home];
-                }
+                [home, away] = [away, home];
             }
             if (home && away) matches.push([home, away]);
         }
