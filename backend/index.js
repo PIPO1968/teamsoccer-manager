@@ -96,24 +96,7 @@ app.get('/series/:id/fixtures', async (req, res) => {
     }
 });
 
-// CORS global usando paquete cors y función para origin
-const allowedOrigins = [
-    'https://teamsoccer-manager-production-f836.up.railway.app',
-    'https://thriving-fascination-production.up.railway.app',
-    'http://localhost:8080',
-    'http://localhost:5173'
-];
-app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('No permitido por CORS'));
-        }
-    },
-    credentials: true
-}));
-app.use(express.json({ limit: '5mb' }));
+
 
 // ...existing code...
 // Endpoint temporal: obtener todos los region_id de leagues_regions
