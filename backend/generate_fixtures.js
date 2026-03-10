@@ -174,23 +174,16 @@ async function createPlayoff(client, teamA, teamB, matchDate, seriesId, tipo) {
 async function main() {
     const client = await pool.connect();
     try {
-        // BORRAR partidos de la temporada 1 antes de generar nuevos (evita duplicados)
         await client.query('DELETE FROM matches WHERE series_id IN (SELECT series_id FROM series WHERE season = 1)');
-
-        // 1. Obtener todas las series activas de la temporada 1
         const seriesRes = await client.query('SELECT series_id, division, group_number, region_id FROM series WHERE season = 1');
         const seriesList = seriesRes.rows;
         for (const series of seriesList) {
-            // 2. Obtener equipos de la serie
             const teamsRes = await client.query('SELECT team_id FROM teams WHERE series_id = $1 ORDER BY team_id ASC', [series.series_id]);
             const teams = teamsRes.rows.map(r => r.team_id);
             if (teams.length !== 8) {
-                console.warn(`Serie ${series.series_id} no tiene 8 equipos, se omite.`);
                 continue;
             }
-            // 3. Generar fixture round-robin (14 jornadas)
             const rounds = generateRoundRobin(teams);
-            // Obtener país local (de la serie)
             const countryRes = await client.query('SELECT region_id FROM series WHERE series_id = $1', [series.series_id]);
             const countryId = countryRes.rows[0]?.region_id;
             let countryName = null;
@@ -199,20 +192,15 @@ async function main() {
                 countryName = regRes.rows[0]?.name;
             }
             const timezone = countryName ? COUNTRY_TIMEZONES[countryName] || 'Europe/London' : 'Europe/London';
-            // Escalonar hora local según grupo
             const { hour: localHour, minute: localMinute } = getLocalMatchHour(countryName, series.group_number || 0);
             let matchDate = new Date(Date.UTC(2026, 6, 25, BASE_HOUR_LONDON, 0, 0));
             for (let j = 0; j < TOTAL_ROUNDS; j++) {
                 for (const [home, away] of rounds[j]) {
-                    // Calcular fecha local para este país y grupo
                     const localDate = new Date(matchDate.getTime());
                     localDate.setUTCHours(localHour, localMinute, 0, 0);
-                    // Validar que la fecha es válida
                     if (isNaN(localDate.getTime())) {
-                        console.error('Fecha inválida generada para el partido:', home, 'vs', away, 'en serie', series.series_id);
                         continue;
                     }
-                    // Guardar como UTC en formato ISO
                     await client.query(
                         'INSERT INTO matches (home_team_id, away_team_id, match_date, series_id, status) VALUES ($1, $2, $3, $4, $5)',
                         [home, away, localDate.toISOString(), series.series_id, 'scheduled']
@@ -220,21 +208,13 @@ async function main() {
                 }
                 matchDate = getNextSaturday(matchDate, 1);
             }
-            // 4. Guardar fechas de playoffs (2 rondas extra)
-            // Aquí solo se crean los placeholders, la lógica de emparejamientos se puede ajustar según resultados reales
-            // Ejemplo: partidos de promoción de ascenso y descenso
-            // (En la práctica, estos se generan tras la liga regular, aquí solo se reserva la fecha)
             for (let playoff = 1; playoff <= 2; playoff++) {
                 matchDate = getNextSaturday(matchDate, 1);
-                // Puedes guardar los partidos de playoff aquí si tienes los emparejamientos definidos
             }
         }
-        // Generar playoffs tras la liga regular
         let playoffDate = getNextSaturday(FIRST_MATCH_DATE, TOTAL_ROUNDS + 1);
         await generatePlayoffs(client, seriesList, playoffDate);
-        console.log('✅ Partidos de liga y playoffs generados.');
     } catch (err) {
-        console.error('❌ Error generando fixtures:', err);
     } finally {
         client.release();
         process.exit(0);
