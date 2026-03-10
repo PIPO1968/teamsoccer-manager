@@ -58,7 +58,7 @@ app.delete('/admin/delete-all-matches', async (req, res) => {
     }
 });
 
-// CORS global usando paquete cors y función para origin
+// CORS seguro: solo dominios frontend y backend oficiales
 const allowedOrigins = [
     'https://teamsoccer-manager-production-f836.up.railway.app',
     'https://thriving-fascination-production.up.railway.app',
@@ -66,7 +66,13 @@ const allowedOrigins = [
     'http://localhost:5173'
 ];
 app.use(cors({
-    origin: true, // Permitir cualquier origen temporalmente
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('No permitido por CORS'));
+        }
+    },
     credentials: true
 }));
 app.use(express.json({ limit: '5mb' }));
