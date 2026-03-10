@@ -65,6 +65,7 @@ const TeamLineups = () => {
         console.error('Error en respuesta:', data);
       }
     } catch (error) {
+      const [rawLineup, setRawLineup] = useState<any>(null);
       console.error('Error guardando alineación:', error);
     }
   };
