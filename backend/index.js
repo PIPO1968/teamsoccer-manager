@@ -18,6 +18,20 @@ dotenv.config({ path: './.env' });
 
 const app = express();
 
+// ENDPOINT TEMPORAL: Eliminar todos los partidos (requiere clave secreta por seguridad)
+app.delete('/admin/delete-all-matches', async (req, res) => {
+    const secret = req.headers['x-admin-secret'] || req.query.secret;
+    if (secret !== process.env.ADMIN_DELETE_SECRET) {
+        return res.status(403).json({ error: 'No autorizado' });
+    }
+    try {
+        await pool.query('DELETE FROM matches');
+        res.json({ success: true, message: 'Todos los partidos eliminados' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // CORS global usando paquete cors y función para origin
 const allowedOrigins = [
     'https://teamsoccer-manager-production-f836.up.railway.app',
