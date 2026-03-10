@@ -79,7 +79,6 @@ export default function PlayerSquadList({ players }: PlayerSquadListProps) {
         >
           <div className="teamsoccer-header flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <span className="font-bold">{player.position}</span>
               <Link
                 to={`/players/${player.player_id}`}
                 className="font-semibold hover:underline text-white"

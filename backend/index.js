@@ -124,6 +124,18 @@ const initDb = async () => {
             WHERE image_url IS NULL AND first_name IS NOT NULL AND last_name IS NOT NULL
         `);
 
+        // Actualizar stats de goalkeeper para que sean más lógicos
+        await client.query(`
+            UPDATE players
+            SET goalkeeper = FLOOR(60 + RANDOM() * 30)::INTEGER
+            WHERE position = 'GK' AND goalkeeper < 50
+        `);
+        await client.query(`
+            UPDATE players
+            SET goalkeeper = FLOOR(5 + RANDOM() * 20)::INTEGER
+            WHERE position != 'GK' AND goalkeeper > 30
+        `);
+
         await client.query(`ALTER TABLE manager_license_tests ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE`);
         // Tabla series (liga competitiva)
         await client.query(`
