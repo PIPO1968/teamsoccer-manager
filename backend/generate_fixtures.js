@@ -166,7 +166,6 @@ async function main() {
             }
             // 3. Generar fixture round-robin (14 jornadas)
             const rounds = generateRoundRobin(teams);
-            let matchDate = new Date(FIRST_MATCH_DATE);
             // Obtener país local (de la serie)
             const countryRes = await client.query('SELECT region_id FROM series WHERE series_id = $1', [series.series_id]);
             const countryId = countryRes.rows[0]?.region_id;
