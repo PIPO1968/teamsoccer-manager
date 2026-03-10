@@ -107,13 +107,13 @@ const TeamLineups = () => {
                             <img src={player.image_url} alt={player.name} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-xs text-white font-bold">
-                              {player.name.substring(0, 2).toUpperCase()}
+                              {player.name ? player.name.substring(0, 2).toUpperCase() : '??'}
                             </div>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold truncate">{player.name}</p>
-                          <p className="text-xs text-gray-600">{player.position} • Val: {player.rating}</p>
+                          <p className="text-sm font-semibold truncate">{player.name || 'Sin nombre'}</p>
+                          <p className="text-xs text-gray-600">{player.position || 'POS'} • Val: {player.rating || 0}</p>
                         </div>
                       </div>
                     </div>
