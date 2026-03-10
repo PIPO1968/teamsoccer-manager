@@ -20,11 +20,12 @@ export const CompactMatchCard = ({ match, hideScores = false }: CompactMatchCard
       // Log temporal para depuración
       // eslint-disable-next-line no-console
       console.log('match_date recibido en CompactMatchCard:', dateString);
-      const utcDate = parseISO(dateString);
+      if (!dateString) return { date: "Sin fecha", time: "" };
+      const utcDate = typeof dateString === 'string' ? parseISO(dateString) : dateString;
       if (!isValid(utcDate)) return { date: "Invalid date", time: "" };
       const zoned = toZonedTime(utcDate, timezone);
       return {
-        date: formatTz(zoned, "dd-MM-yyyy", { timeZone: timezone }),
+        date: formatTz(zoned, "dd/MM/yyyy", { timeZone: timezone }),
         time: formatTz(zoned, "HH:mm", { timeZone: timezone })
       };
     } catch {
