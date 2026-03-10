@@ -116,17 +116,9 @@ const pgHostRaw = process.env.PGHOST || 'localhost';
 const [pgHostname, pgHostPort] = pgHostRaw.includes(':') ? pgHostRaw.split(':') : [pgHostRaw, null];
 const pgPort = pgHostPort ? parseInt(pgHostPort) : (parseInt(process.env.PGPORT) || 5432);
 
-const pool = new Pool({
-    host: pgHostname,
-    user: process.env.PGUSER,
-    password: process.env.PGPASSWORD,
-    database: process.env.PGDATABASE,
-    port: pgPort,
-});
 
-pool.connect()
-    .then(() => console.log('✅ Conexión a Postgres exitosa'))
-    .catch((err) => console.error('❌ Error conectando a Postgres:', err));
+
+
 
 const initDb = async () => {
     const client = await pool.connect();
