@@ -21,11 +21,26 @@ const pool = new Pool({
 
 async function migrate() {
     try {
-        // TEMPORAL: solo crear tablas faltantes
-        const missingPath = path.join(__dirname, 'sql', 'create_missing_tables.sql');
-        const missingSql = fs.readFileSync(missingPath, 'utf8');
-        await pool.query(missingSql);
-        console.log('Tablas faltantes creadas.');
+        const schemaPath = path.join(__dirname, 'sql', 'railway_schema.sql');
+        const schemaSql = fs.readFileSync(schemaPath, 'utf8');
+        const shouldReset = ['1', 'true', 'yes'].includes((process.env.RESET_DB || '').toLowerCase());
+
+        if (shouldReset) {
+            await pool.query(`
+                DROP TABLE IF EXISTS players CASCADE;
+                DROP TABLE IF EXISTS team_finances CASCADE;
+                DROP TABLE IF EXISTS stadiums CASCADE;
+                DROP TABLE IF EXISTS matches CASCADE;
+                DROP TABLE IF EXISTS teams CASCADE;
+                DROP TABLE IF EXISTS managers CASCADE;
+                DROP TABLE IF EXISTS leagues_regions CASCADE;
+                DROP TABLE IF EXISTS users CASCADE;
+            `);
+            console.log('Tablas existentes eliminadas.');
+        }
+
+        await pool.query(schemaSql);
+        console.log('Esquema aplicado o ya existe.');
     } catch (err) {
         console.error('Error en la migración:', err);
     } finally {
