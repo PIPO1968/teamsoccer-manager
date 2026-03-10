@@ -49,7 +49,7 @@ const TeamLineups = () => {
     console.log('Guardando alineación:', { positions, substitutes });
 
     try {
-      const response = await fetch(`/api/teams/${teamId}/lineup`, {
+      const response = await fetch(`/teams/${teamId}/lineup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -95,7 +95,7 @@ const TeamLineups = () => {
     console.log('Guardando como predeterminada:', { positions, substitutes });
 
     try {
-      const response = await fetch(`/api/teams/${teamId}/lineup`, {
+      const response = await fetch(`/teams/${teamId}/lineup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -244,7 +244,7 @@ const TeamLineups = () => {
       if (!teamId) return;
 
       try {
-        const response = await fetch(`/api/teams/${teamId}/lineup/${selectedSlot}`);
+        const response = await fetch(`/teams/${teamId}/lineup/${selectedSlot}`);
         const data = await response.json();
 
         if (data.success && data.lineup) {
