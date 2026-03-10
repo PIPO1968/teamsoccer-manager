@@ -32,6 +32,7 @@ import { useState } from "react";
 import Finances from "./pages/Finances";
 import MatchView from "./pages/MatchView";
 import LineupPage from "./pages/match/LineupPage";
+import TeamLineups from "./pages/TeamLineups";
 import ForumLayout from "./pages/forums/ForumLayout";
 import ForumListPage from "./pages/forums/ForumListPage";
 import ForumPage from "./pages/forums/ForumPage";
@@ -97,6 +98,7 @@ const App = () => {
                 <Route path="/matches/:teamId" element={<Layout><Matches /></Layout>} />
                 <Route path="/match/:matchId" element={<Layout><MatchView /></Layout>} />
                 <Route path="/match/:matchId/lineup" element={<Layout><LineupPage /></Layout>} />
+                <Route path="/team/:teamId/lineups" element={<Layout><TeamLineups /></Layout>} />
                 <Route path="/match-viewer" element={<Layout><MatchViewer /></Layout>} />
 
                 <Route path="/series/:seriesId" element={<Layout><Series /></Layout>} />
