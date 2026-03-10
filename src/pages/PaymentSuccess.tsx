@@ -47,7 +47,6 @@ const PaymentSuccess = () => {
     verifyPayment();
   }, [sessionId, manager?.user_id]);
 
-  const premiumExpiresAt = manager?.premium_expires_at ? new Date(manager.premium_expires_at).toLocaleDateString() : 'N/A';
   // Obtener la fecha de expiración solo desde el contexto
   const premiumExpiresAt = manager?.premium_expires_at ? new Date(manager.premium_expires_at).toLocaleDateString() : 'N/A';
 
