@@ -1261,7 +1261,7 @@ app.get('/teams/:id/finances', async (req, res) => {
 // Obtener partidos de un equipo
 
 // NUEVO: obtener partidos de un equipo con país y zona horaria de local y visitante
-import { getTimezoneForCountry } from '../src/utils/countryTimezones.js';
+import { getTimezoneForCountry } from './utils/countryTimezones.js';
 
 app.get('/teams/:id/matches', async (req, res) => {
     const teamId = parseInt(req.params.id, 10);
