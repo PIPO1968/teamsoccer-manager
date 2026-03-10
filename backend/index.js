@@ -1299,11 +1299,17 @@ app.get('/teams/:id/matches', async (req, res) => {
         const matches = result.rows.map(row => {
             const home_timezone = getTimezoneForCountry(row.home_country_name);
             const away_timezone = getTimezoneForCountry(row.away_country_name);
-            // Forzar match_date a string ISO 8601
+            // Forzar match_date a formato exacto ISO 8601 (YYYY-MM-DDTHH:mm:ssZ)
             let match_date = null;
             if (row.match_date) {
                 try {
-                    match_date = new Date(row.match_date).toISOString();
+                    // Si ya es string y contiene 'T' y 'Z', dejarlo tal cual
+                    if (typeof row.match_date === 'string' && row.match_date.includes('T') && row.match_date.endsWith('Z')) {
+                        match_date = row.match_date;
+                    } else {
+                        // Si es string tipo '2026-09-19 19:15:00+00', convertir a ISO
+                        match_date = new Date(row.match_date).toISOString();
+                    }
                 } catch {
                     match_date = null;
                 }
