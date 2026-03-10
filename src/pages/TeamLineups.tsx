@@ -119,7 +119,7 @@ const TeamLineups = () => {
                         </div>
                       </div>
                     </div>
-                  )}))}
+                  )})}
                 </div>
               ) : (
                 <p className="text-muted-foreground text-sm">No hay jugadores disponibles</p>
