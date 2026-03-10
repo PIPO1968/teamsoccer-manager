@@ -6,6 +6,7 @@ import { useTeamPlayers } from "@/hooks/useTeamPlayers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import PitchField from "@/components/lineups/PitchField";
 import BenchSlots from "@/components/lineups/BenchSlots";
 import { useAuth } from "@/contexts/AuthContext";
@@ -46,11 +47,29 @@ const TeamLineups = () => {
   const handlePlayerDropped = (positionIndex: number, playerId: number) => {
     const player = players?.find(p => p.player_id === playerId);
     if (player) {
-      setPlayersInPositions(prev => ({
-        ...prev,
-        [positionIndex]: player
-      }));
+      setPlayersInPositions(prev => {
+        // Buscar si el jugador ya está en otra posición y liberarla
+        const newPositions = { ...prev };
+        Object.keys(newPositions).forEach(key => {
+          const posIdx = parseInt(key, 10);
+          if (newPositions[posIdx]?.player_id === playerId) {
+            delete newPositions[posIdx];
+          }
+        });
+
+        // Asignar el jugador a la nueva posición
+        newPositions[positionIndex] = player;
+        return newPositions;
+      });
     }
+  };
+
+  const handleRemovePlayer = (positionIndex: number) => {
+    setPlayersInPositions(prev => {
+      const newPositions = { ...prev };
+      delete newPositions[positionIndex];
+      return newPositions;
+    });
   };
 
   const isPremium = manager?.is_premium === 1;
@@ -109,29 +128,53 @@ const TeamLineups = () => {
                   {players.map((player) => {
                     const fullName = `${player.first_name || ''} ${player.last_name || ''}`.trim() || 'Sin nombre';
                     return (
-                    <div
-                      key={player.player_id}
-                      className="p-3 bg-gray-100 hover:bg-gray-200 rounded-lg border-2 border-gray-300 transition-all"
-                    >
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="cursor-move hover:ring-2 hover:ring-blue-500 transition-all"
-                          draggable
-                          onDragStart={(e) => {
-                            e.dataTransfer.setData('playerId', String(player.player_id));
-                            e.dataTransfer.setData('playerName', fullName);
-                            e.dataTransfer.effectAllowed = 'move';
-                          }}
-                          title={`Arrastrar ${fullName}`}
-                        >
-                          <PlayerAvatar player={player} size="sm" className="w-10 h-10" />
+                    <HoverCard key={player.player_id} openDelay={200}>
+                      <HoverCardTrigger asChild>
+                        <div className="p-3 bg-gray-100 hover:bg-gray-200 rounded-lg border-2 border-gray-300 transition-all cursor-pointer">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="cursor-move hover:ring-2 hover:ring-blue-500 transition-all"
+                              draggable
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData('playerId', String(player.player_id));
+                                e.dataTransfer.setData('playerName', fullName);
+                                e.dataTransfer.effectAllowed = 'move';
+                              }}
+                              title={`Arrastrar ${fullName}`}
+                            >
+                              <PlayerAvatar player={player} size="sm" className="w-10 h-10" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold truncate">{fullName}</p>
+                              <p className="text-xs text-gray-600">Val: {player.rating || 0}</p>
+                            </div>
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold truncate">{fullName}</p>
-                          <p className="text-xs text-gray-600">Val: {player.rating || 0}</p>
+                      </HoverCardTrigger>
+                      <HoverCardContent className="w-80" side="right">
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-semibold">{fullName}</h4>
+                          <div className="text-xs space-y-1">
+                            <div className="font-semibold text-blue-600">Técnicas:</div>
+                            <div className="grid grid-cols-2 gap-1">
+                              <span>Definición: {player.finishing || 0}</span>
+                              <span>Pase: {player.passing || 0}</span>
+                              <span>Defensa: {player.defense || 0}</span>
+                              <span>Regate: {player.dribbling || 0}</span>
+                              <span>Cabeceo: {player.heading || 0}</span>
+                              <span>Centros: {(player as any).crosses || 0}</span>
+                              <span>Control balón: {(player as any).ball_control || 0}</span>
+                              <span>Portería: {(player as any).goalkeeper || 0}</span>
+                            </div>
+                            <div className="font-semibold text-green-600 mt-2">Físicas:</div>
+                            <div className="grid grid-cols-2 gap-1">
+                              <span>Resistencia: {player.stamina || 0}</span>
+                              <span>Velocidad: {player.pace || 0}</span>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
+                      </HoverCardContent>
+                    </HoverCard>
                   )})}
                 </div>
               ) : (
@@ -152,6 +195,7 @@ const TeamLineups = () => {
                 onPositionClick={handlePositionClick}
                 playersInPositions={playersInPositions}
                 onPlayerDropped={handlePlayerDropped}
+                onRemovePlayer={handleRemovePlayer}
               />
               <BenchSlots onSlotClick={handleBenchClick} />
             </CardContent>

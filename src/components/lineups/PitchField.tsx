@@ -18,9 +18,10 @@ interface PitchFieldProps {
   onPositionClick?: (zoneIndex: number, positionIndex: number) => void;
   playersInPositions?: { [key: number]: PlayerInPosition };
   onPlayerDropped?: (positionIndex: number, playerId: number) => void;
+  onRemovePlayer?: (positionIndex: number) => void;
 }
 
-const PitchField = ({ onPositionClick, playersInPositions = {}, onPlayerDropped }: PitchFieldProps) => {
+const PitchField = ({ onPositionClick, playersInPositions = {}, onPlayerDropped, onRemovePlayer }: PitchFieldProps) => {
   // Definir las 26 posiciones del campo (coordenadas relativas en %)
   const positions = [
     // ZONA 1 - ULTRADEFENSIVA (6 posiciones)
@@ -114,6 +115,11 @@ const PitchField = ({ onPositionClick, playersInPositions = {}, onPlayerDropped 
             <div
               key={idx}
               onClick={() => onPositionClick?.(pos.zone, idx)}
+              onDoubleClick={() => {
+                if (playerInThisPosition && onRemovePlayer) {
+                  onRemovePlayer(idx);
+                }
+              }}
               onDragOver={(e) => {
                 e.preventDefault();
                 e.dataTransfer.dropEffect = 'move';
@@ -133,7 +139,7 @@ const PitchField = ({ onPositionClick, playersInPositions = {}, onPlayerDropped 
                 height: '40px',
                 transform: 'translate(-50%, -50%)',
               }}
-              title={playerInThisPosition ? `${playerInThisPosition.first_name} ${playerInThisPosition.last_name}` : `${pos.label} - Zona ${pos.zone}`}
+              title={playerInThisPosition ? `${playerInThisPosition.first_name} ${playerInThisPosition.last_name} - Doble click para quitar` : `${pos.label} - Zona ${pos.zone}`}
             >
               {playerInThisPosition ? (
                 <PlayerAvatar player={playerInThisPosition as any} size="sm" className="w-10 h-10" />
