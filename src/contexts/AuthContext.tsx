@@ -37,31 +37,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
 
   useEffect(() => {
+    // Nueva lógica: obtener el usuario autenticado desde el backend usando la cookie de sesión
     const initializeAuth = async () => {
-      const storedManager = localStorage.getItem('manager');
-      if (storedManager) {
-        try {
-          const parsedManager = JSON.parse(storedManager);
-          if (parsedManager?.user_id) {
-            // Always re-fetch from DB to get current status (admin may have changed it)
-            const updatedData = await fetchManagerData(parsedManager.user_id);
-            if (updatedData) {
-              const updatedManager = { ...parsedManager, ...updatedData };
-              setManager(updatedManager);
-              localStorage.setItem('manager', JSON.stringify(updatedManager));
-            } else {
-              setManager(parsedManager);
-            }
-            await checkManagerTeam(parsedManager.user_id);
-          }
-        } catch (error) {
-          // Eliminado log de depuración
-          localStorage.removeItem('manager');
+      try {
+        const response = await apiFetch<{ success: boolean; manager: Manager | null }>(
+          '/auth/me'
+        );
+        if (response.manager && response.manager.user_id) {
+          setManager(response.manager);
+          await checkManagerTeam(response.manager.user_id);
+        } else {
+          setManager(null);
         }
+      } catch {
+        setManager(null);
       }
       setIsLoading(false);
     };
-
     initializeAuth();
   }, []);
 
@@ -88,9 +80,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // signIn ahora solo actualiza el estado local tras login exitoso (el backend debe establecer la cookie de sesión)
   const signIn = (managerData: Manager) => {
     setManager(managerData);
-    localStorage.setItem('manager', JSON.stringify(managerData));
     if (managerData?.user_id) {
       checkManagerTeam(managerData.user_id);
     }
@@ -111,19 +103,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [manager?.user_id, location.pathname]);
 
   const signOut = async () => {
-    if (manager?.user_id) {
-      try {
-        await apiFetch('/logout', {
-          method: 'POST',
-          body: JSON.stringify({ managerId: manager.user_id }),
-        });
-      } catch {
-        // Ignorar errores de logout para no bloquear al usuario
-      }
+    try {
+      await apiFetch('/logout', {
+        method: 'POST',
+      });
+    } catch {
+      // Ignorar errores de logout para no bloquear al usuario
     }
     setManager(null);
     setHasTeam(false);
-    localStorage.removeItem('manager');
     navigate('/login');
   };
 
