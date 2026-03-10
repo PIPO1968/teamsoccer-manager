@@ -22,7 +22,7 @@ export const MatchFeatureBlocks = ({ latestMatch, upcomingMatch }: MatchFeatureB
     try {
       // Log temporal para depuración
       // eslint-disable-next-line no-console
-      console.log('match_date recibido en MatchFeatureBlocks:', dateString);
+      console.log('match_date y timezone en MatchFeatureBlocks:', dateString, timezone);
       if (!dateString) return { date: "Sin fecha", time: "" };
       const utcDate = typeof dateString === 'string' ? parseISO(dateString) : dateString;
       if (!isValid(utcDate)) return { date: "Invalid date", time: "" };
