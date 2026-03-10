@@ -1340,16 +1340,12 @@ interface LanguageProviderProps {
 export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) => {
   const [language, setLanguageState] = useState<Language>('en');
 
-  useEffect(() => {
-    const savedLanguage = localStorage.getItem('app-language') as Language;
-    if (savedLanguage && Object.keys(translations).includes(savedLanguage)) {
-      setLanguageState(savedLanguage);
-    }
-  }, []);
+  // Eliminado localStorage: el idioma solo se mantiene en memoria por sesión
+  // Si se desea persistencia real, debe hacerse vía backend/cookie
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
-    localStorage.setItem('app-language', lang);
+    // Si se desea persistencia real, debe hacerse vía backend/cookie
   };
 
   const t = (key: string): string => {
