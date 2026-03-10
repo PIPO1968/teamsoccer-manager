@@ -234,6 +234,13 @@ const TeamLineups = () => {
         const response = await fetch(`/teams/${teamId}/lineup/${selectedSlot}`);
         const data = await response.json();
         if (!cancelled) {
+          // LOGS para depuración
+          console.log('teamId:', teamId);
+          console.log('player_id de players:', players.map(p => p.player_id));
+          if (data.lineup) {
+            console.log('player_id de alineación (positions):', data.lineup.positions?.map((p: any) => p.player_id));
+            console.log('player_id de alineación (substitutes):', data.lineup.substitutes?.map((s: any) => s.player_id));
+          }
           if (data.success && data.lineup) {
             // Mapear posiciones
             const newPositions: { [key: number]: any } = {};
