@@ -81,33 +81,35 @@ function getNextSaturday(date, weeks = 1) {
 
 // Genera el fixture round-robin para 8 equipos (14 jornadas)
 function generateRoundRobin(teams) {
-    // Algoritmo round-robin con alternancia estricta L-V-L-V... para todos los equipos
-    // No clásico Berger, sino alternancia perfecta para todos
+    // Algoritmo round-robin con alternancia L-V-L-V para todos los equipos
     const n = teams.length;
-    let arr = [...teams];
-    if (n % 2 !== 0) arr.push(null); // Si impar, añadir bye
-    const rounds = [];
-    // Primera vuelta
-    for (let round = 0; round < n - 1; round++) {
-        const matches = [];
-        for (let i = 0; i < n / 2; i++) {
-            let home = arr[i];
-            let away = arr[n - 1 - i];
-            // Alternancia estricta: todos los equipos alternan localía cada jornada
-            if ((round + i) % 2 === 0) {
-                // home local, away visitante
-            } else {
-                [home, away] = [away, home];
+    if (n % 2 !== 0) throw new Error('El número de equipos debe ser par');
+    const rounds = Array.from({ length: 2 * (n - 1) }, () => []);
+    // Generar matriz de enfrentamientos
+    for (let i = 0; i < n; i++) {
+        let home = true;
+        for (let j = 0; j < n - 1; j++) {
+            let opponent = (i + j + 1) % n;
+            if (i === opponent) continue;
+            // Solo un partido por par y vuelta
+            if (i < opponent) {
+                // Primera vuelta
+                if (home) {
+                    rounds[j].push([teams[i], teams[opponent]]);
+                } else {
+                    rounds[j].push([teams[opponent], teams[i]]);
+                }
+                // Segunda vuelta (invirtiendo localía)
+                if (home) {
+                    rounds[j + n - 1].push([teams[opponent], teams[i]]);
+                } else {
+                    rounds[j + n - 1].push([teams[i], teams[opponent]]);
+                }
             }
-            if (home && away) matches.push([home, away]);
+            home = !home;
         }
-        rounds.push(matches);
-        // Rotación Berger
-        arr = [arr[0], arr[n - 1], ...arr.slice(1, n - 1)];
     }
-    // Segunda vuelta: mismo orden pero invirtiendo localía respecto a la primera
-    const secondLeg = rounds.map(matches => matches.map(([h, a]) => [a, h]));
-    return [...rounds, ...secondLeg];
+    return rounds;
 }
 
 // Genera los emparejamientos de playoffs de ascenso y descenso
