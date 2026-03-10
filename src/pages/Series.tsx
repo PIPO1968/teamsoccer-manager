@@ -17,6 +17,8 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { localizeCountryName } from "@/utils/countries";
 import { useState, useEffect } from "react";
 import { apiFetch } from "@/services/apiClient";
+import { useUserTeam } from "@/hooks/useUserTeam";
+import { useTeamMatches } from "@/hooks/useTeamMatches";
 
 type SeasonEntry = { series_id: number; season: number };
 
@@ -48,6 +50,19 @@ const Series = () => {
 
   if (leagueError || hierarchyError || !league) {
     return <div>Error: {leagueError || hierarchyError || t('series.notFound')}</div>;
+  }
+
+  // Obtener equipo del usuario y sus partidos
+  const { team: userTeam } = useUserTeam();
+  const { matches: userMatches, isLoading: matchesLoading } = useTeamMatches(userTeam?.team_id ? String(userTeam.team_id) : undefined);
+
+  // Buscar el próximo partido (scheduled y fecha futura)
+  let nextMatch = null;
+  if (userMatches && userMatches.length > 0) {
+    const now = new Date();
+    nextMatch = userMatches
+      .filter(m => m.status === "scheduled" && new Date(m.match_date) > now)
+      .sort((a, b) => new Date(a.match_date).getTime() - new Date(b.match_date).getTime())[0] || null;
   }
 
   return (
@@ -92,6 +107,22 @@ const Series = () => {
               lowerSeries={lowerSeries}
             />
             <SeriesStandingsTable teams={league.teams} division={league.division} groupNumber={league.group_number} />
+            {/* Bloque próximo partido del equipo del usuario */}
+            {userTeam && !matchesLoading && nextMatch && (
+              <div className="my-6">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex flex-col items-center">
+                  <div className="text-sm font-semibold text-blue-900 mb-2">{t('matches.nextMatch')}</div>
+                  <div className="flex items-center gap-2 text-base font-bold">
+                    <span>{nextMatch.is_home ? userTeam.name : nextMatch.away_team_name}</span>
+                    <span className="text-blue-700">vs</span>
+                    <span>{nextMatch.is_home ? nextMatch.away_team_name : userTeam.name}</span>
+                  </div>
+                  <div className="text-xs text-blue-800 mt-1">
+                    {new Date(nextMatch.match_date).toLocaleString()}
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </div>
         <SeriesStatsBlock seriesId={seriesId!} />
