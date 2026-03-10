@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { apiPost } from "@/services/apiClient";
+import { apiPost, apiFetch } from "@/services/apiClient";
 import { useParams } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTeamPlayers } from "@/hooks/useTeamPlayers";
@@ -231,8 +231,7 @@ const TeamLineups = () => {
     const loadLineup = async () => {
       if (!teamId || !players || players.length === 0) return;
       try {
-        const response = await fetch(`/teams/${teamId}/lineup/${selectedSlot}`);
-        const data = await response.json();
+        const data = await apiFetch(`/teams/${teamId}/lineup/${selectedSlot}`);
         if (!cancelled) {
           // LOGS para depuración
           console.log('teamId:', teamId);
