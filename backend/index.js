@@ -1299,8 +1299,17 @@ app.get('/teams/:id/matches', async (req, res) => {
         const matches = result.rows.map(row => {
             const home_timezone = getTimezoneForCountry(row.home_country_name);
             const away_timezone = getTimezoneForCountry(row.away_country_name);
+            // Convertir match_date a ISO 8601 si existe
+            let match_date = row.match_date;
+            if (match_date && typeof match_date === 'string') {
+                // Reemplazar espacio por T y quitar +00 por Z
+                match_date = match_date.replace(' ', 'T').replace('+00', 'Z');
+            } else if (match_date instanceof Date) {
+                match_date = match_date.toISOString();
+            }
             return {
                 ...row,
+                match_date,
                 home_country_name: row.home_country_name,
                 away_country_name: row.away_country_name,
                 home_timezone,
