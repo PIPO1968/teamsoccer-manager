@@ -17,6 +17,9 @@ export const CompactMatchCard = ({ match, hideScores = false }: CompactMatchCard
   // Formatea la fecha y hora en la zona horaria local del país local
   const formatLocalDateTime = (dateString: string, timezone: string) => {
     try {
+      // Log temporal para depuración
+      // eslint-disable-next-line no-console
+      console.log('match_date recibido en CompactMatchCard:', dateString);
       const utcDate = parseISO(dateString);
       if (!isValid(utcDate)) return { date: "Invalid date", time: "" };
       const zoned = toZonedTime(utcDate, timezone);
