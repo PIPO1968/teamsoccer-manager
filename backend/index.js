@@ -1,7 +1,5 @@
 
 
-
-
 // Endpoint: fixtures de liga por serie (agrupados por jornada)
 app.get('/series/:id/fixtures', async (req, res) => {
     const seriesId = parseInt(req.params.id, 10);
@@ -62,6 +60,7 @@ app.get('/series/:id/fixtures', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
 
 import express from 'express';
 import dotenv from 'dotenv';
