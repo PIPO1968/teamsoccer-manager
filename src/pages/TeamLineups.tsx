@@ -227,71 +227,71 @@ const TeamLineups = () => {
 
   // Cargar alineación al montar o cambiar de slot
   useEffect(() => {
+    let cancelled = false;
     const loadLineup = async () => {
-      if (!teamId) return;
-
+      if (!teamId || !players || players.length === 0) return;
       try {
         const response = await fetch(`/teams/${teamId}/lineup/${selectedSlot}`);
         const data = await response.json();
-
-        if (data.success && data.lineup) {
-          // Reconstruir playersInPositions desde positions
-          const newPositions: { [key: number]: any } = {};
-          if (data.lineup.positions && Array.isArray(data.lineup.positions)) {
-            for (const pos of data.lineup.positions) {
-              const player = players?.find(p => p.player_id === pos.player_id);
-              if (player) {
-                newPositions[pos.position_index] = player;
+        if (!cancelled) {
+          if (data.success && data.lineup) {
+            // Mapear posiciones
+            const newPositions: { [key: number]: any } = {};
+            if (data.lineup.positions && Array.isArray(data.lineup.positions)) {
+              for (const pos of data.lineup.positions) {
+                const player = players.find(p => p.player_id === pos.player_id);
+                if (player) {
+                  newPositions[pos.position_index] = player;
+                } else {
+                  console.warn(`Jugador con id ${pos.player_id} no encontrado en players`);
+                }
               }
             }
-          }
-          setPlayersInPositions(newPositions);
-
-          // Reconstruir playersInBench desde substitutes
-          const newBench: { [key: number]: any } = {};
-          if (data.lineup.substitutes && Array.isArray(data.lineup.substitutes)) {
-            for (const sub of data.lineup.substitutes) {
-              const player = players?.find(p => p.player_id === sub.player_id);
-              if (player) {
-                newBench[sub.bench_index] = player;
+            setPlayersInPositions(newPositions);
+            // Mapear banquillo
+            const newBench: { [key: number]: any } = {};
+            if (data.lineup.substitutes && Array.isArray(data.lineup.substitutes)) {
+              for (const sub of data.lineup.substitutes) {
+                const player = players.find(p => p.player_id === sub.player_id);
+                if (player) {
+                  newBench[sub.bench_index] = player;
+                } else {
+                  console.warn(`Jugador suplente con id ${sub.player_id} no encontrado en players`);
+                }
               }
             }
-          }
-          setPlayersInBench(newBench);
-
-          // Reconstruir tacticalOrders
-          const newOrders: { [key: number]: { zone: number; action: string } } = {};
-          if (data.lineup.positions && Array.isArray(data.lineup.positions)) {
-            for (const pos of data.lineup.positions) {
-              if (pos.zone_orders && pos.zone_orders.zone && pos.zone_orders.action) {
-                newOrders[pos.position_index] = {
-                  zone: pos.zone_orders.zone,
-                  action: pos.zone_orders.action
-                };
+            setPlayersInBench(newBench);
+            // Mapear órdenes tácticas
+            const newOrders: { [key: number]: { zone: number; action: string } } = {};
+            if (data.lineup.positions && Array.isArray(data.lineup.positions)) {
+              for (const pos of data.lineup.positions) {
+                if (pos.zone_orders && pos.zone_orders.zone && pos.zone_orders.action) {
+                  newOrders[pos.position_index] = {
+                    zone: pos.zone_orders.zone,
+                    action: pos.zone_orders.action
+                  };
+                }
               }
             }
+            setTacticalOrders(newOrders);
+            setIsSaved(true);
+            setIsDefaultSaved(data.lineup.is_default || false);
+          } else {
+            setPlayersInPositions({});
+            setPlayersInBench({});
+            setTacticalOrders({});
+            setIsSaved(false);
+            setIsDefaultSaved(false);
           }
-          setTacticalOrders(newOrders);
-
-          // Marcar como guardada
-          setIsSaved(true);
-          setIsDefaultSaved(data.lineup.is_default || false);
-        } else {
-          // No hay alineación guardada, resetear todo
-          setPlayersInPositions({});
-          setPlayersInBench({});
-          setTacticalOrders({});
-          setIsSaved(false);
-          setIsDefaultSaved(false);
         }
       } catch (error) {
-        console.error('Error cargando alineación:', error);
+        if (!cancelled) {
+          console.error('Error cargando alineación:', error);
+        }
       }
     };
-
-    if (players && players.length > 0) {
-      loadLineup();
-    }
+    loadLineup();
+    return () => { cancelled = true; };
   }, [selectedSlot, teamId, players]);
 
   return (
@@ -353,58 +353,58 @@ const TeamLineups = () => {
                     const isPlaced = isInField || isInBench;
 
                     return (
-                    <HoverCard key={player.player_id} openDelay={200}>
-                      <HoverCardTrigger asChild>
-                        <div className={`p-3 rounded-lg border-2 transition-all cursor-pointer ${
-                          isPlaced
+                      <HoverCard key={player.player_id} openDelay={200}>
+                        <HoverCardTrigger asChild>
+                          <div className={`p-3 rounded-lg border-2 transition-all cursor-pointer ${isPlaced
                             ? 'bg-green-100 hover:bg-green-200 border-green-400'
                             : 'bg-gray-100 hover:bg-gray-200 border-gray-300'
-                        }`}>
-                          <div className="flex items-center gap-2">
-                            <div
-                              className="cursor-move hover:ring-2 hover:ring-blue-500 transition-all"
-                              draggable
-                              onDragStart={(e) => {
-                                e.dataTransfer.setData('playerId', String(player.player_id));
-                                e.dataTransfer.setData('playerName', fullName);
-                                e.dataTransfer.effectAllowed = 'move';
-                              }}
-                              title={`Arrastrar ${fullName}`}
-                            >
-                              <PlayerAvatar player={player} size="sm" className="w-10 h-10" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold truncate">{fullName}</p>
-                              <p className="text-xs text-gray-600">Val: {player.rating || 0}</p>
-                            </div>
-                          </div>
-                        </div>
-                      </HoverCardTrigger>
-                      <HoverCardContent className="w-80" side="right">
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-semibold">{fullName}</h4>
-                          <div className="text-xs space-y-1">
-                            <div className="font-semibold text-blue-600">Técnicas:</div>
-                            <div className="grid grid-cols-2 gap-1">
-                              <span>Definición: {player.finishing || 0}</span>
-                              <span>Pase: {player.passing || 0}</span>
-                              <span>Defensa: {player.defense || 0}</span>
-                              <span>Regate: {player.dribbling || 0}</span>
-                              <span>Cabeceo: {player.heading || 0}</span>
-                              <span>Centros: {(player as any).crosses || 0}</span>
-                              <span>Control balón: {(player as any).ball_control || 0}</span>
-                              <span>Portería: {(player as any).goalkeeper || 0}</span>
-                            </div>
-                            <div className="font-semibold text-green-600 mt-2">Físicas:</div>
-                            <div className="grid grid-cols-2 gap-1">
-                              <span>Resistencia: {player.stamina || 0}</span>
-                              <span>Velocidad: {player.pace || 0}</span>
+                            }`}>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="cursor-move hover:ring-2 hover:ring-blue-500 transition-all"
+                                draggable
+                                onDragStart={(e) => {
+                                  e.dataTransfer.setData('playerId', String(player.player_id));
+                                  e.dataTransfer.setData('playerName', fullName);
+                                  e.dataTransfer.effectAllowed = 'move';
+                                }}
+                                title={`Arrastrar ${fullName}`}
+                              >
+                                <PlayerAvatar player={player} size="sm" className="w-10 h-10" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold truncate">{fullName}</p>
+                                <p className="text-xs text-gray-600">Val: {player.rating || 0}</p>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </HoverCardContent>
-                    </HoverCard>
-                  )})}
+                        </HoverCardTrigger>
+                        <HoverCardContent className="w-80" side="right">
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-semibold">{fullName}</h4>
+                            <div className="text-xs space-y-1">
+                              <div className="font-semibold text-blue-600">Técnicas:</div>
+                              <div className="grid grid-cols-2 gap-1">
+                                <span>Definición: {player.finishing || 0}</span>
+                                <span>Pase: {player.passing || 0}</span>
+                                <span>Defensa: {player.defense || 0}</span>
+                                <span>Regate: {player.dribbling || 0}</span>
+                                <span>Cabeceo: {player.heading || 0}</span>
+                                <span>Centros: {(player as any).crosses || 0}</span>
+                                <span>Control balón: {(player as any).ball_control || 0}</span>
+                                <span>Portería: {(player as any).goalkeeper || 0}</span>
+                              </div>
+                              <div className="font-semibold text-green-600 mt-2">Físicas:</div>
+                              <div className="grid grid-cols-2 gap-1">
+                                <span>Resistencia: {player.stamina || 0}</span>
+                                <span>Velocidad: {player.pace || 0}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </HoverCardContent>
+                      </HoverCard>
+                    )
+                  })}
                 </div>
               ) : (
                 <p className="text-muted-foreground text-sm">No hay jugadores disponibles</p>
