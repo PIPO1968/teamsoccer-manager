@@ -192,11 +192,14 @@ async function main() {
             for (let j = 0; j < TOTAL_ROUNDS; j++) {
                 for (const [home, away] of rounds[j]) {
                     // Calcular fecha local para este país y grupo
-                    const localDate = new Date(matchDate);
+                    const localDate = new Date(matchDate.getTime());
                     localDate.setUTCHours(localHour, localMinute, 0, 0);
-                    // Convertir a UTC según zona horaria
-                    // (En Node.js puro, para precisión real usar librerías como luxon o date-fns-tz, aquí simplificado)
-                    // Guardar como UTC
+                    // Validar que la fecha es válida
+                    if (isNaN(localDate.getTime())) {
+                        console.error('Fecha inválida generada para el partido:', home, 'vs', away, 'en serie', series.series_id);
+                        continue;
+                    }
+                    // Guardar como UTC en formato ISO
                     await client.query(
                         'INSERT INTO matches (home_team_id, away_team_id, match_date, series_id, status) VALUES ($1, $2, $3, $4, $5)',
                         [home, away, localDate.toISOString(), series.series_id, 'scheduled']
