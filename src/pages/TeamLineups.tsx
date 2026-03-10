@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTeamPlayers } from "@/hooks/useTeamPlayers";
@@ -30,15 +30,13 @@ const TeamLineups = () => {
   const [selectedZone, setSelectedZone] = useState<number | null>(null);
 
   const handleSave = () => {
-    // TODO: Implementar guardado
+    // TODO: Implementar guardado real en backend
     setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 2000);
   };
 
   const handleSaveAsDefault = () => {
-    // TODO: Implementar guardado como predeterminada
+    // TODO: Implementar guardado como predeterminada en backend
     setIsDefaultSaved(true);
-    setTimeout(() => setIsDefaultSaved(false), 2000);
   };
 
   const handlePositionClick = (zone: number, positionIndex: number) => {
@@ -156,6 +154,13 @@ const TeamLineups = () => {
 
   const isPremium = manager?.is_premium === 1;
   const maxSlots = isPremium ? 5 : 3;
+
+  // Resetear estado de guardado al cambiar de slot
+  useEffect(() => {
+    // Aquí se cargaría el estado guardado del backend en el futuro
+    setIsSaved(false);
+    setIsDefaultSaved(false);
+  }, [selectedSlot]);
 
   return (
     <div className="container mx-auto py-6 px-4">
