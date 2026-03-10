@@ -31,11 +31,9 @@ const PaymentSuccess = () => {
           const response = await fetch(`/api/managers/${manager.user_id}`);
           if (!response.ok) throw new Error('No se pudo obtener datos del manager');
           const data = await response.json();
-          if (data.manager) {
-            console.log("Updated manager data after payment:", data.manager);
-            const updatedManager = { ...manager, ...data.manager };
-            localStorage.setItem('manager', JSON.stringify(updatedManager));
-          }
+          // Si se requiere actualizar el contexto, debe hacerse vía signIn del AuthContext
+          // const updatedManager = { ...manager, ...data.manager };
+          // signIn(updatedManager); // Descomentar si se desea refrescar el contexto
         }
 
         setLoading(false);
@@ -49,7 +47,8 @@ const PaymentSuccess = () => {
     verifyPayment();
   }, [sessionId, manager?.user_id]);
 
-  // Get the expiration date from localStorage if available
+  const premiumExpiresAt = manager?.premium_expires_at ? new Date(manager.premium_expires_at).toLocaleDateString() : 'N/A';
+  // Obtener la fecha de expiración solo desde el contexto
   const premiumExpiresAt = manager?.premium_expires_at ? new Date(manager.premium_expires_at).toLocaleDateString() : 'N/A';
 
   return (
