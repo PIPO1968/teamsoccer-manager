@@ -161,6 +161,9 @@ async function createPlayoff(client, teamA, teamB, matchDate, seriesId, tipo) {
 async function main() {
     const client = await pool.connect();
     try {
+        // BORRAR partidos de la temporada 1 antes de generar nuevos (evita duplicados)
+        await client.query('DELETE FROM matches WHERE series_id IN (SELECT series_id FROM series WHERE season = 1)');
+
         // 1. Obtener todas las series activas de la temporada 1
         const seriesRes = await client.query('SELECT series_id, division, group_number, region_id FROM series WHERE season = 1');
         const seriesList = seriesRes.rows;
