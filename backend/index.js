@@ -2,6 +2,8 @@
 
 
 import express from 'express';
+
+// Cambio menor para forzar build Railway - 2026-03-10
 import dotenv from 'dotenv';
 import { Pool } from 'pg';
 import cors from 'cors';
