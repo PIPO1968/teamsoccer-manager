@@ -1,6 +1,6 @@
 
 import { format, parseISO, isValid } from "date-fns";
-import { utcToZonedTime, format as formatTz } from "date-fns-tz";
+import { toZonedTime, format as formatTz } from "date-fns-tz";
 import { Eye, FileText, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ export const CompactMatchCard = ({ match, hideScores = false }: CompactMatchCard
     try {
       const utcDate = parseISO(dateString);
       if (!isValid(utcDate)) return { date: "Invalid date", time: "" };
-      const zoned = utcToZonedTime(utcDate, timezone);
+      const zoned = toZonedTime(utcDate, timezone);
       return {
         date: formatTz(zoned, "dd-MM-yyyy", { timeZone: timezone }),
         time: formatTz(zoned, "HH:mm", { timeZone: timezone })
@@ -33,8 +33,8 @@ export const CompactMatchCard = ({ match, hideScores = false }: CompactMatchCard
   const getTimeDiffLabel = (timezone) => {
     try {
       const utcDate = new Date();
-      const baseOffset = -utcToZonedTime(utcDate, "Europe/London").getTimezoneOffset();
-      const localOffset = -utcToZonedTime(utcDate, timezone).getTimezoneOffset();
+      const baseOffset = -toZonedTime(utcDate, "Europe/London").getTimezoneOffset();
+      const localOffset = -toZonedTime(utcDate, timezone).getTimezoneOffset();
       const diff = (localOffset - baseOffset) / 60;
       if (diff === 0) return "(UK time)";
       if (diff > 0) return `(+${diff}h vs UK)`;

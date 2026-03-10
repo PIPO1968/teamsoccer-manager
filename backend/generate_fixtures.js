@@ -18,7 +18,7 @@ import dotenv from 'dotenv';
 import { Pool } from 'pg';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { COUNTRY_TIMEZONES } from '../src/utils/countryTimezones';
+import { COUNTRY_TIMEZONES } from './utils/countryTimezones.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -81,21 +81,29 @@ function getNextSaturday(date, weeks = 1) {
 
 // Genera el fixture round-robin para 8 equipos (14 jornadas)
 function generateRoundRobin(teams) {
+    // Algoritmo round-robin con alternancia estricta local/visitante para cada equipo
+    // Basado en el método Berger para n par
     const n = teams.length;
-    const rounds = [];
     let arr = [...teams];
     if (n % 2 !== 0) arr.push(null); // Si impar, añadir bye
+    const rounds = [];
     for (let round = 0; round < n - 1; round++) {
         const matches = [];
         for (let i = 0; i < n / 2; i++) {
-            const home = arr[i];
-            const away = arr[n - 1 - i];
+            let home = arr[i];
+            let away = arr[n - 1 - i];
+            // Alternancia estricta: para los equipos fijos, alternar localía cada jornada
+            if (i === 0 && round % 2 === 1) {
+                // El primer equipo juega fuera en las impares
+                [home, away] = [away, home];
+            }
             if (home && away) matches.push([home, away]);
         }
         rounds.push(matches);
+        // Rotación Berger
         arr = [arr[0], arr[n - 1], ...arr.slice(1, n - 1)];
     }
-    // Segunda vuelta (cambian localía)
+    // Segunda vuelta: mismo orden pero invirtiendo localía respecto a la primera
     const secondLeg = rounds.map(matches => matches.map(([h, a]) => [a, h]));
     return [...rounds, ...secondLeg];
 }

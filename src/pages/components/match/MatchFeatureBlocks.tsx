@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TeamMatch } from "@/hooks/useTeamMatches";
 import { format, parseISO, isValid } from "date-fns";
-import { utcToZonedTime, format as formatTz } from "date-fns-tz";
+import { toZonedTime, format as formatTz } from "date-fns-tz";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { FileText, Eye, Clock, Settings } from "lucide-react";
@@ -22,7 +22,7 @@ export const MatchFeatureBlocks = ({ latestMatch, upcomingMatch }: MatchFeatureB
     try {
       const utcDate = parseISO(dateString);
       if (!isValid(utcDate)) return { date: "Invalid date", time: "" };
-      const zoned = utcToZonedTime(utcDate, timezone);
+      const zoned = toZonedTime(utcDate, timezone);
       return {
         date: formatTz(zoned, "dd MMM yyyy", { timeZone: timezone }),
         time: formatTz(zoned, "HH:mm", { timeZone: timezone })
@@ -36,8 +36,8 @@ export const MatchFeatureBlocks = ({ latestMatch, upcomingMatch }: MatchFeatureB
   const getTimeDiffLabel = (timezone) => {
     try {
       const utcDate = new Date();
-      const baseOffset = -utcToZonedTime(utcDate, "Europe/London").getTimezoneOffset();
-      const localOffset = -utcToZonedTime(utcDate, timezone).getTimezoneOffset();
+      const baseOffset = -toZonedTime(utcDate, "Europe/London").getTimezoneOffset();
+      const localOffset = -toZonedTime(utcDate, timezone).getTimezoneOffset();
       const diff = (localOffset - baseOffset) / 60;
       if (diff === 0) return "(UK time)";
       if (diff > 0) return `(+${diff}h vs UK)`;

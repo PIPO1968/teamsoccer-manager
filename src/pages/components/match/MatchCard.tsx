@@ -1,6 +1,6 @@
 
 import { format, parseISO, isValid } from "date-fns";
-import { zonedTimeToUtc, utcToZonedTime, format as formatTz } from "date-fns-tz";
+import { toZonedTime, format as formatTz } from "date-fns-tz";
 import { ArrowRight, Calendar, Eye, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,7 +34,7 @@ export const MatchCard = ({ match }: MatchCardProps) => {
     try {
       const utcDate = parseISO(dateString);
       if (!isValid(utcDate)) return { date: "Invalid date", time: "" };
-      const zoned = utcToZonedTime(utcDate, timezone);
+      const zoned = toZonedTime(utcDate, timezone);
       return {
         date: formatTz(zoned, "dd MMM yyyy", { timeZone: timezone }),
         time: formatTz(zoned, "HH:mm", { timeZone: timezone })
@@ -48,8 +48,8 @@ export const MatchCard = ({ match }: MatchCardProps) => {
   const getTimeDiffLabel = (timezone) => {
     try {
       const utcDate = new Date();
-      const baseOffset = -utcToZonedTime(utcDate, "Europe/London").getTimezoneOffset();
-      const localOffset = -utcToZonedTime(utcDate, timezone).getTimezoneOffset();
+      const baseOffset = -toZonedTime(utcDate, "Europe/London").getTimezoneOffset();
+      const localOffset = -toZonedTime(utcDate, timezone).getTimezoneOffset();
       const diff = (localOffset - baseOffset) / 60;
       if (diff === 0) return "(UK time)";
       if (diff > 0) return `(+${diff}h vs UK)`;
@@ -117,7 +117,7 @@ export const MatchCard = ({ match }: MatchCardProps) => {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-4">
               <div className={`rounded-full p-2 ${match.result === "Win" ? "bg-green-100" :
-                  match.result === "Draw" ? "bg-yellow-100" : "bg-red-100"
+                match.result === "Draw" ? "bg-yellow-100" : "bg-red-100"
                 }`}>
                 <span className={`font-semibold ${getResultColor(match.result)}`}>
                   {match.result === "Win" ? "W" : match.result === "Draw" ? "D" : "L"}
