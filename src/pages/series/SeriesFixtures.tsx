@@ -5,20 +5,25 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbS
 import { Home, Trophy } from "lucide-react";
 import { useParams } from "react-router-dom";
 import { useLeagueData } from "@/hooks/useLeagueData";
+import { useSeriesFixtures } from "@/hooks/useSeriesFixtures";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { localizeCountryName } from "@/utils/countries";
 
 const SeriesFixtures = () => {
   const { seriesId } = useParams();
   const { league, isLoading } = useLeagueData(seriesId);
+  const { fixtures, isLoading: isFixturesLoading, error: fixturesError } = useSeriesFixtures(seriesId);
   const { language } = useLanguage();
 
-  if (isLoading) {
+  if (isLoading || isFixturesLoading) {
     return <div>Loading...</div>;
   }
 
   if (!league) {
     return <div>Series not found</div>;
+  }
+  if (fixturesError) {
+    return <div>Error cargando fixtures: {fixturesError}</div>;
   }
 
   return (
@@ -49,8 +54,37 @@ const SeriesFixtures = () => {
               <span className="text-sm text-white/80">Season {league.season}</span>
             </div>
             <CardContent className="p-4">
-              <div className="text-sm">
-                Coming soon: League fixtures will be displayed here
+              <div className="space-y-6">
+                {fixtures.length === 0 && (
+                  <div className="text-sm">No hay partidos programados.</div>
+                )}
+                {fixtures.map((block, idx) => (
+                  <div key={idx} className="mb-6">
+                    {block.type === 'league' ? (
+                      <div className="mb-2 font-semibold text-primary">
+                        Jornada {block.round} <span className="text-xs text-muted-foreground">({new Date(block.date).toLocaleDateString()})</span>
+                      </div>
+                    ) : (
+                      <div className="mb-2 font-semibold text-yellow-600">
+                        Amistoso <span className="text-xs text-muted-foreground">({new Date(block.date).toLocaleDateString()})</span>
+                      </div>
+                    )}
+                    <div className="space-y-1">
+                      {block.matches.map(match => (
+                        <div key={match.match_id} className="flex items-center justify-between bg-muted rounded px-2 py-1">
+                          <span>{match.home_team_name} <span className="text-xs text-muted-foreground">vs</span> {match.away_team_name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {match.status === 'finished' ? (
+                              <>{match.home_score} - {match.away_score}</>
+                            ) : (
+                              <>{new Date(match.match_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</>
+                            )}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             </CardContent>
           </div>
