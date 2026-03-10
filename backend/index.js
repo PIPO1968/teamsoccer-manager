@@ -141,6 +141,7 @@ app.get('/series/:id/fixtures', async (req, res) => {
 // CORS global usando paquete cors y función para origin
 const allowedOrigins = [
     'https://teamsoccer-manager-production-f836.up.railway.app',
+    'https://thriving-fascination-production.up.railway.app',
     'http://localhost:8080',
     'http://localhost:5173'
 ];
