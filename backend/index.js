@@ -1,5 +1,4 @@
 
-// ...existing code...
 
 
 
@@ -79,6 +78,67 @@ dotenv.config({ path: './.env' });
 
 
 const app = express();
+
+// Endpoint: fixtures de liga por serie (agrupados por jornada)
+app.get('/series/:id/fixtures', async (req, res) => {
+    const seriesId = parseInt(req.params.id, 10);
+    const season = parseInt(req.query.season, 10) || 1;
+    if (!seriesId) return res.status(400).json({ error: 'seriesId inválido' });
+    try {
+        // Obtener todos los partidos de la serie y temporada (liga y amistosos)
+        const matchesResult = await pool.query(
+            `SELECT m.match_id_int AS match_id, m.home_team_id, m.away_team_id,
+                    ht.name AS home_team_name, at.name AS away_team_name,
+                    m.match_date, m.status, m.home_score, m.away_score,
+                    m.is_friendly
+             FROM matches m
+             JOIN teams ht ON ht.team_id = m.home_team_id
+             JOIN teams at ON at.team_id = m.away_team_id
+             WHERE m.series_id = $1
+               AND m.match_date IS NOT NULL
+             ORDER BY m.match_date ASC, m.match_id_int ASC`,
+            [seriesId]
+        );
+        let matches = matchesResult.rows;
+        // Filtrar partidos mal generados: home_team_id = away_team_id o fechas inválidas
+        matches = matches.filter(m => m.home_team_id !== m.away_team_id && m.match_date && !isNaN(new Date(m.match_date)));
+        // Eliminar duplicados por match_id (si los hay)
+        const seen = new Set();
+        matches = matches.filter(m => {
+            if (seen.has(m.match_id)) return false;
+            seen.add(m.match_id);
+            return true;
+        });
+        // Separar partidos de liga y amistosos
+        const leagueMatches = matches.filter(m => m.is_friendly === false);
+        const friendlyMatches = matches.filter(m => m.is_friendly === true);
+        // Agrupar partidos de liga por jornada (cada 4 partidos es una jornada)
+        const MATCHES_PER_ROUND = 4;
+        const rounds = [];
+        for (let i = 0; i < leagueMatches.length; i += MATCHES_PER_ROUND) {
+            const roundMatches = leagueMatches.slice(i, i + MATCHES_PER_ROUND);
+            if (roundMatches.length > 0) {
+                rounds.push({
+                    type: 'league',
+                    round: rounds.length + 1,
+                    date: roundMatches[0].match_date,
+                    matches: roundMatches
+                });
+            }
+        }
+        // Amistosos: cada uno es un bloque independiente
+        const friendlyBlocks = friendlyMatches.map(fm => ({
+            type: 'friendly',
+            date: fm.match_date,
+            matches: [fm]
+        }));
+        // Unir y ordenar todos los bloques por fecha
+        const allBlocks = [...rounds, ...friendlyBlocks].sort((a, b) => new Date(a.date) - new Date(b.date));
+        res.json({ success: true, fixtures: allBlocks });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // CORS global usando paquete cors y función para origin
 const allowedOrigins = [
