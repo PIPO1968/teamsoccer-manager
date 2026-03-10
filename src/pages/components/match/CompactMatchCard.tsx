@@ -23,11 +23,19 @@ export const CompactMatchCard = ({ match, hideScores = false }: CompactMatchCard
       if (!dateString) return { date: "Sin fecha", time: "" };
       const utcDate = typeof dateString === 'string' ? parseISO(dateString) : dateString;
       if (!isValid(utcDate)) return { date: "Invalid date", time: "" };
-      const zoned = toZonedTime(utcDate, timezone);
-      return {
-        date: formatTz(zoned, "dd/MM/yyyy", { timeZone: timezone }),
-        time: formatTz(zoned, "HH:mm", { timeZone: timezone })
-      };
+      try {
+        const zoned = toZonedTime(utcDate, timezone);
+        return {
+          date: formatTz(zoned, "dd/MM/yyyy", { timeZone: timezone }),
+          time: formatTz(zoned, "HH:mm", { timeZone: timezone })
+        };
+      } catch {
+        // Fallback: mostrar UTC si falla la zona horaria
+        return {
+          date: format(utcDate, "dd/MM/yyyy"),
+          time: format(utcDate, "HH:mm")
+        };
+      }
     } catch {
       return { date: "Invalid date", time: "" };
     }
