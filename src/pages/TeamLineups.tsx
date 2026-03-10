@@ -30,6 +30,7 @@ const TeamLineups = () => {
   const [selectedZone, setSelectedZone] = useState<number | null>(null);
 
   const handleSave = async () => {
+    console.log('handleSave ejecutado', { teamId, selectedSlot });
     if (!teamId) return;
 
     // Convertir playersInPositions al formato del backend
@@ -44,6 +45,8 @@ const TeamLineups = () => {
       player_id: player.player_id,
       bench_index: parseInt(benchIndex, 10)
     }));
+
+    console.log('Guardando alineación:', { positions, substitutes });
 
     try {
       const response = await fetch(`/api/teams/${teamId}/lineup`, {
@@ -59,8 +62,13 @@ const TeamLineups = () => {
       });
 
       const data = await response.json();
+      console.log('Respuesta del servidor:', data);
+
       if (data.success) {
         setIsSaved(true);
+        console.log('Alineación guardada exitosamente');
+      } else {
+        console.error('Error en respuesta:', data);
       }
     } catch (error) {
       console.error('Error guardando alineación:', error);
@@ -68,6 +76,7 @@ const TeamLineups = () => {
   };
 
   const handleSaveAsDefault = async () => {
+    console.log('handleSaveAsDefault ejecutado', { teamId, selectedSlot });
     if (!teamId) return;
 
     // Convertir playersInPositions al formato del backend
@@ -83,6 +92,8 @@ const TeamLineups = () => {
       bench_index: parseInt(benchIndex, 10)
     }));
 
+    console.log('Guardando como predeterminada:', { positions, substitutes });
+
     try {
       const response = await fetch(`/api/teams/${teamId}/lineup`, {
         method: 'POST',
@@ -97,9 +108,14 @@ const TeamLineups = () => {
       });
 
       const data = await response.json();
+      console.log('Respuesta del servidor (predeterminada):', data);
+
       if (data.success) {
         setIsSaved(true);
         setIsDefaultSaved(true);
+        console.log('Alineación predeterminada guardada exitosamente');
+      } else {
+        console.error('Error en respuesta:', data);
       }
     } catch (error) {
       console.error('Error guardando alineación predeterminada:', error);
