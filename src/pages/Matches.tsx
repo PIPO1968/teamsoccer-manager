@@ -67,14 +67,22 @@ const Matches = () => {
               : t('matches.teamSchedule')}
           </p>
         </div>
-        {teamId && team && teamId !== team.team_id.toString() && (
+        <div className="flex gap-2">
           <Button
-            variant="outline"
-            onClick={() => navigate(`/matches/${team.team_id}`)}
+            variant="default"
+            onClick={() => navigate(`/team/${effectiveTeamId}/lineups`)}
           >
-            {t('matches.viewMyTeam')}
+            ⚽ Alineaciones
           </Button>
-        )}
+          {teamId && team && teamId !== team.team_id.toString() && (
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/matches/${team.team_id}`)}
+            >
+              {t('matches.viewMyTeam')}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Feature blocks for latest and upcoming matches */}
