@@ -2,6 +2,7 @@
 // ...existing code...
 
 
+
 // Endpoint: fixtures de liga por serie (agrupados por jornada)
 app.get('/series/:id/fixtures', async (req, res) => {
     const seriesId = parseInt(req.params.id, 10);
