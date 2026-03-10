@@ -72,6 +72,7 @@ app.use(cors({
     },
     credentials: true
 }));
+console.log('CORS configurado. allowedOrigins:', allowedOrigins);
 app.use(express.json({ limit: '5mb' }));
 
 // Endpoint: fixtures de liga por serie (agrupados por jornada)
