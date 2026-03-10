@@ -60,10 +60,7 @@ app.delete('/admin/delete-all-matches', async (req, res) => {
 
 // CORS seguro: solo dominios frontend y backend oficiales
 const allowedOrigins = [
-    'https://teamsoccer-manager-production-f836.up.railway.app',
-    'https://thriving-fascination-production.up.railway.app',
-    'http://localhost:8080',
-    'http://localhost:5173'
+    'https://teamsoccer-manager-production-f836.up.railway.app'
 ];
 app.use(cors({
     origin: function (origin, callback) {
