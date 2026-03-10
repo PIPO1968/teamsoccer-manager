@@ -35,6 +35,7 @@ export type PlayerData = {
   owned_since: string | null;
   goalkeeper?: number;
   crosses?: number;
+  creativity?: number;
   ball_control?: number;
   avatar_seed?: string;
   avatar_hair_style?: number;

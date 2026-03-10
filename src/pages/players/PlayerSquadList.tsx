@@ -146,6 +146,7 @@ export default function PlayerSquadList({ players }: PlayerSquadListProps) {
                   { skill: "dribbling", value: player.dribbling },
                   { skill: "heading", value: player.heading },
                   { skill: "crosses", value: (player as any).crosses },
+                  { skill: "ball_control", value: (player as any).ball_control },
                   { skill: "goalkeeper", value: (player as any).goalkeeper },
                 ].map(({ skill, value }) => (
                   <div key={skill} className="flex items-center gap-2">
