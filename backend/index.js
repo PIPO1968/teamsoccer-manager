@@ -114,9 +114,16 @@ const initDb = async () => {
         `);
         await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS goalkeeper INTEGER DEFAULT 30`);
         await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS crosses INTEGER DEFAULT 30`);
-        await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS creativity INTEGER DEFAULT 30`);
         await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS ball_control INTEGER DEFAULT 30`);
         await client.query(`ALTER TABLE players ADD COLUMN IF NOT EXISTS image_url TEXT`);
+
+        // Actualizar image_url para jugadores que no tienen
+        await client.query(`
+            UPDATE players
+            SET image_url = 'https://api.dicebear.com/9.x/avataaars/svg?seed=' || encode(first_name::bytea || last_name::bytea, 'base64')
+            WHERE image_url IS NULL AND first_name IS NOT NULL AND last_name IS NOT NULL
+        `);
+
         await client.query(`ALTER TABLE manager_license_tests ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE`);
         // Tabla series (liga competitiva)
         await client.query(`
@@ -748,15 +755,15 @@ const createInitialPlayers = async (client, teamId, countryId) => {
             `INSERT INTO players (
                 first_name, last_name, position, age, nationality_id, team_id,
                 value, wage, fitness, form, contract_until,
-                finishing, pace, passing, defense, dribbling, heading, stamina, goalkeeper, crosses, ball_control, creativity,
+                finishing, pace, passing, defense, dribbling, heading, stamina, goalkeeper, crosses, ball_control,
                 goals, assists, matches_played, minutes_played, rating,
                 personality, experience, leadership, loyalty, owned_since, image_url
             ) VALUES (
                 $1,$2,$3,$4,$5,$6,
                 $7,$8,$9,$10,$11,
-                $12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,
-                $23,$24,$25,$26,$27,
-                $28,$29,$30,$31,$32,$33
+                $12,$13,$14,$15,$16,$17,$18,$19,$20,$21,
+                $22,$23,$24,$25,$26,
+                $27,$28,$29,$30,$31,$32
             )`,
             [
                 firstName, lastName, positions[i], age, numericCountryId, teamId,
@@ -764,7 +771,7 @@ const createInitialPlayers = async (client, teamId, countryId) => {
                 randBetween(75, 100), 'Good', '2027',
                 randBetween(40, 85), randBetween(40, 85), randBetween(40, 85),
                 randBetween(40, 85), randBetween(40, 85), randBetween(40, 85), randBetween(40, 85), gkStat,
-                randBetween(20, 80), randBetween(40, 85), randBetween(40, 85),
+                randBetween(20, 80), randBetween(40, 85),
                 0, 0, 0, 0, rating,
                 randBetween(40, 80), randBetween(40, 80), randBetween(40, 80), randBetween(40, 80),
                 new Date(), imageUrl

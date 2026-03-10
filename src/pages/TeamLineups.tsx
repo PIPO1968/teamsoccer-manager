@@ -99,12 +99,19 @@ const TeamLineups = () => {
                     return (
                     <div
                       key={player.player_id}
-                      className="p-3 bg-gray-100 hover:bg-gray-200 rounded-lg cursor-move border-2 border-gray-300 transition-all"
-                      draggable
-                      title={`${fullName} - ${player.position}`}
+                      className="p-3 bg-gray-100 hover:bg-gray-200 rounded-lg border-2 border-gray-300 transition-all"
                     >
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-gray-400 flex-shrink-0 overflow-hidden">
+                        <div
+                          className="w-10 h-10 rounded-full bg-gray-400 flex-shrink-0 overflow-hidden cursor-move hover:ring-2 hover:ring-blue-500 transition-all"
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData('playerId', String(player.player_id));
+                            e.dataTransfer.setData('playerName', fullName);
+                            e.dataTransfer.effectAllowed = 'move';
+                          }}
+                          title={`Arrastrar ${fullName}`}
+                        >
                           {player.image_url ? (
                             <img src={player.image_url} alt={fullName} className="w-full h-full object-cover" />
                           ) : (
