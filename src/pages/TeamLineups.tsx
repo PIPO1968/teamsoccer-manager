@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import PitchField from "@/components/lineups/PitchField";
 import BenchSlots from "@/components/lineups/BenchSlots";
 import { useAuth } from "@/contexts/AuthContext";
+import { PlayerAvatar } from "@/components/avatar/PlayerAvatar";
 
 const TeamLineups = () => {
   const { teamId } = useParams<{ teamId: string }>();
@@ -18,6 +19,7 @@ const TeamLineups = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [isDefaultSaved, setIsDefaultSaved] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<string>("alineacion_1");
+  const [playersInPositions, setPlayersInPositions] = useState<{ [key: number]: any }>({});
 
   const handleSave = () => {
     // TODO: Implementar guardado
@@ -39,6 +41,16 @@ const TeamLineups = () => {
   const handleBenchClick = (slotIndex: number) => {
     console.log(`Click en banquillo slot ${slotIndex}`);
     // TODO: Abrir selector de jugador para banquillo
+  };
+
+  const handlePlayerDropped = (positionIndex: number, playerId: number) => {
+    const player = players?.find(p => p.player_id === playerId);
+    if (player) {
+      setPlayersInPositions(prev => ({
+        ...prev,
+        [positionIndex]: player
+      }));
+    }
   };
 
   const isPremium = manager?.is_premium === 1;
@@ -103,7 +115,7 @@ const TeamLineups = () => {
                     >
                       <div className="flex items-center gap-2">
                         <div
-                          className="w-10 h-10 rounded-full bg-gray-400 flex-shrink-0 overflow-hidden cursor-move hover:ring-2 hover:ring-blue-500 transition-all"
+                          className="cursor-move hover:ring-2 hover:ring-blue-500 transition-all"
                           draggable
                           onDragStart={(e) => {
                             e.dataTransfer.setData('playerId', String(player.player_id));
@@ -112,13 +124,7 @@ const TeamLineups = () => {
                           }}
                           title={`Arrastrar ${fullName}`}
                         >
-                          {player.image_url ? (
-                            <img src={player.image_url} alt={fullName} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-xs text-white font-bold">
-                              {fullName.substring(0, 2).toUpperCase()}
-                            </div>
-                          )}
+                          <PlayerAvatar player={player} size="sm" className="w-10 h-10" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold truncate">{fullName}</p>
@@ -142,7 +148,11 @@ const TeamLineups = () => {
               <CardTitle className="text-white">Campo de Juego - Formación 1-4-4-2</CardTitle>
             </CardHeader>
             <CardContent>
-              <PitchField onPositionClick={handlePositionClick} />
+              <PitchField
+                onPositionClick={handlePositionClick}
+                playersInPositions={playersInPositions}
+                onPlayerDropped={handlePlayerDropped}
+              />
               <BenchSlots onSlotClick={handleBenchClick} />
             </CardContent>
           </Card>

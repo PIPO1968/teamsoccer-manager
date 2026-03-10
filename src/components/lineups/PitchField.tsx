@@ -1,9 +1,26 @@
+import { PlayerAvatar } from "@/components/avatar/PlayerAvatar";
+
+interface PlayerInPosition {
+  player_id: number;
+  first_name: string;
+  last_name: string;
+  rating: number;
+  avatar_seed?: string;
+  avatar_hair_style?: number;
+  avatar_hair_color?: number;
+  avatar_skin_tone?: number;
+  avatar_eye_style?: number;
+  avatar_mouth_style?: number;
+  avatar_eyebrows?: number;
+}
 
 interface PitchFieldProps {
   onPositionClick?: (zoneIndex: number, positionIndex: number) => void;
+  playersInPositions?: { [key: number]: PlayerInPosition };
+  onPlayerDropped?: (positionIndex: number, playerId: number) => void;
 }
 
-const PitchField = ({ onPositionClick }: PitchFieldProps) => {
+const PitchField = ({ onPositionClick, playersInPositions = {}, onPlayerDropped }: PitchFieldProps) => {
   // Definir las 26 posiciones del campo (coordenadas relativas en %)
   const positions = [
     // ZONA 1 - ULTRADEFENSIVA (6 posiciones)
@@ -13,28 +30,28 @@ const PitchField = ({ onPositionClick }: PitchFieldProps) => {
     { x: 12, y: 65, zone: 1, label: 'DFC' },         // 3: Defensa central der
     { x: 12, y: 15, zone: 1, label: 'LI' },          // 4: Lateral izquierdo
     { x: 12, y: 85, zone: 1, label: 'LD' },          // 5: Lateral derecho
-    
+
     // ZONA 2 - DEFENSIVA (5 posiciones)
     { x: 25, y: 20, zone: 2, label: 'DEF' },         // 6
     { x: 25, y: 35, zone: 2, label: 'DEF' },         // 7
     { x: 25, y: 50, zone: 2, label: 'DEF' },         // 8
     { x: 25, y: 65, zone: 2, label: 'DEF' },         // 9
     { x: 25, y: 80, zone: 2, label: 'DEF' },         // 10
-    
+
     // ZONA 3 - MEDIA (5 posiciones)
     { x: 45, y: 20, zone: 3, label: 'MC' },          // 11
     { x: 45, y: 35, zone: 3, label: 'MC' },          // 12
     { x: 45, y: 50, zone: 3, label: 'MC' },          // 13
     { x: 45, y: 65, zone: 3, label: 'MC' },          // 14
     { x: 45, y: 80, zone: 3, label: 'MC' },          // 15
-    
+
     // ZONA 4 - OFENSIVA (5 posiciones)
     { x: 65, y: 20, zone: 4, label: 'MP' },          // 16
     { x: 65, y: 35, zone: 4, label: 'MP' },          // 17
     { x: 65, y: 50, zone: 4, label: 'MP' },          // 18
     { x: 65, y: 65, zone: 4, label: 'MP' },          // 19
     { x: 65, y: 80, zone: 4, label: 'MP' },          // 20
-    
+
     // ZONA 5 - FINALIZACIÓN (5 posiciones)
     { x: 85, y: 20, zone: 5, label: 'DEL' },         // 21
     { x: 85, y: 35, zone: 5, label: 'DEL' },         // 22
@@ -57,56 +74,75 @@ const PitchField = ({ onPositionClick }: PitchFieldProps) => {
             </pattern>
           </defs>
           <rect x="0" y="0" width="100" height="66.67" fill="url(#stripes)" />
-          
+
           {/* Líneas blancas del campo */}
           <g stroke="white" strokeWidth="0.3" fill="none">
             {/* Perímetro */}
             <rect x="2" y="2" width="96" height="62.67" />
-            
+
             {/* Línea central */}
             <line x1="50" y1="2" x2="50" y2="64.67" />
-            
+
             {/* Círculo central */}
             <circle cx="50" cy="33.33" r="8" />
-            
+
             {/* Área grande izquierda */}
             <rect x="2" y="16.67" width="16" height="33.33" />
-            
+
             {/* Área pequeña izquierda */}
             <rect x="2" y="24.67" width="6" height="17.33" />
-            
+
             {/* Área grande derecha */}
             <rect x="82" y="16.67" width="16" height="33.33" />
-            
+
             {/* Área pequeña derecha */}
             <rect x="92" y="24.67" width="6" height="17.33" />
-            
+
             {/* Punto de penalti izquierdo */}
             <circle cx="12" cy="33.33" r="0.5" fill="white" />
-            
+
             {/* Punto de penalti derecho */}
             <circle cx="88" cy="33.33" r="0.5" fill="white" />
           </g>
         </svg>
 
         {/* Posiciones (círculos interactivos) */}
-        {positions.map((pos, idx) => (
-          <div
-            key={idx}
-            onClick={() => onPositionClick?.(pos.zone, idx)}
-            className="absolute bg-white/20 hover:bg-white/40 border-2 border-white rounded-full cursor-pointer flex items-center justify-center transition-all"
-            style={{
-              left: `${pos.x}%`,
-              top: `${pos.y}%`,
-              width: '40px',
-              height: '40px',
-              transform: 'translate(-50%, -50%)',
-            }}
-            title={`${pos.label} - Zona ${pos.zone}`}
-          >
-            <span className="text-xs text-white font-bold">{idx + 1}</span>
-          </div>
-        ))}
+        {positions.map((pos, idx) => {
+          const playerInThisPosition = playersInPositions[idx];
+
+          return (
+            <div
+              key={idx}
+              onClick={() => onPositionClick?.(pos.zone, idx)}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                const playerId = e.dataTransfer.getData('playerId');
+                if (playerId && onPlayerDropped) {
+                  onPlayerDropped(idx, parseInt(playerId, 10));
+                }
+              }}
+              className="absolute bg-white/20 hover:bg-white/40 border-2 border-white rounded-full cursor-pointer flex items-center justify-center transition-all"
+              style={{
+                left: `${pos.x}%`,
+                top: `${pos.y}%`,
+                width: '40px',
+                height: '40px',
+                transform: 'translate(-50%, -50%)',
+              }}
+              title={playerInThisPosition ? `${playerInThisPosition.first_name} ${playerInThisPosition.last_name}` : `${pos.label} - Zona ${pos.zone}`}
+            >
+              {playerInThisPosition ? (
+                <PlayerAvatar player={playerInThisPosition as any} size="sm" className="w-10 h-10" />
+              ) : (
+                <span className="text-xs text-white font-bold">{idx + 1}</span>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
