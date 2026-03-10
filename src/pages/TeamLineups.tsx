@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { apiPost, apiFetch } from "@/services/apiClient";
 import { useParams } from "react-router-dom";
@@ -57,15 +56,14 @@ const TeamLineups = () => {
         substitutes,
         isDefault: false
       });
-      console.log('Respuesta del servidor:', data);
-      if (data.success) {
+      const resp = data as any;
+      if (resp.success) {
         setIsSaved(true);
         console.log('Alineación guardada exitosamente');
       } else {
-        console.error('Error en respuesta:', data);
+        console.error('Error en respuesta:', resp);
       }
     } catch (error) {
-      const [rawLineup, setRawLineup] = useState<any>(null);
       console.error('Error guardando alineación:', error);
     }
   };
@@ -97,13 +95,13 @@ const TeamLineups = () => {
         substitutes,
         isDefault: true
       });
-      console.log('Respuesta del servidor (predeterminada):', data);
-      if (data.success) {
+      const resp = data as any;
+      if (resp.success) {
         setIsSaved(true);
         setIsDefaultSaved(true);
         console.log('Alineación predeterminada guardada exitosamente');
       } else {
-        console.error('Error en respuesta:', data);
+        console.error('Error en respuesta:', resp);
       }
     } catch (error) {
       console.error('Error guardando alineación predeterminada:', error);
@@ -154,12 +152,19 @@ const TeamLineups = () => {
     }
   };
 
-  const handleRemoveBenchPlayer = (benchIndex: number) => {
-    setPlayersInBench(prev => {
-      const newBench = { ...prev };
-      delete newBench[benchIndex];
-      return newBench;
+  const handleRemovePlayer = (positionIndex: number) => {
+    // Aquí puedes poner la lógica para quitar un jugador del campo
+    setPlayersInPositions(prev => {
+      const newPositions = { ...prev };
+      delete newPositions[positionIndex];
+      return newPositions;
     });
+  };
+  const handleBenchClick = (benchIndex: number) => {
+    // Aquí puedes poner lógica para click en banquillo si lo necesitas
+  };
+  const handleActionSelect = (action: string) => {
+    // Aquí puedes poner lógica para seleccionar acción táctica
   };
 
   const isPremium = manager?.is_premium === 1;
@@ -172,12 +177,13 @@ const TeamLineups = () => {
       if (!teamId || isLoading || !players || players.length === 0) return;
       try {
         const data = await apiFetch(`/teams/${teamId}/lineup/${selectedSlot}`);
+        const resp = data as any;
         if (!cancelled) {
-          if (data.success && data.lineup) {
+          if (resp.success && resp.lineup) {
             // Mapear posiciones
             const newPositions: { [key: number]: any } = {};
-            if (data.lineup.positions && Array.isArray(data.lineup.positions)) {
-              for (const pos of data.lineup.positions) {
+            if (resp.lineup.positions && Array.isArray(resp.lineup.positions)) {
+              for (const pos of resp.lineup.positions) {
                 const player = players.find(p => p.player_id === pos.player_id);
                 if (player) {
                   newPositions[pos.position_index] = player;
@@ -189,8 +195,8 @@ const TeamLineups = () => {
             setPlayersInPositions(newPositions);
             // Mapear banquillo
             const newBench: { [key: number]: any } = {};
-            if (data.lineup.substitutes && Array.isArray(data.lineup.substitutes)) {
-              for (const sub of data.lineup.substitutes) {
+            if (resp.lineup.substitutes && Array.isArray(resp.lineup.substitutes)) {
+              for (const sub of resp.lineup.substitutes) {
                 const player = players.find(p => p.player_id === sub.player_id);
                 if (player) {
                   newBench[sub.bench_index] = player;
@@ -202,8 +208,8 @@ const TeamLineups = () => {
             setPlayersInBench(newBench);
             // Mapear órdenes tácticas
             const newOrders: { [key: number]: { zone: number; action: string } } = {};
-            if (data.lineup.positions && Array.isArray(data.lineup.positions)) {
-              for (const pos of data.lineup.positions) {
+            if (resp.lineup.positions && Array.isArray(resp.lineup.positions)) {
+              for (const pos of resp.lineup.positions) {
                 if (pos.zone_orders && pos.zone_orders.zone && pos.zone_orders.action) {
                   newOrders[pos.position_index] = {
                     zone: pos.zone_orders.zone,
@@ -214,7 +220,7 @@ const TeamLineups = () => {
             }
             setTacticalOrders(newOrders);
             setIsSaved(true);
-            setIsDefaultSaved(data.lineup.is_default || false);
+            setIsDefaultSaved(resp.lineup.is_default || false);
           } else {
             setPlayersInPositions({});
             setPlayersInBench({});
@@ -232,6 +238,46 @@ const TeamLineups = () => {
     loadLineup();
     return () => { cancelled = true; };
   }, [selectedSlot, teamId, players, isLoading]);
+
+  // Falta la función para arrastrar jugadores al campo
+  const handlePlayerDropped = (positionIndex: number, playerId: number) => {
+    const player = players?.find(p => p.player_id === playerId);
+    if (player) {
+      setPlayersInPositions(prev => {
+        // Liberar la posición anterior si el jugador ya estaba en el campo
+        const newPositions = { ...prev };
+        Object.keys(newPositions).forEach(key => {
+          const posIdx = parseInt(key, 10);
+          if (newPositions[posIdx]?.player_id === playerId) {
+            delete newPositions[posIdx];
+          }
+        });
+        // Asignar el jugador a la nueva posición
+        newPositions[positionIndex] = player;
+        return newPositions;
+      });
+      // Quitar del banquillo si estaba ahí
+      setPlayersInBench(prev => {
+        const newBench = { ...prev };
+        Object.keys(newBench).forEach(key => {
+          const benchIdx = parseInt(key, 10);
+          if (newBench[benchIdx]?.player_id === playerId) {
+            delete newBench[benchIdx];
+          }
+        });
+        return newBench;
+      });
+    }
+  };
+
+  // Handler para quitar jugador del banquillo
+  const handleRemoveBenchPlayer = (benchIndex: number) => {
+    setPlayersInBench(prev => {
+      const newBench = { ...prev };
+      delete newBench[benchIndex];
+      return newBench;
+    });
+  };
 
   return (
     <div className="container mx-auto py-6 px-4">
