@@ -154,6 +154,21 @@ const initDb = async () => {
         await client.query(`ALTER TABLE stadiums ADD COLUMN IF NOT EXISTS seats_covered INTEGER DEFAULT 0`);
         await client.query(`ALTER TABLE stadiums ADD COLUMN IF NOT EXISTS seats_vip INTEGER DEFAULT 0`);
         await client.query(`ALTER TABLE team_finances ADD COLUMN IF NOT EXISTS last_weekly_process TIMESTAMPTZ DEFAULT NULL`);
+        // Tabla de alineaciones (múltiples slots por equipo)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS lineups (
+                lineup_id SERIAL PRIMARY KEY,
+                team_id INTEGER NOT NULL REFERENCES teams(team_id) ON DELETE CASCADE,
+                slot_name TEXT NOT NULL,
+                formation_name TEXT DEFAULT '1-4-4-2',
+                positions JSONB DEFAULT '[]',
+                substitutes JSONB DEFAULT '[]',
+                is_default BOOLEAN DEFAULT FALSE,
+                updated_at TIMESTAMPTZ DEFAULT NOW(),
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                UNIQUE(team_id, slot_name)
+            )
+        `);
         console.log('✅ Tablas verificadas/creadas correctamente');
     } catch (err) {
         console.error('❌ Error creando tablas:', err.message);
@@ -1839,6 +1854,144 @@ app.get('/community/news', async (req, res) => {
              LIMIT 10`
         );
         res.json({ success: true, news: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ===== ENDPOINTS DE ALINEACIONES =====
+
+// Obtener todas las alineaciones guardadas de un equipo
+app.get('/teams/:teamId/lineups', async (req, res) => {
+    const teamId = parseInt(req.params.teamId, 10);
+    if (!teamId) return res.status(400).json({ error: 'teamId inválido' });
+    try {
+        const result = await pool.query(
+            `SELECT lineup_id, team_id, slot_name, formation_name, positions, substitutes, is_default, updated_at
+             FROM lineups WHERE team_id = $1 ORDER BY
+             CASE slot_name
+                WHEN 'predeterminada' THEN 0
+                WHEN 'alineacion_1' THEN 1
+                WHEN 'alineacion_2' THEN 2
+                WHEN 'alineacion_3' THEN 3
+                WHEN 'alineacion_4' THEN 4
+                WHEN 'alineacion_5' THEN 5
+                ELSE 99
+             END`,
+            [teamId]
+        );
+        res.json({ success: true, lineups: result.rows });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Obtener alineación por slot específico
+app.get('/teams/:teamId/lineup/:slotName', async (req, res) => {
+    const teamId = parseInt(req.params.teamId, 10);
+    const { slotName } = req.params;
+    if (!teamId) return res.status(400).json({ error: 'teamId inválido' });
+    try {
+        const result = await pool.query(
+            `SELECT lineup_id, team_id, slot_name, formation_name, positions, substitutes, is_default, updated_at
+             FROM lineups WHERE team_id = $1 AND slot_name = $2`,
+            [teamId, slotName]
+        );
+        if (result.rows.length === 0) {
+            return res.json({ success: true, lineup: null });
+        }
+        res.json({ success: true, lineup: result.rows[0] });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Guardar/actualizar alineación
+app.post('/teams/:teamId/lineup', async (req, res) => {
+    const teamId = parseInt(req.params.teamId, 10);
+    const { slotName, formationName, positions, substitutes, isDefault } = req.body;
+    if (!teamId || !slotName) return res.status(400).json({ error: 'Faltan datos requeridos' });
+    try {
+        // Si se marca como predeterminada, desmarcar las demás
+        if (isDefault) {
+            await pool.query('UPDATE lineups SET is_default = FALSE WHERE team_id = $1', [teamId]);
+        }
+        const result = await pool.query(
+            `INSERT INTO lineups (team_id, slot_name, formation_name, positions, substitutes, is_default)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             ON CONFLICT (team_id, slot_name)
+             DO UPDATE SET
+                formation_name = EXCLUDED.formation_name,
+                positions = EXCLUDED.positions,
+                substitutes = EXCLUDED.substitutes,
+                is_default = EXCLUDED.is_default,
+                updated_at = NOW()
+             RETURNING lineup_id`,
+            [teamId, slotName, formationName || '1-4-4-2', JSON.stringify(positions || []), JSON.stringify(substitutes || []), isDefault || false]
+        );
+        res.json({ success: true, lineup_id: result.rows[0].lineup_id });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Obtener alineación por defecto (o generar automática 1-4-4-2 si no existe)
+app.get('/teams/:teamId/lineup/default', async (req, res) => {
+    const teamId = parseInt(req.params.teamId, 10);
+    if (!teamId) return res.status(400).json({ error: 'teamId inválido' });
+    try {
+        // Buscar alineación marcada como predeterminada
+        let result = await pool.query(
+            `SELECT lineup_id, team_id, slot_name, formation_name, positions, substitutes, is_default, updated_at
+             FROM lineups WHERE team_id = $1 AND is_default = TRUE`,
+            [teamId]
+        );
+        if (result.rows.length > 0) {
+            return res.json({ success: true, lineup: result.rows[0] });
+        }
+        // Si no hay predeterminada, buscar la primera guardada
+        result = await pool.query(
+            `SELECT lineup_id, team_id, slot_name, formation_name, positions, substitutes, is_default, updated_at
+             FROM lineups WHERE team_id = $1 ORDER BY created_at ASC LIMIT 1`,
+            [teamId]
+        );
+        if (result.rows.length > 0) {
+            return res.json({ success: true, lineup: result.rows[0] });
+        }
+        // Si no hay ninguna alineación guardada, generar automática 1-4-4-2
+        const players = await pool.query(
+            `SELECT player_id FROM players WHERE team_id = $1 ORDER BY player_id ASC LIMIT 11`,
+            [teamId]
+        );
+        if (players.rows.length < 11) {
+            return res.json({ success: true, lineup: null, message: 'No hay suficientes jugadores para generar alineación' });
+        }
+        // Posiciones para formación 1-4-4-2 (índices de las 26 posiciones del campo)
+        const defaultPositions = [
+            { player_id: players.rows[0].player_id, position_index: 0, zone_orders: {} }, // Portero
+            { player_id: players.rows[1].player_id, position_index: 6, zone_orders: {} }, // Defensa 1
+            { player_id: players.rows[2].player_id, position_index: 7, zone_orders: {} }, // Defensa 2
+            { player_id: players.rows[3].player_id, position_index: 8, zone_orders: {} }, // Defensa 3
+            { player_id: players.rows[4].player_id, position_index: 9, zone_orders: {} }, // Defensa 4
+            { player_id: players.rows[5].player_id, position_index: 11, zone_orders: {} }, // Medio 1
+            { player_id: players.rows[6].player_id, position_index: 12, zone_orders: {} }, // Medio 2
+            { player_id: players.rows[7].player_id, position_index: 13, zone_orders: {} }, // Medio 3
+            { player_id: players.rows[8].player_id, position_index: 14, zone_orders: {} }, // Medio 4
+            { player_id: players.rows[9].player_id, position_index: 21, zone_orders: {} }, // Delantero 1
+            { player_id: players.rows[10].player_id, position_index: 22, zone_orders: {} }, // Delantero 2
+        ];
+        res.json({
+            success: true,
+            lineup: {
+                team_id: teamId,
+                slot_name: 'auto_generated',
+                formation_name: '1-4-4-2',
+                positions: defaultPositions,
+                substitutes: [],
+                is_default: false
+            },
+            auto_generated: true
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
