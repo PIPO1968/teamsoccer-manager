@@ -2,7 +2,6 @@
 
 
 
-
 // Endpoint: fixtures de liga por serie (agrupados por jornada)
 app.get('/series/:id/fixtures', async (req, res) => {
     const seriesId = parseInt(req.params.id, 10);
@@ -78,6 +77,7 @@ dotenv.config({ path: './.env' });
 
 
 const app = express();
+
 
 // Endpoint: fixtures de liga por serie (agrupados por jornada)
 app.get('/series/:id/fixtures', async (req, res) => {
