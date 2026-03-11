@@ -10,7 +10,6 @@ import http from 'http';
 
 dotenv.config({ path: './.env' });
 
-const app = express();
 
 // Endpoint: obtener la temporada actual
 app.get('/meta/current-season', async (req, res) => {
