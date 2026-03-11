@@ -27,14 +27,6 @@ app.get('/meta/current-season', async (req, res) => {
         res.status(500).json({ success: false, error: err.message });
     }
 });
-import express from 'express';
-import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
-import { Pool } from 'pg';
-import cors from 'cors';
-import bcrypt from 'bcryptjs';
-import https from 'https';
-import http from 'http';
 
 // Cambio menor para forzar build Railway - 2026-03-10
 
