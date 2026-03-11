@@ -17,7 +17,7 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-teamsoccer-green">
       <GameStatusBar />
-      
+
       <div className="container mx-auto px-4 py-8">
         <div className="grid md:grid-cols-[300px,2fr] gap-6">
           {/* Get Started Section */}
@@ -54,7 +54,7 @@ const Landing = () => {
               <div className="aspect-video bg-gradient-to-b from-sky-400 to-sky-300 rounded-lg mb-6 flex items-center justify-center relative overflow-hidden">
                 <img
                   src="/teamsoccer-assets/06dfc4b1-c0ea-4de3-af56-84bcea0a199e.png"
-                  alt="Football Manager Game"
+                  alt="Team Soccer Manager principal"
                   className="w-full h-full object-contain"
                 />
               </div>
@@ -86,15 +86,15 @@ const Landing = () => {
             {/* Discord Community Section */}
             <Card className="bg-gray-800 p-6 text-white">
               <h3 className="text-lg font-bold mb-4 text-gray-300">{t('landing.discordTitle')}</h3>
-              
+
               {/* Discord Widget */}
               <div className="flex justify-center">
-                <iframe 
-                  src="https://discord.com/widget?id=1376202436632514681&theme=dark" 
-                  width="350" 
-                  height="500" 
+                <iframe
+                  src="https://discord.com/widget?id=1376202436632514681&theme=dark"
+                  width="350"
+                  height="500"
                   allowTransparency={true}
-                  frameBorder="0" 
+                  frameBorder="0"
                   sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts"
                   className="rounded-lg"
                 />
