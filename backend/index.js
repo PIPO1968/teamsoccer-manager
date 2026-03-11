@@ -1,7 +1,5 @@
 
 
-// ...después de la inicialización de app...
-
 // Después de la inicialización de app
 app.get('/', (req, res) => {
     res.send('TeamSoccer API - Backend funcionando');
