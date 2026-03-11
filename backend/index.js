@@ -1,9 +1,5 @@
 
 
-// Después de la inicialización de app
-app.get('/', (req, res) => {
-    res.send('TeamSoccer API - Backend funcionando');
-});
 
 import express from 'express';
 import jwt from 'jsonwebtoken';
@@ -4560,8 +4556,10 @@ app.get('/series/:id/hierarchy', async (req, res) => {
     }
 });
 
+
+// Endpoint raíz después de inicialización de app
 app.get('/', (req, res) => {
-    res.send('Backend TeamSoccer funcionando');
+    res.send('TeamSoccer API - Backend funcionando');
 });
 
 const PORT = process.env.PORT || 3001;
