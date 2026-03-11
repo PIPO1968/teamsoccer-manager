@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { 
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -10,6 +10,7 @@ import { PlayerData } from '@/hooks/useTeamPlayers';
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { generatePersonalityDescription } from "@/utils/playerTraits";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface PlayerDetailsDialogProps {
   player: PlayerData | null;
@@ -17,21 +18,22 @@ interface PlayerDetailsDialogProps {
   onClose: () => void;
 }
 
-const PlayerDetailsDialog: React.FC<PlayerDetailsDialogProps> = ({ 
-  player, 
-  isOpen, 
-  onClose 
+const PlayerDetailsDialog: React.FC<PlayerDetailsDialogProps> = ({
+  player,
+  isOpen,
+  onClose
 }) => {
+  const { t } = useLanguage();
   if (!player) return null;
 
-  // Convert player attribute to a visual percentage
-  const toPercentage = (value: number) => (value / 20) * 100;
-  
-  // Get a color based on attribute value
+  // Convert player attribute (0-100) to visual percentage
+  const toPercentage = (value: number) => value;
+
+  // Get a color based on attribute value (0-100 scale)
   const getAttributeColor = (value: number) => {
-    if (value >= 15) return "bg-green-500";
-    if (value >= 10) return "bg-yellow-500";
-    if (value >= 5) return "bg-orange-500";
+    if (value >= 70) return "bg-green-500";
+    if (value >= 45) return "bg-yellow-500";
+    if (value >= 25) return "bg-orange-500";
     return "bg-red-500";
   };
 
@@ -42,7 +44,7 @@ const PlayerDetailsDialog: React.FC<PlayerDetailsDialogProps> = ({
     }
     return `$${(value / 1000).toFixed(0)}K`;
   };
-  
+
   // Format player wage to display as thousands per week
   const formatWage = (wage: number) => {
     return `$${(wage / 1000).toFixed(0)}K/week`;
@@ -82,15 +84,15 @@ const PlayerDetailsDialog: React.FC<PlayerDetailsDialogProps> = ({
         <div className="p-4 space-y-4">
           <div className="flex items-center gap-4">
             <div className="bg-gray-100 rounded-lg p-3 flex-1">
-              <div className="text-xs text-gray-500">Value</div>
+              <div className="text-xs text-gray-500">{t('player.value')}</div>
               <div className="font-medium text-yellow-600">{formatValue(player.value)}</div>
             </div>
             <div className="bg-gray-100 rounded-lg p-3 flex-1">
-              <div className="text-xs text-gray-500">Wage</div>
+              <div className="text-xs text-gray-500">{t('player.wage')}</div>
               <div className="font-medium">{formatWage(player.wage)}</div>
             </div>
             <div className="bg-gray-100 rounded-lg p-3 flex-1">
-              <div className="text-xs text-gray-500">Fitness</div>
+              <div className="text-xs text-gray-500">{t('player.fitness')}</div>
               <div className="font-medium">
                 <Badge variant={player.fitness >= 90 ? "default" : player.fitness >= 70 ? "secondary" : "destructive"}>
                   {player.fitness}%
@@ -106,62 +108,25 @@ const PlayerDetailsDialog: React.FC<PlayerDetailsDialogProps> = ({
           <div className="space-y-3">
             <h4 className="font-medium text-gray-800">Attributes</h4>
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm font-medium">Pace</span>
-                  <span className="text-xs">{player.pace}/20</span>
+              {[
+                { key: 'pace', value: player.pace },
+                { key: 'finishing', value: player.finishing },
+                { key: 'passing', value: player.passing },
+                { key: 'dribbling', value: player.dribbling },
+                { key: 'defense', value: player.defense },
+                { key: 'heading', value: player.heading },
+                { key: 'stamina', value: player.stamina },
+                { key: 'goalkeeper', value: (player as any).goalkeeper ?? 0 },
+              ].map(({ key, value }) => (
+                <div key={key}>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-sm font-medium">{t(`player.skill.${key}`)}</span>
+                    <span className="text-xs">{value}</span>
+                  </div>
+                  <Progress value={toPercentage(value)} className="h-2"
+                    indicatorClassName={getAttributeColor(value)} />
                 </div>
-                <Progress value={toPercentage(player.pace)} className="h-2" 
-                  indicatorClassName={getAttributeColor(player.pace)} />
-              </div>
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm font-medium">Finishing</span>
-                  <span className="text-xs">{player.finishing}/20</span>
-                </div>
-                <Progress value={toPercentage(player.finishing)} className="h-2"
-                  indicatorClassName={getAttributeColor(player.finishing)} />
-              </div>
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm font-medium">Passing</span>
-                  <span className="text-xs">{player.passing}/20</span>
-                </div>
-                <Progress value={toPercentage(player.passing)} className="h-2"
-                  indicatorClassName={getAttributeColor(player.passing)} />
-              </div>
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm font-medium">Dribbling</span>
-                  <span className="text-xs">{player.dribbling}/20</span>
-                </div>
-                <Progress value={toPercentage(player.dribbling)} className="h-2"
-                  indicatorClassName={getAttributeColor(player.dribbling)} />
-              </div>
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm font-medium">Defense</span>
-                  <span className="text-xs">{player.defense}/20</span>
-                </div>
-                <Progress value={toPercentage(player.defense)} className="h-2"
-                  indicatorClassName={getAttributeColor(player.defense)} />
-              </div>
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm font-medium">Heading</span>
-                  <span className="text-xs">{player.heading}/20</span>
-                </div>
-                <Progress value={toPercentage(player.heading)} className="h-2"
-                  indicatorClassName={getAttributeColor(player.heading)} />
-              </div>
-              <div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm font-medium">Stamina</span>
-                  <span className="text-xs">{player.stamina}/20</span>
-                </div>
-                <Progress value={toPercentage(player.stamina)} className="h-2"
-                  indicatorClassName={getAttributeColor(player.stamina)} />
-              </div>
+              ))}
             </div>
           </div>
 

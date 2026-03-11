@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 
 export type TeamFinances = {
   id: string;
@@ -27,33 +27,28 @@ export const useTeamFinances = (teamId: string | undefined) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchFinances = async () => {
+    if (!teamId) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const data = await apiFetch<{ success: boolean; finances: TeamFinances }>(
+        `/teams/${parseInt(teamId)}/finances`
+      );
+      setFinances(data.finances);
+      setIsLoading(false);
+    } catch (err) {
+      console.error("Error fetching finances:", err);
+      setError(err instanceof Error ? err.message : "Error fetching financial data");
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchFinances = async () => {
-      if (!teamId) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const { data, error: fetchError } = await supabase
-          .from("team_finances")
-          .select("*")
-          .eq("team_id", parseInt(teamId))
-          .maybeSingle();
-
-        if (fetchError) throw fetchError;
-        
-        setFinances(data);
-        setIsLoading(false);
-      } catch (err) {
-        console.error("Error fetching finances:", err);
-        setError(err instanceof Error ? err.message : "Error fetching financial data");
-        setIsLoading(false);
-      }
-    };
-
     fetchFinances();
   }, [teamId]);
 
-  return { finances, isLoading, error };
+  return { finances, isLoading, error, refetch: fetchFinances };
 };

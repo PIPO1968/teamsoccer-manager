@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-// import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 import { useToast } from "@/hooks/use-toast";
 import { PlayerData } from "@/hooks/useTeamPlayers";
 
@@ -15,18 +15,15 @@ export const useTrainingManagement = (players: PlayerData[]) => {
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
-  // Load existing training assignments
   useEffect(() => {
     const loadTrainingAssignments = async () => {
       if (!players.length) return;
+      const teamId = players[0]?.team_id;
+      if (!teamId) return;
       try {
-        const response = await fetch('/api/training/assignments', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ playerIds: players.map(p => p.player_id) })
-        });
-        if (!response.ok) throw new Error('No se pudo obtener asignaciones de entrenamiento');
-        const data = await response.json();
+        const data = await apiFetch<{ success: boolean; assignments: any[] }>(
+          `/teams/${teamId}/training`
+        );
         const trainingMap = new Map<number, PlayerTraining>();
         (data.assignments || []).forEach(assignment => {
           trainingMap.set(assignment.player_id, {
@@ -70,13 +67,10 @@ export const useTrainingManagement = (players: PlayerData[]) => {
         training_intensity: training.intensity
       }));
 
-      const { error } = await supabase
-        .from('player_training_assignments')
-        .upsert(assignments, {
-          onConflict: 'player_id'
-        });
-
-      if (error) throw error;
+      await apiFetch('/players/training/batch', {
+        method: 'POST',
+        body: JSON.stringify({ assignments }),
+      });
 
       toast({
         title: "Training Saved",
@@ -94,11 +88,5 @@ export const useTrainingManagement = (players: PlayerData[]) => {
     }
   };
 
-  return {
-    playerTrainings,
-    isSaving,
-    handleTrainingTypeChange,
-    handleIntensityChange,
-    saveAllTrainings
-  };
+  return { playerTrainings, isSaving, handleTrainingTypeChange, handleIntensityChange, saveAllTrainings };
 };

@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 
 export type PlayerData = {
   player_id: number;
@@ -33,6 +33,10 @@ export type PlayerData = {
   leadership: number;
   loyalty: number;
   owned_since: string | null;
+  goalkeeper?: number;
+  crosses?: number;
+  creativity?: number;
+  ball_control?: number;
   avatar_seed?: string;
   avatar_hair_style?: number;
   avatar_hair_color?: number;
@@ -43,6 +47,7 @@ export type PlayerData = {
   avatar_eyebrows?: number;
   avatar_shirt_color?: number;
   avatar_background_color?: number;
+  image_url?: string;
 };
 
 export const useTeamPlayers = (teamId: string | undefined) => {
@@ -58,24 +63,10 @@ export const useTeamPlayers = (teamId: string | undefined) => {
 
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from("players")
-        .select(`
-          *, 
-          leagues_regions:nationality_id (name)
-        `)
-        .eq("team_id", parseInt(teamId))
-        .order("position");
-
-      if (error) throw error;
-
-      // Map the data to include nationality from the join
-      const playersWithNationality = data?.map(player => ({
-        ...player,
-        nationality: player.leagues_regions?.name || 'Unknown'
-      })) || [];
-
-      setPlayers(playersWithNationality as PlayerData[]);
+      const data = await apiFetch<{ success: boolean; players: PlayerData[] }>(
+        `/teams/${parseInt(teamId)}/players`
+      );
+      setPlayers(data.players || []);
       setIsLoading(false);
     } catch (err) {
       console.error("Error fetching players:", err);

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StadiumMatch } from "@/hooks/useStadiumMatches";
 import { format, parseISO } from "date-fns";
 import { Link } from "react-router-dom";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface StadiumMatchesSectionProps {
   title: string;
@@ -12,11 +13,12 @@ interface StadiumMatchesSectionProps {
 }
 
 export const StadiumMatchesSection = ({ title, matches, emptyMessage, showResult = false }: StadiumMatchesSectionProps) => {
+  const { t } = useLanguage();
   const formatMatchDate = (dateString: string) => {
     try {
       return format(parseISO(dateString), "dd-MM-yyyy HH:mm");
     } catch {
-      return "Invalid date";
+      return t('stadium.invalidDate');
     }
   };
 
@@ -27,7 +29,7 @@ export const StadiumMatchesSection = ({ title, matches, emptyMessage, showResult
           {title}
           {matches.length > 0 && (
             <span className="ml-2 text-sm text-gray-500 font-normal">
-              ({matches.length} match{matches.length !== 1 ? 'es' : ''})
+              ({matches.length} {t('stadium.matches')})
             </span>
           )}
         </CardTitle>
@@ -40,11 +42,10 @@ export const StadiumMatchesSection = ({ title, matches, emptyMessage, showResult
         ) : (
           <div className="divide-y divide-gray-100">
             {matches.map((match, index) => (
-              <div 
-                key={match.match_id} 
-                className={`flex items-center justify-between p-6 hover:bg-gray-50/50 transition-colors ${
-                  index === 0 ? 'border-t-0' : ''
-                }`}
+              <div
+                key={match.match_id}
+                className={`flex items-center justify-between p-6 hover:bg-gray-50/50 transition-colors ${index === 0 ? 'border-t-0' : ''
+                  }`}
               >
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                   {/* Date and Time */}
@@ -58,7 +59,7 @@ export const StadiumMatchesSection = ({ title, matches, emptyMessage, showResult
                       <span className="font-semibold text-gray-900 text-right flex-1">
                         {match.home_team_name}
                       </span>
-                      
+
                       {match.status === 'completed' ? (
                         <div className="flex items-center space-x-2 px-3 py-1 bg-gray-100 rounded-lg min-w-[80px] justify-center">
                           <span className="font-bold text-lg">
@@ -70,12 +71,12 @@ export const StadiumMatchesSection = ({ title, matches, emptyMessage, showResult
                           <span className="text-blue-600 font-medium text-sm">vs</span>
                         </div>
                       )}
-                      
+
                       <span className="font-semibold text-gray-900 text-left flex-1">
                         {match.away_team_name}
                       </span>
                     </div>
-                    
+
                     <div className="text-center mt-2">
                       <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
                         {match.competition}
@@ -85,11 +86,11 @@ export const StadiumMatchesSection = ({ title, matches, emptyMessage, showResult
 
                   {/* View Match Link */}
                   <div className="flex items-center justify-end">
-                    <Link 
+                    <Link
                       to={`/match/${match.match_id}`}
                       className="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium px-3 py-1 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors"
                     >
-                      View Match
+                      {t('stadium.viewMatch')}
                     </Link>
                   </div>
                 </div>

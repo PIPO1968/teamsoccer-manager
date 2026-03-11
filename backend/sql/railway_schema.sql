@@ -1,3 +1,5 @@
+-- Añadir columna nationality a players para el mercado de transferencias
+ALTER TABLE players ADD COLUMN IF NOT EXISTS nationality text;
 -- Railway Postgres schema for TeamSoccer
 -- Run this in Railway console or via psql.
 
@@ -50,7 +52,7 @@ CREATE TABLE IF NOT EXISTS teams (
 CREATE TABLE IF NOT EXISTS stadiums (
   stadium_id serial PRIMARY KEY,
   name text NOT NULL,
-  capacity integer DEFAULT 15000,
+  capacity integer DEFAULT 2500,
   team_id integer UNIQUE REFERENCES teams(team_id) ON DELETE CASCADE,
   build_date timestamptz,
   created_at timestamptz DEFAULT now(),
@@ -60,7 +62,7 @@ CREATE TABLE IF NOT EXISTS stadiums (
 CREATE TABLE IF NOT EXISTS team_finances (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   team_id integer UNIQUE REFERENCES teams(team_id) ON DELETE CASCADE,
-  cash_balance integer DEFAULT 2500000,
+  cash_balance integer DEFAULT 1000000,
   weekly_income integer DEFAULT 0,
   weekly_expenses integer DEFAULT 0,
   match_income integer DEFAULT 0,

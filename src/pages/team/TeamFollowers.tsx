@@ -7,6 +7,7 @@ import { Heart } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTeamFollowers } from "@/hooks/useTeamFollowers";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface TeamFollowersProps {
   teamId: string | undefined;
@@ -15,7 +16,8 @@ interface TeamFollowersProps {
 export default function TeamFollowers({ teamId }: TeamFollowersProps) {
   const { followers, followerCount, isFollowing, isLoading, toggleFollow } = useTeamFollowers(teamId);
   const { manager } = useAuth();
-  
+  const { t } = useLanguage();
+
   // Determine if the current team is the manager's own team
   const isOwnTeam = manager?.team_id === parseInt(teamId || '0');
 
@@ -23,7 +25,7 @@ export default function TeamFollowers({ teamId }: TeamFollowersProps) {
     return (
       <Card>
         <CardContent className="p-4">
-          <h2 className="font-semibold mb-3">Team Followers</h2>
+          <h2 className="font-semibold mb-3">{t('team.teamFollowers')}</h2>
           <Skeleton className="h-4 w-3/4 mb-3" />
           <Skeleton className="h-10 w-full mb-4" />
           <div className="space-y-2">
@@ -39,19 +41,19 @@ export default function TeamFollowers({ teamId }: TeamFollowersProps) {
   return (
     <Card>
       <CardContent className="p-4">
-        <h2 className="font-semibold mb-3">Team Followers</h2>
+        <h2 className="font-semibold mb-3">{t('team.teamFollowers')}</h2>
         <div className="text-sm text-muted-foreground mb-4">
-          This team has {followerCount} {followerCount === 1 ? 'follower' : 'followers'}.
+          {t('team.followersCount').replace('{count}', String(followerCount))}
         </div>
-        
+
         {!isOwnTeam && manager && (
-          <Button 
+          <Button
             onClick={toggleFollow}
             className="w-full mb-4"
             variant={isFollowing ? "outline" : "default"}
           >
             <Heart className={`mr-2 h-4 w-4 ${isFollowing ? 'fill-red-500 text-red-500' : ''}`} />
-            {isFollowing ? 'Unfollow' : 'Follow'} Team
+            {isFollowing ? t('team.unfollow') : t('team.followTeam')}
           </Button>
         )}
 

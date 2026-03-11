@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { apiFetch } from "@/services/apiClient";
 
 export type SeriesInfo = {
   series_id: number;
@@ -30,10 +31,7 @@ export const useLeagueHierarchy = (currentSeriesId: string | undefined) => {
       setIsLoading(true);
       setError(null);
       try {
-        // Llama a la API Express para obtener la jerarquía de series
-        const response = await fetch(`/api/series/${currentSeriesId}/hierarchy`);
-        if (!response.ok) throw new Error("No se pudo obtener la jerarquía de series");
-        const data = await response.json();
+        const data = await apiFetch<{ success: boolean; currentSeries: SeriesInfo | null; higherSeries: SeriesInfo | null; lowerSeries: SeriesInfo | null }>(`/series/${currentSeriesId}/hierarchy`);
         setCurrentSeries(data.currentSeries || null);
         setHigherSeries(data.higherSeries || null);
         setLowerSeries(data.lowerSeries || null);

@@ -5,7 +5,7 @@
 export const specialCases: Record<string, string> = {
   // Common variations and special cases
   'England': 'gb-eng',
-  'Scotland': 'gb-sct', 
+  'Scotland': 'gb-sct',
   'Wales': 'gb-wls',
   'Northern Ireland': 'gb-nir',
   'United States': 'us',
@@ -49,9 +49,58 @@ export const specialCases: Record<string, string> = {
   'Costa Rica': 'cr', // Added mapping for Costa Rica
   'Dominican Republic': 'do', // Added mapping for Dominican Republic
   'El Salvador': 'sv', // Added mapping for El Salvador
-  'North Macedonia': 'mk', // Added mapping for North Macedonia
-  'Puerto Rico': 'pr', // Added mapping for Puerto Rico
-  'United Arab Emirates': 'ae', // Added mapping for United Arab Emirates
+  'North Macedonia': 'mk',
+  'Puerto Rico': 'pr',
+  'United Arab Emirates': 'ae',
+  // Territories & dependencies
+  'Aruba': 'aw',
+  'Bermuda': 'bm',
+  'Eritrea': 'er',
+  'Eswatini': 'sz',
+  'Burundi': 'bi',
+  'Anguilla': 'ai',
+  'Greenland': 'gl',
+  'Pitcairn': 'pn',
+  'Jersey': 'je',
+  'Botswana': 'bw',
+  'Palestine': 'ps',
+  'Tokelau': 'tk',
+  'Kosovo': 'xk',
+  'Guernsey': 'gg',
+  'Guam': 'gu',
+  'Gibraltar': 'gi',
+  'Montserrat': 'ms',
+  'Niue': 'nu',
+  'Curacao': 'cw',
+  'Macedonia': 'mk',
+  'Antarctica': 'aq',
+  'South Sudan': 'ss',
+  'Saint Helena': 'sh',
+  'Sao Tome and Principe': 'st',
+  'British Indian Ocean Territory': 'io',
+  'French Polynesia': 'pf',
+  'Sint Maarten': 'sx',
+  'Western Sahara': 'eh',
+  'Svalbard and Jan Mayen': 'sj',
+  'Faroe Islands': 'fo',
+  'Cayman Islands': 'ky',
+  'Cocos Islands': 'cc',
+  'U.S. Virgin Islands': 'vi',
+  'Northern Mariana Islands': 'mp',
+  'Saint Barthelemy': 'bl',
+  'Turks and Caicos Islands': 'tc',
+  'American Samoa': 'as',
+  'Falkland Islands': 'fk',
+  'Saint Martin': 'mf',
+  'Isle of Man': 'im',
+  'British Virgin Islands': 'vg',
+  'Wallis and Futuna': 'wf',
+  'Norfolk Island': 'nf',
+  'Saint Pierre and Miquelon': 'pm',
+  'Christmas Island': 'cx',
+  'Cook Islands': 'ck',
+  'New Caledonia': 'nc',
+  'DR Congo': 'cd',
 };
 
 /**
@@ -61,20 +110,20 @@ export const specialCases: Record<string, string> = {
  */
 export function getCountryCode(countryName: string): string {
   if (!countryName) return '';
-  
+
   // Check special cases first
   const specialCase = specialCases[countryName];
   if (specialCase) {
     return specialCase;
   }
-  
+
   // For most countries, we can derive the code by:
   // 1. Converting to lowercase
   // 2. Replacing spaces with nothing or handling common patterns
   const normalized = countryName.toLowerCase()
     .replace(/\s+/g, '')
     .replace(/[^a-z]/g, '');
-  
+
   // Common country mappings that follow patterns
   const commonMappings: Record<string, string> = {
     'afghanistan': 'af',
@@ -234,6 +283,6 @@ export function getCountryCode(countryName: string): string {
     'zambia': 'zm',
     'zimbabwe': 'zw',
   };
-  
+
   return commonMappings[normalized] || '';
 }

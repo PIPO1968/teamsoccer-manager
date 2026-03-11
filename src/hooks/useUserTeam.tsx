@@ -27,7 +27,7 @@ export const useUserTeam = () => {
 
     try {
       setIsLoading(true);
-      console.log("Fetching team for manager:", manager.user_id);
+      // Eliminado log de depuración
 
       const response = await apiFetch<{ success: boolean; team: any | null }>(
         `/teams/by-manager/${manager.user_id}`
@@ -69,7 +69,7 @@ export const useUserTeam = () => {
       setTeam(enhancedTeamData);
       setError(null);
     } catch (err) {
-      console.error("Error fetching user team:", err);
+      // Eliminado log de depuración
       setError(err instanceof Error ? err.message : "Error fetching team data");
       setTeam(null);
     } finally {

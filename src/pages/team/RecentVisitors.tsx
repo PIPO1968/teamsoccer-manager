@@ -4,6 +4,7 @@ import { useTeamVisitors } from "@/hooks/useTeamVisitors";
 import { Link } from "react-router-dom";
 import { Users } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface RecentVisitorsProps {
   teamId: string | undefined;
@@ -11,6 +12,7 @@ interface RecentVisitorsProps {
 
 export default function RecentVisitors({ teamId }: RecentVisitorsProps) {
   const { data: visitors, isLoading } = useTeamVisitors(teamId);
+  const { t } = useLanguage();
 
   if (isLoading) return null;
 
@@ -19,7 +21,7 @@ export default function RecentVisitors({ teamId }: RecentVisitorsProps) {
       <CardContent className="p-4">
         <h2 className="font-semibold mb-3 flex items-center gap-2">
           <Users className="h-4 w-4 text-muted-foreground" />
-          Recent Visitors
+          {t('team.recentVisitors')}
         </h2>
         <div className="space-y-2 text-sm">
           {visitors?.length ? (
@@ -37,7 +39,7 @@ export default function RecentVisitors({ teamId }: RecentVisitorsProps) {
               </div>
             ))
           ) : (
-            <p className="text-muted-foreground text-center">No recent visitors</p>
+            <p className="text-muted-foreground text-center">{t('team.noRecentVisitors')}</p>
           )}
         </div>
       </CardContent>

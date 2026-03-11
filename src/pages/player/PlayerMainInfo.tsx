@@ -1,5 +1,7 @@
 
 import { Badge } from "@/components/ui/badge";
+import { localizeCountryName } from "@/utils/countries";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface PlayerMainInfoProps {
   player: any;
@@ -7,6 +9,7 @@ interface PlayerMainInfoProps {
   formatAge: (age: number) => string;
 }
 export default function PlayerMainInfo({ player, formatMoney, formatAge }: PlayerMainInfoProps) {
+  const { language } = useLanguage();
   return (
     <div className="flex-1 flex flex-col gap-2 px-4 py-8">
       <div className="flex flex-col md:flex-row justify-between md:items-end border-b border-blue-100 pb-2 gap-3">
@@ -17,7 +20,7 @@ export default function PlayerMainInfo({ player, formatMoney, formatAge }: Playe
             <span className="text-[13px] text-blue-400 font-mono">#{player.id}</span>
           </div>
           <div className="flex gap-3 text-[14px] text-blue-500 mt-2 flex-wrap">
-            <span>{player.nationality}</span>
+            <span>{player.nationality ? localizeCountryName(player.nationality, language) : player.nationality}</span>
             <span>| Age: <span className="text-blue-800">{player.age}</span></span>
             <span>| {formatAge(player.age)}</span>
           </div>

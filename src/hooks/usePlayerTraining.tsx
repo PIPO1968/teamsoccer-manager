@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 
 export interface PlayerTrainingAssignment {
   id: number;
@@ -25,32 +25,10 @@ export const usePlayerTraining = (teamId: string | undefined) => {
 
       try {
         setIsLoading(true);
-        
-        // Get all player IDs for the team first
-        const { data: players, error: playersError } = await supabase
-          .from("players")
-          .select("player_id")
-          .eq("team_id", parseInt(teamId));
-
-        if (playersError) throw playersError;
-
-        if (!players || players.length === 0) {
-          setAssignments([]);
-          setIsLoading(false);
-          return;
-        }
-
-        const playerIds = players.map(p => p.player_id);
-
-        // Fetch training assignments for these players
-        const { data, error } = await supabase
-          .from("player_training_assignments")
-          .select("*")
-          .in("player_id", playerIds);
-
-        if (error) throw error;
-
-        setAssignments((data as PlayerTrainingAssignment[]) || []);
+        const data = await apiFetch<{ success: boolean; assignments: PlayerTrainingAssignment[] }>(
+          `/teams/${parseInt(teamId)}/training`
+        );
+        setAssignments(data.assignments || []);
         setIsLoading(false);
       } catch (err) {
         console.error("Error fetching training assignments:", err);
@@ -63,35 +41,27 @@ export const usePlayerTraining = (teamId: string | undefined) => {
   }, [teamId]);
 
   const updateTrainingAssignment = async (
-    playerId: number, 
-    trainingType: number, 
+    playerId: number,
+    trainingType: number,
     intensity: number
   ): Promise<boolean> => {
     try {
-      const { error } = await supabase
-        .from("player_training_assignments")
-        .upsert({
-          player_id: playerId,
-          training_type: trainingType,
-          training_intensity: intensity
-        }, {
-          onConflict: 'player_id'
-        });
+      await apiFetch(`/players/${playerId}/training`, {
+        method: 'PUT',
+        body: JSON.stringify({ trainingType, intensity }),
+      });
 
-      if (error) throw error;
-
-      // Update local state
       setAssignments(prev => {
         const existing = prev.find(a => a.player_id === playerId);
         if (existing) {
-          return prev.map(a => 
-            a.player_id === playerId 
+          return prev.map(a =>
+            a.player_id === playerId
               ? { ...a, training_type: trainingType, training_intensity: intensity }
               : a
           );
         } else {
           return [...prev, {
-            id: Date.now(), // Temporary ID
+            id: Date.now(),
             player_id: playerId,
             training_type: trainingType,
             training_intensity: intensity,
@@ -109,10 +79,10 @@ export const usePlayerTraining = (teamId: string | undefined) => {
     }
   };
 
-  return { 
-    assignments, 
-    isLoading, 
-    error, 
-    updateTrainingAssignment 
+  return {
+    assignments,
+    isLoading,
+    error,
+    updateTrainingAssignment
   };
 };

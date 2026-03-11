@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { apiFetch } from "@/services/apiClient";
 
 export type LeagueStats = {
   regionId: number;
@@ -20,14 +21,32 @@ export const useLeagueStats = (leagueId: string | undefined) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // LOG: leagueId recibido
+  useEffect(() => {
+    console.log('[useLeagueStats] leagueId:', leagueId);
+  }, [leagueId]);
+
   useEffect(() => {
     const fetchStats = async () => {
-      if (!leagueId) return;
-      setStats(null);
+      if (!leagueId) {
+        console.warn('[useLeagueStats] leagueId vacío o undefined');
+        setIsLoading(false);
+        return;
+      }
+      setIsLoading(true);
       setError(null);
-      setIsLoading(false);
+      try {
+        const data = await apiFetch<{ success: boolean; stats: LeagueStats }>(`/leagues/${leagueId}`);
+        console.log('[useLeagueStats] Respuesta de apiFetch:', data);
+        setStats(data.stats);
+      } catch (err) {
+        console.error('[useLeagueStats] Error en apiFetch:', err);
+        setError(err instanceof Error ? err.message : 'Error al obtener datos de la liga');
+        setStats(null);
+      } finally {
+        setIsLoading(false);
+      }
     };
-
     fetchStats();
   }, [leagueId]);
 

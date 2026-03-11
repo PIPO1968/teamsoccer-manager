@@ -2,6 +2,7 @@
 import { Table, TableHeader, TableRow, TableHead, TableBody } from "@/components/ui/table";
 import { PlayerData } from "@/hooks/useTeamPlayers";
 import PlayerTrainingRow from "./PlayerTrainingRow";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface TrainingTableProps {
   players: PlayerData[];
@@ -16,14 +17,15 @@ export default function TrainingTable({
   onTrainingTypeChange,
   onIntensityChange
 }: TrainingTableProps) {
+  const { t } = useLanguage();
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Player</TableHead>
-          <TableHead>Position</TableHead>
-          <TableHead>Training Type</TableHead>
-          <TableHead>Intensity</TableHead>
+          <TableHead>{t('training.player')}</TableHead>
+          <TableHead>{t('training.position')}</TableHead>
+          <TableHead>{t('training.trainingType')}</TableHead>
+          <TableHead>{t('training.intensity')}</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

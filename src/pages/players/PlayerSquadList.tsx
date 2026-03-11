@@ -6,6 +6,8 @@ import { Progress } from "@/components/ui/progress";
 import { PlayerData } from "@/hooks/useTeamPlayers";
 import { Flag } from "@/components/ui/flag";
 import { PlayerAvatar } from "@/components/avatar/PlayerAvatar";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { localizeCountryName } from "@/utils/countries";
 
 const SKILL_LEVELS = [
   { min: 1, name: "poor", color: "bg-red-500" },
@@ -50,12 +52,22 @@ interface PlayerSquadListProps {
 }
 
 export default function PlayerSquadList({ players }: PlayerSquadListProps) {
+  const { t, language } = useLanguage();
+
   const getSkillColor = (level: number) => {
     if (level >= 15) return "bg-violet-500";
     if (level >= 12) return "bg-blue-500";
     if (level >= 9) return "bg-green-500";
     if (level >= 6) return "bg-amber-500";
     return "bg-red-500";
+  };
+
+  const formKey = (form: string) => {
+    const map: Record<string, string> = {
+      Excellent: 'player.form.excellent', Good: 'player.form.good',
+      Average: 'player.form.average', Poor: 'player.form.poor',
+    };
+    return map[form] || form;
   };
 
   return (
@@ -67,7 +79,6 @@ export default function PlayerSquadList({ players }: PlayerSquadListProps) {
         >
           <div className="teamsoccer-header flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <span className="font-bold">{player.position}</span>
               <Link
                 to={`/players/${player.player_id}`}
                 className="font-semibold hover:underline text-white"
@@ -97,27 +108,27 @@ export default function PlayerSquadList({ players }: PlayerSquadListProps) {
 
               <div className="flex-1">
                 <div className="flex items-center gap-1 text-xs text-gray-500">
-                  <span>{player.nationality || 'Unknown'}</span>
+                  <span>{player.nationality ? localizeCountryName(player.nationality, language) : t('player.unknown')}</span>
                   <span>•</span>
-                  <span>{player.age} years</span>
+                  <span>{player.age} {t('player.age').toLowerCase()}</span>
                   <span>•</span>
-                  <span>{formatMoney(player.wage)}/week</span>
+                  <span>{formatMoney(player.wage)}/{t('player.week')}</span>
                   <span>•</span>
-                  <span>{player.matches_played} matches</span>
+                  <span>{player.matches_played} {t('player.matches')}</span>
                 </div>
 
                 <div className="flex flex-wrap gap-1 mt-2">
                   <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${formatForm(player.form)}`}>
-                    {player.form}
+                    {t(formKey(player.form))}
                   </span>
                   <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
-                    Fitness: {player.fitness}%
+                    {t('player.fitness')}: {player.fitness}%
                   </span>
                   <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-700 border border-green-200">
-                    Goals: {player.goals}
+                    {t('player.goals')}: {player.goals}
                   </span>
                   <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
-                    Value: {formatMoney(player.value)}
+                    {t('player.value')}: {formatMoney(player.value)}
                   </span>
                 </div>
               </div>
@@ -125,7 +136,7 @@ export default function PlayerSquadList({ players }: PlayerSquadListProps) {
 
             <div className="mt-4 space-y-2 bg-gray-50 p-3 rounded-md border border-gray-100">
               {/* Técnicas */}
-              <div className="text-xs font-bold text-blue-700 mb-1">Técnicas</div>
+              <div className="text-xs font-bold text-blue-700 mb-1">{t('player.category.technical')}</div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 mb-2">
                 {[
                   { skill: "finishing", value: player.finishing },
@@ -133,12 +144,13 @@ export default function PlayerSquadList({ players }: PlayerSquadListProps) {
                   { skill: "defense", value: player.defense },
                   { skill: "dribbling", value: player.dribbling },
                   { skill: "heading", value: player.heading },
-                  { skill: "shooting", value: player.shooting },
-                  { skill: "crossing", value: player.crossing }
+                  { skill: "crosses", value: (player as any).crosses },
+                  { skill: "ball_control", value: (player as any).ball_control },
+                  { skill: "goalkeeper", value: (player as any).goalkeeper },
                 ].map(({ skill, value }) => (
                   <div key={skill} className="flex items-center gap-2">
                     <span className="text-xs font-medium text-gray-700 w-16">
-                      {skill.charAt(0).toUpperCase() + skill.slice(1)}
+                      {t(`player.skill.${skill}`)}
                     </span>
                     <div className="flex-1">
                       <Progress
@@ -154,21 +166,21 @@ export default function PlayerSquadList({ players }: PlayerSquadListProps) {
                 ))}
               </div>
               {/* Físicas */}
-              <div className="text-xs font-bold text-green-700 mt-2 mb-1">Físicas</div>
+              <div className="text-xs font-bold text-green-700 mt-2 mb-1">{t('player.category.physical')}</div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                 {[
                   { skill: "stamina", value: player.stamina },
-                  { skill: "speed", value: player.speed }
+                  { skill: "pace", value: player.pace },
                 ].map(({ skill, value }) => (
                   <div key={skill} className="flex items-center gap-2">
                     <span className="text-xs font-medium text-gray-700 w-16">
-                      {skill.charAt(0).toUpperCase() + skill.slice(1)}
+                      {t(`player.skill.${skill}`)}
                     </span>
                     <div className="flex-1">
                       <Progress
-                        value={value ? (value / 10) * 100 : 0}
+                        value={value ? (value / 100) * 100 : 0}
                         className="h-2 bg-slate-200"
-                        indicatorClassName={getSkillColor((value || 0) * 10)}
+                        indicatorClassName={getSkillColor(value || 0)}
                       />
                     </div>
                     <span className="text-xs font-medium text-slate-600 w-6 text-right">

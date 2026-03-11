@@ -5,15 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-// import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { Newspaper, Plus, Edit, Trash2, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const NewsManagement = () => {
   const { manager } = useAuth();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -22,133 +24,87 @@ const NewsManagement = () => {
     content: ''
   });
 
-  // Check if user has required admin level
   if (!manager?.is_admin || manager.is_admin <= 1) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Fetch news articles
   const { data: articles, isLoading } = useQuery({
     queryKey: ['admin-news'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('community_news')
-        .select(`
-          *,
-          author:managers(username)
-        `)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data;
+      const data = await apiFetch<{ success: boolean; articles: any[] }>('/admin/news');
+      return data.articles;
     }
   });
 
-  // Create news mutation
   const createNewsMutation = useMutation({
     mutationFn: async (newsData: { title: string; content: string }) => {
-      const { data, error } = await supabase
-        .from('community_news')
-        .insert({
-          ...newsData,
-          author_id: manager.user_id,
-          is_published: true
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return apiFetch('/admin/news', {
+        method: 'POST',
+        body: JSON.stringify({ ...newsData, author_id: manager.user_id, is_published: true })
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-news'] });
       queryClient.invalidateQueries({ queryKey: ['community-news'] });
-      toast({ title: "News article created successfully!" });
+      toast({ title: t('news.articleCreated') });
       setIsCreating(false);
       setFormData({ title: '', content: '' });
     },
     onError: (error: any) => {
-      toast({
-        title: "Error creating article",
-        description: error.message,
-        variant: "destructive"
-      });
+      toast({ title: t('news.errorCreating'), description: error.message, variant: "destructive" });
     }
   });
 
-  // Update news mutation
   const updateNewsMutation = useMutation({
     mutationFn: async ({ id, newsData }: { id: number; newsData: { title: string; content: string } }) => {
-      const { data, error } = await supabase
-        .from('community_news')
-        .update(newsData)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      return apiFetch(`/admin/news/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(newsData)
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-news'] });
       queryClient.invalidateQueries({ queryKey: ['community-news'] });
-      toast({ title: "News article updated successfully!" });
+      toast({ title: t('news.articleUpdated') });
       setEditingId(null);
       setFormData({ title: '', content: '' });
     },
     onError: (error: any) => {
-      toast({
-        title: "Error updating article",
-        description: error.message,
-        variant: "destructive"
-      });
+      toast({ title: t('news.errorUpdating'), description: error.message, variant: "destructive" });
     }
   });
 
-  // Toggle publish status mutation
   const togglePublishMutation = useMutation({
     mutationFn: async ({ id, isPublished }: { id: number; isPublished: boolean }) => {
-      const { error } = await supabase
-        .from('community_news')
-        .update({ is_published: !isPublished })
-        .eq('id', id);
-
-      if (error) throw error;
+      return apiFetch(`/admin/news/${id}/publish`, {
+        method: 'PUT',
+        body: JSON.stringify({ is_published: !isPublished })
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-news'] });
       queryClient.invalidateQueries({ queryKey: ['community-news'] });
-      toast({ title: "Publication status updated!" });
+      toast({ title: t('news.publishUpdated') });
     }
   });
 
-  // Delete news mutation
   const deleteNewsMutation = useMutation({
     mutationFn: async (id: number) => {
-      const { error } = await supabase
-        .from('community_news')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      return apiFetch(`/admin/news/${id}`, { method: 'DELETE' });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-news'] });
       queryClient.invalidateQueries({ queryKey: ['community-news'] });
-      toast({ title: "News article deleted successfully!" });
+      toast({ title: t('news.articleDeleted') });
     }
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title.trim() || !formData.content.trim()) {
-      toast({
-        title: "Please fill in all fields",
-        variant: "destructive"
-      });
+      toast({ title: t('news.fillFields'), variant: "destructive" });
       return;
     }
-
     if (editingId) {
       updateNewsMutation.mutate({ id: editingId, newsData: formData });
     } else {
@@ -158,10 +114,7 @@ const NewsManagement = () => {
 
   const startEdit = (article: any) => {
     setEditingId(article.id);
-    setFormData({
-      title: article.title,
-      content: article.content
-    });
+    setFormData({ title: article.title, content: article.content });
     setIsCreating(true);
   };
 
@@ -176,24 +129,23 @@ const NewsManagement = () => {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Newspaper className="h-6 w-6 text-blue-600" />
-          <h1 className="text-2xl font-bold">News Management</h1>
+          <h1 className="text-2xl font-bold">{t('news.management')}</h1>
         </div>
         <Button onClick={() => setIsCreating(true)} className="flex items-center gap-2">
           <Plus className="h-4 w-4" />
-          Create News Article
+          {t('news.createBtn')}
         </Button>
       </div>
 
-      {/* Create/Edit Form */}
       {isCreating && (
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>{editingId ? 'Edit Article' : 'Create New Article'}</CardTitle>
+            <CardTitle>{editingId ? t('news.editTitle') : t('news.createTitle')}</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">Title</label>
+                <label className="block text-sm font-medium mb-2">{t('news.labelTitle')}</label>
                 <Input
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -202,7 +154,7 @@ const NewsManagement = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">Content</label>
+                <label className="block text-sm font-medium mb-2">{t('news.labelContent')}</label>
                 <Textarea
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
@@ -212,25 +164,19 @@ const NewsManagement = () => {
                 />
               </div>
               <div className="flex gap-2">
-                <Button
-                  type="submit"
-                  disabled={createNewsMutation.isPending || updateNewsMutation.isPending}
-                >
-                  {editingId ? 'Update Article' : 'Create Article'}
+                <Button type="submit" disabled={createNewsMutation.isPending || updateNewsMutation.isPending}>
+                  {editingId ? t('news.updateBtn') : t('news.createArticle')}
                 </Button>
-                <Button type="button" variant="outline" onClick={cancelEdit}>
-                  Cancel
-                </Button>
+                <Button type="button" variant="outline" onClick={cancelEdit}>{t('news.cancel')}</Button>
               </div>
             </form>
           </CardContent>
         </Card>
       )}
 
-      {/* Articles List */}
       <Card>
         <CardHeader>
-          <CardTitle>News Articles</CardTitle>
+          <CardTitle>{t('news.articlesTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -253,42 +199,22 @@ const NewsManagement = () => {
                         By {article.author?.username} • {new Date(article.created_at).toLocaleDateString()}
                       </p>
                       <p className="text-gray-700 mb-3">
-                        {article.content.length > 150
-                          ? `${article.content.substring(0, 150)}...`
-                          : article.content}
+                        {article.content.length > 150 ? `${article.content.substring(0, 150)}...` : article.content}
                       </p>
                       <div className="flex items-center gap-2">
-                        <span className={`px-2 py-1 text-xs rounded ${article.is_published
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
-                          }`}>
-                          {article.is_published ? 'Published' : 'Draft'}
+                        <span className={`px-2 py-1 text-xs rounded ${article.is_published ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                          {article.is_published ? t('news.published') : t('news.draft')}
                         </span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 ml-4">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => togglePublishMutation.mutate({
-                          id: article.id,
-                          isPublished: article.is_published
-                        })}
-                      >
+                      <Button size="sm" variant="outline" onClick={() => togglePublishMutation.mutate({ id: article.id, isPublished: article.is_published })}>
                         {article.is_published ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => startEdit(article)}
-                      >
+                      <Button size="sm" variant="outline" onClick={() => startEdit(article)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => deleteNewsMutation.mutate(article.id)}
-                      >
+                      <Button size="sm" variant="destructive" onClick={() => deleteNewsMutation.mutate(article.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -297,7 +223,7 @@ const NewsManagement = () => {
               ))}
             </div>
           ) : (
-            <p className="text-gray-500">No news articles found.</p>
+            <p className="text-gray-500">{t('news.noArticles')}</p>
           )}
         </CardContent>
       </Card>

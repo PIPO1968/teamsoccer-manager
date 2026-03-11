@@ -1,0 +1,177 @@
+// v2 — fix useCompleteCarnetTest dependency array
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { apiFetch } from '@/services/apiClient';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+
+export interface LicenseTest {
+  test_key: string;
+  title: string;
+  description: string;
+  reward_amount: number;
+  reward_label?: string; // si está presente, se muestra en lugar del importe
+}
+
+// Las 10 pruebas del Carnet de Manager — definidas en el frontend para
+// que siempre aparezcan independientemente del estado de la base de datos.
+export const CARNET_TESTS: LicenseTest[] = [
+  { test_key: 'visit_premium', title: 'Premium Gratis', description: 'Visita la tienda y activa tus 30 días Premium gratis', reward_amount: 0, reward_label: '30 días Premium' },
+  { test_key: 'visit_team', title: 'Conoce tu Equipo', description: 'Visita la página de tu equipo', reward_amount: 25000 },
+  { test_key: 'visit_players', title: 'Gestiona tus Jugadores', description: 'Visita la lista de jugadores', reward_amount: 25000 },
+  { test_key: 'visit_transfer_market', title: 'Mercado de Fichajes', description: 'Visita el Mercado de Transferencias', reward_amount: 25000 },
+  { test_key: 'visit_matches', title: 'Los Partidos', description: 'Visita la sección de Partidos', reward_amount: 25000 },
+  { test_key: 'visit_finances', title: 'Las Finanzas', description: 'Revisa las finanzas de tu equipo', reward_amount: 25000 },
+  { test_key: 'visit_stadium', title: 'Tu Estadio', description: 'Visita tu estadio', reward_amount: 25000 },
+  { test_key: 'visit_training', title: 'Entrenamiento', description: 'Visita la sección de Entrenamiento', reward_amount: 25000 },
+  { test_key: 'visit_forums', title: 'Los Foros', description: 'Visita los Foros de la comunidad', reward_amount: 25000 },
+  { test_key: 'visit_community', title: 'La Comunidad', description: 'Visita la página de Comunidad', reward_amount: 25000 },
+];
+
+interface ProgressData {
+  completedKeys: string[];
+  teamId: number | null;
+  stadiumId: number | null;
+}
+
+export const useManagerLicense = () => {
+  const { manager, signIn } = useAuth();
+  const { toast } = useToast();
+  const [progress, setProgress] = useState<ProgressData>({
+    completedKeys: [],
+    teamId: null,
+    stadiumId: null,
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchProgress = useCallback(async () => {
+    if (!manager?.user_id) return;
+    setIsLoading(true);
+    try {
+      const res = await apiFetch<{ success: boolean; completedKeys: string[]; teamId: number | null; stadiumId: number | null }>(
+        `/manager-license?managerId=${manager.user_id}`
+      );
+      setProgress({
+        completedKeys: res.completedKeys || [],
+        teamId: res.teamId ?? null,
+        stadiumId: res.stadiumId ?? null,
+      });
+    } catch (err) {
+      console.error('Error fetching manager license progress:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [manager?.user_id]);
+
+  useEffect(() => {
+    if (manager?.user_id) {
+      fetchProgress();
+    }
+  }, [manager?.user_id, fetchProgress]);
+
+  const completeTest = useCallback(async (testKey: string) => {
+    if (!manager?.user_id || manager?.status !== 'carnet_pending') return;
+    // Optimistic update: marca como completada en UI inmediatamente
+    setProgress(prev => {
+      if (prev.completedKeys.includes(testKey)) return prev;
+      return { ...prev, completedKeys: [...prev.completedKeys, testKey] };
+    });
+    try {
+      const res = await apiFetch<{ success: boolean; reward?: number; premiumActivated?: boolean; alreadyCompleted?: boolean }>(
+        `/manager-license/complete/${testKey}`,
+        { method: 'POST', body: JSON.stringify({ managerId: manager.user_id }) }
+      );
+      if (res.success && !res.alreadyCompleted) {
+        if (res.premiumActivated) {
+          toast({
+            title: '¡Premium activado!',
+            description: '¡Has ganado 30 días Premium por explorar tu panel!',
+          });
+          const updated = await apiFetch<{ success: boolean; manager: any }>(`/managers/${manager.user_id}`);
+          if (updated?.manager) signIn(updated.manager);
+        } else if (res.reward) {
+          toast({
+            title: '¡Prueba completada!',
+            description: `Has ganado €${res.reward.toLocaleString('es-ES')} por completar esta prueba.`,
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error completing test:', err);
+    }
+  }, [manager?.user_id, manager?.status, signIn, toast]);
+
+  const claimCarnet = useCallback(async (): Promise<boolean> => {
+    if (!manager?.user_id) return false;
+    try {
+      await apiFetch('/manager-license/claim', {
+        method: 'POST',
+        body: JSON.stringify({ managerId: manager.user_id }),
+      });
+      const updated = await apiFetch<{ success: boolean; manager: any }>(`/managers/${manager.user_id}`);
+      if (updated?.manager) signIn(updated.manager);
+      return true;
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: err.message || 'No se pudo obtener el carnet',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  }, [manager?.user_id, signIn, toast]);
+
+  const isAllCompleted =
+    progress.completedKeys.length >= CARNET_TESTS.length;
+
+  return {
+    tests: CARNET_TESTS,
+    completedKeys: progress.completedKeys,
+    teamId: progress.teamId,
+    stadiumId: progress.stadiumId,
+    isLoading,
+    isAllCompleted,
+    completeTest,
+    claimCarnet,
+    refetch: fetchProgress,
+  };
+};
+
+/**
+ * Lightweight hook to auto-complete a carnet test when a page is visited.
+ * No-ops if the manager is not in carnet_pending status.
+ */
+export const useCompleteCarnetTest = (testKey: string, enabled = true) => {
+  const { manager, signIn } = useAuth();
+  const { toast } = useToast();
+  const firedRef = useRef(false);
+
+  useEffect(() => {
+    if (!manager?.user_id || manager?.status !== 'carnet_pending' || !enabled) return;
+    if (firedRef.current) return;
+    firedRef.current = true;
+
+    apiFetch<{ success: boolean; reward?: number; premiumActivated?: boolean; alreadyCompleted?: boolean }>(
+      `/manager-license/complete/${testKey}`,
+      { method: 'POST', body: JSON.stringify({ managerId: manager.user_id }) }
+    ).then(async res => {
+      if (res.success && !res.alreadyCompleted) {
+        if (res.premiumActivated) {
+          toast({
+            title: '¡Premium activado!',
+            description: '¡Has ganado 30 días Premium por explorar tu panel!',
+          });
+          // Refrescar AuthContext para que is_premium se refleje automáticamente
+          const updated = await apiFetch<{ success: boolean; manager: any }>(`/managers/${manager.user_id}`);
+          if (updated?.manager) signIn(updated.manager);
+        } else if (res.reward) {
+          toast({
+            title: '¡Prueba completada!',
+            description: `Has ganado €${res.reward.toLocaleString('es-ES')} por explorar esta sección.`,
+          });
+        }
+      }
+    }).catch(err => {
+      console.error('Error completing carnet test:', err);
+    });
+  }, [enabled, manager?.user_id, manager?.status]);
+};

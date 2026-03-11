@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Link } from "react-router-dom";
 import { Shield, Bot } from "lucide-react";
 
@@ -22,6 +23,8 @@ type SeriesTeamStats = {
 
 type SeriesStandingsTableProps = {
   teams: SeriesTeamStats[];
+  division?: number;
+  groupNumber?: number;
 };
 
 const TeamIcon = ({ team }: { team: SeriesTeamStats }) => {
@@ -35,8 +38,8 @@ const TeamIcon = ({ team }: { team: SeriesTeamStats }) => {
 
   if (team.team_logo) {
     return (
-      <img 
-        src={team.team_logo} 
+      <img
+        src={team.team_logo}
         alt={`${team.team_name} logo`}
         className="w-5 h-5 rounded-full object-contain"
       />
@@ -50,8 +53,58 @@ const TeamIcon = ({ team }: { team: SeriesTeamStats }) => {
   );
 };
 
-const SeriesStandingsTable = ({ teams }: SeriesStandingsTableProps) => {
+const SeriesStandingsTable = ({ teams, division, groupNumber }: SeriesStandingsTableProps) => {
+  const { t } = useLanguage();
   const [hoveredTeam, setHoveredTeam] = useState<number | null>(null);
+  const displayed = teams.slice(0, 8);
+
+  const dot = (color: string, title: string, double = false) =>
+    double
+      ? <div className={`w-3 h-3 rounded-full border-2 ${color}`} title={title} />
+      : <div className={`w-1.5 h-1.5 rounded-full ${color}`} title={title} />;
+
+  const getDot = (pos: number) => {
+    const div = division || 1;
+    const grp = groupNumber || 1;
+    const roman = ['', 'I', 'II', 'III', 'IV'];
+
+    if (div === 1) {
+      // Div I: top division, no promotion
+      if (pos === 1) return dot('bg-green-500', 'Champions Cup (next season)');
+      if (pos === 2) return dot('bg-blue-500', 'TS Cup (next season)');
+      if (pos === 5) return dot('bg-orange-500', 'Playoff vs 2nd of Div II.2');
+      if (pos === 6) return dot('bg-orange-500', 'Playoff vs 2nd of Div II.1');
+      if (pos === 7) return dot('border-red-500 bg-red-200', 'Relegation to Div II.1', true);
+      if (pos === 8) return dot('border-red-500 bg-red-200', 'Relegation to Div II.2', true);
+      return null;
+    }
+
+    if (div >= 2 && div <= roman.length - 1) {
+      // General logic for Div II, III, IV
+      // Within each division, groups come in pairs sharing the same parent:
+      //   (1,2) → parent group 1 | (3,4) → parent group 2 | etc.
+      const parentGroup = Math.ceil(grp / 2);
+      const isOddInPair = grp % 2 === 1; // odd sibling within the pair
+      const parentLabel = `${roman[div - 1]}.${parentGroup}`;
+
+      // Promotion / playoff upward
+      if (pos === 1) return dot('bg-green-500', `Promotion to Div ${parentLabel} (replaces ${isOddInPair ? '7th' : '8th'})`);
+      if (pos === 2) return dot('bg-blue-500', `Playoff vs ${isOddInPair ? '6th' : '5th'} of Div ${parentLabel}`);
+
+      // Relegation / playoff downward — only for Div II and III (not the bottom division IV)
+      if (div < roman.length - 1) {
+        const childBase = grp * 2; // even child group for this parent
+        const childOdd = `${roman[div + 1]}.${childBase - 1}`;
+        const childEven = `${roman[div + 1]}.${childBase}`;
+        if (pos === 5) return dot('bg-orange-500', `Playoff vs 2nd of Div ${childEven}`);
+        if (pos === 6) return dot('bg-orange-500', `Playoff vs 2nd of Div ${childOdd}`);
+        if (pos === 7) return dot('border-red-500 bg-red-200', `Relegation to Div ${childOdd}`, true);
+        if (pos === 8) return dot('border-red-500 bg-red-200', `Relegation to Div ${childEven}`, true);
+      }
+    }
+
+    return null;
+  };
 
   return (
     <div className="border rounded-md">
@@ -59,7 +112,7 @@ const SeriesStandingsTable = ({ teams }: SeriesStandingsTableProps) => {
         <TableHeader>
           <TableRow className="bg-muted/50">
             <TableHead className="w-[40px]">#</TableHead>
-            <TableHead>Team</TableHead>
+            <TableHead>{t('series.colTeam')}</TableHead>
             <TableHead className="text-center w-[35px]">P</TableHead>
             <TableHead className="text-center w-[35px]">W</TableHead>
             <TableHead className="text-center w-[35px]">D</TableHead>
@@ -68,13 +121,13 @@ const SeriesStandingsTable = ({ teams }: SeriesStandingsTableProps) => {
             <TableHead className="text-center w-[35px]">GA</TableHead>
             <TableHead className="text-center w-[35px]">+/-</TableHead>
             <TableHead className="text-center w-[40px]">Pts</TableHead>
-            <TableHead className="w-[100px]">Form</TableHead>
+            <TableHead className="w-[100px]">{t('series.colForm')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {teams.map((team, i) => (
-            <TableRow 
-              key={team.team_id} 
+          {displayed.map((team, i) => (
+            <TableRow
+              key={team.team_id}
               className={`cursor-pointer hover:bg-accent/50`}
               onMouseEnter={() => setHoveredTeam(team.team_id)}
               onMouseLeave={() => setHoveredTeam(null)}
@@ -82,8 +135,7 @@ const SeriesStandingsTable = ({ teams }: SeriesStandingsTableProps) => {
               <TableCell className="py-2">
                 <div className="flex items-center gap-1">
                   {i + 1}
-                  {i < 2 && <div className="w-1.5 h-1.5 rounded-full bg-green-500" title="Promotion" />}
-                  {i > teams.length - 4 && <div className="w-1.5 h-1.5 rounded-full bg-red-500" title="Relegation" />}
+                  {getDot(i + 1)}
                 </div>
               </TableCell>
               <TableCell className="py-2">
@@ -109,13 +161,12 @@ const SeriesStandingsTable = ({ teams }: SeriesStandingsTableProps) => {
                   {team.form.map((result, i) => (
                     <div
                       key={i}
-                      className={`w-4 h-4 flex items-center justify-center rounded text-[10px] font-medium ${
-                        result === "W"
-                          ? "bg-green-500 text-white"
-                          : result === "D"
+                      className={`w-4 h-4 flex items-center justify-center rounded text-[10px] font-medium ${result === "W"
+                        ? "bg-green-500 text-white"
+                        : result === "D"
                           ? "bg-yellow-500 text-black"
                           : "bg-red-500 text-white"
-                      }`}
+                        }`}
                     >
                       {result}
                     </div>

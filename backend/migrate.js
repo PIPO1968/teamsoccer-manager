@@ -1,5 +1,7 @@
 import { Pool } from 'pg';
 
+// Cambio menor para forzar build Railway - 2026-03-10
+
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
@@ -39,6 +41,16 @@ async function migrate() {
 
         await pool.query(schemaSql);
         console.log('Esquema aplicado o ya existe.');
+
+        // Ejecutar seed de regiones
+        const seedRegionsPath = path.join(__dirname, 'sql', 'seed_leagues_regions.sql');
+        if (fs.existsSync(seedRegionsPath)) {
+            const seedRegionsSql = fs.readFileSync(seedRegionsPath, 'utf8');
+            await pool.query(seedRegionsSql);
+            console.log('Regiones de liga seed ejecutado.');
+        } else {
+            console.warn('No se encontró seed_leagues_regions.sql');
+        }
     } catch (err) {
         console.error('Error en la migración:', err);
     } finally {

@@ -3,8 +3,10 @@ import TrainingActions from "./training/TrainingActions";
 import TrainingPlayersList from "./training/TrainingPlayersList";
 import { useUserTeam } from "@/hooks/useUserTeam";
 import { useTeamPlayers } from "@/hooks/useTeamPlayers";
+import { useCompleteCarnetTest } from '@/hooks/useManagerLicense';
 
 export default function Training() {
+  useCompleteCarnetTest('visit_training');
   const { team } = useUserTeam();
   const { players, isLoading } = useTeamPlayers(team?.team_id?.toString());
 

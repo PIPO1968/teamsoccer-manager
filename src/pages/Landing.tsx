@@ -109,21 +109,21 @@ const Landing = () => {
             <>
               <StatItem number="..." label="Regions" />
               <StatItem number="..." label="Active Teams" />
-              <StatItem number="..." label="Managers" />
+              <StatItem number="..." label="Managers in waiting list" />
               <StatItem number="..." label="Leagues" />
             </>
           ) : stats ? (
             <>
               <StatItem number={stats.totalRegions} label="Regions" />
               <StatItem number={stats.totalTeams} label="Active Teams" />
-              <StatItem number={stats.totalManagers} label="Managers" />
-              <StatItem number={stats.leagues.length} label="Leagues" />
+              <StatItem number={stats.totalWaitingManagers} label="Managers in waiting list" />
+              <StatItem number={stats.totalLeagues} label="Leagues" />
             </>
           ) : (
             <>
               <StatItem number="0" label="Regions" />
               <StatItem number="0" label="Active Teams" />
-              <StatItem number="0" label="Managers" />
+              <StatItem number="0" label="Managers in waiting list" />
               <StatItem number="0" label="Leagues" />
             </>
           )}

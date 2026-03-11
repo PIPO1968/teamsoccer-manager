@@ -6,17 +6,19 @@ import CompetitionInfo from "./team/CompetitionInfo";
 import ClubDetails from "./team/ClubDetails";
 import { Card, CardContent } from "@/components/ui/card";
 import { useTeamData } from "@/hooks/useTeamData";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Team() {
   const { teamId } = useParams<{ teamId: string }>();
   const { team, isLoading, error } = useTeamData(teamId);
+  const { t } = useLanguage();
 
   if (error) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-red-600">Error</h2>
+          <h2 className="text-xl font-semibold text-red-600">{t('team.error')}</h2>
           <p className="mt-2 text-muted-foreground">{error}</p>
         </div>
       </div>
@@ -36,7 +38,7 @@ export default function Team() {
       ) : (
         <TeamHeader team={team} />
       )}
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -59,23 +61,23 @@ export default function Team() {
 
           <Card>
             <CardContent className="p-4">
-              <h2 className="font-semibold mb-3">Press Announcement</h2>
+              <h2 className="font-semibold mb-3">{t('team.pressAnnouncement')}</h2>
               <p className="text-sm text-muted-foreground">
-                This team has not issued any press announcements.
+                {t('team.noPressAnnouncement')}
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardContent className="p-4">
-              <h2 className="font-semibold mb-3">Team Events</h2>
+              <h2 className="font-semibold mb-3">{t('team.teamEvents')}</h2>
               <p className="text-sm text-muted-foreground">
-                Nothing new to report.
+                {t('team.noTeamEvents')}
               </p>
             </CardContent>
           </Card>
         </div>
-        
+
         <div className="lg:col-span-1">
           {isLoading ? (
             <div className="space-y-6">

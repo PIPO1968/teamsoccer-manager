@@ -6,27 +6,36 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTeamData } from "@/hooks/useTeamData";
-
-const sortOptions = [
-  { value: "firstName", label: "First Name" },
-  { value: "lastName", label: "Last Name" },
-  { value: "age", label: "Age" },
-  { value: "fitness", label: "Fitness" },
-  { value: "value", label: "Value" },
-  { value: "finishing", label: "Finishing" },
-  { value: "pace", label: "Pace" },
-  { value: "passing", label: "Passing" },
-  { value: "defense", label: "Defense" },
-  { value: "dribbling", label: "Dribbling" },
-  { value: "heading", label: "Heading" },
-  { value: "stamina", label: "Stamina" },
-];
+import { useCompleteCarnetTest } from '@/hooks/useManagerLicense';
+import { useUserTeam } from '@/hooks/useUserTeam';
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Players = () => {
   const { teamId } = useParams<{ teamId: string }>();
+  const { team: ownTeam } = useUserTeam();
+  useCompleteCarnetTest('visit_players', !!teamId && teamId === String(ownTeam?.team_id));
   const [sortBy, setSortBy] = useState<string>("firstName");
   const { players, isLoading, error } = useTeamPlayers(teamId);
   const { team, isLoading: isTeamLoading } = useTeamData(teamId);
+  const { t } = useLanguage();
+
+  const sortOptions = [
+    { value: "firstName", label: t('players.sort.firstName') },
+    { value: "lastName", label: t('players.sort.lastName') },
+    { value: "age", label: t('players.sort.age') },
+    { value: "fitness", label: t('players.sort.fitness') },
+    { value: "value", label: t('players.sort.value') },
+    { value: "finishing", label: t('players.sort.finishing') },
+    { value: "pace", label: t('players.sort.pace') },
+    { value: "passing", label: t('players.sort.passing') },
+    { value: "defense", label: t('players.sort.defense') },
+    { value: "dribbling", label: t('players.sort.dribbling') },
+    { value: "heading", label: t('players.sort.heading') },
+    { value: "stamina", label: t('players.sort.stamina') },
+    { value: "crosses", label: t('players.sort.crosses') },
+    { value: "ball_control", label: t('players.sort.ball_control') },
+    { value: "goalkeeper", label: t('players.sort.goalkeeper') },
+  ];
 
   const sortPlayers = (players: any[]) => {
     return [...players].sort((a, b) => {
@@ -57,17 +66,17 @@ const Players = () => {
   return (
     <div className="teamsoccer-panel">
       <div className="teamsoccer-header">
-        <h1 className="text-white">{team?.name ? `${team.name} > Players` : 'Players'}</h1>
+        <h1 className="text-white">{team?.name ? `${team.name} > ${t('players.title')}` : t('players.title')}</h1>
       </div>
       <div className="p-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="font-semibold text-gray-700">
-            The team has {isLoading ? "..." : sortedPlayers.length} players
+            {t('players.count').replace('{n}', isLoading ? "..." : String(sortedPlayers.length))}
           </h2>
           <div className="w-48">
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger>
-                <SelectValue placeholder="Sort by..." />
+                <SelectValue placeholder={t('players.sortBy')} />
               </SelectTrigger>
               <SelectContent>
                 {sortOptions.map((option) => (
@@ -79,7 +88,7 @@ const Players = () => {
             </Select>
           </div>
         </div>
-        
+
         {isLoading ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {[1, 2, 3, 4].map((i) => (

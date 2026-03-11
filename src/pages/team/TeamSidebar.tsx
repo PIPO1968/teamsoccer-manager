@@ -10,35 +10,37 @@ import TeamFollowers from "./TeamFollowers";
 import { ChallengeButton } from "@/components/challenges/ChallengeButton";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const TeamSidebar = () => {
   const { teamId } = useParams<{ teamId: string }>();
   const { team, isLoading } = useTeamData(teamId);
   const { manager } = useAuth();
-  
+  const { t } = useLanguage();
+
   // Check if this is the user's own team
   const isOwnTeam = team?.is_bot === 0 && manager && String(team?.manager_id) === String(manager.user_id);
-  
+
   return (
     <div className="space-y-4">
       {!isOwnTeam && team && (
         <Card>
           <CardContent className="p-4">
-            <h2 className="font-semibold mb-3">Quick Links</h2>
+            <h2 className="font-semibold mb-3">{t('team.quickLinks')}</h2>
             <div className="space-y-2">
-              <Link 
+              <Link
                 to={`/team/${team.team_id}/players`}
                 className="text-green-700 hover:underline block"
               >
-                View Team Players
+                {t('team.viewTeamPlayers')}
               </Link>
               {team.is_bot === 0 && manager && (
                 <div>
-                  <ChallengeButton 
-                    teamId={manager?.team_id?.toString() || ""} 
-                    challengedTeamId={team.team_id} 
-                    challengedTeamName={team.name} 
-                    isBot={team.is_bot} 
+                  <ChallengeButton
+                    teamId={manager?.team_id?.toString() || ""}
+                    challengedTeamId={team.team_id}
+                    challengedTeamName={team.name}
+                    isBot={team.is_bot}
                   />
                 </div>
               )}
@@ -49,51 +51,50 @@ const TeamSidebar = () => {
 
       <Card>
         <CardContent className="p-4">
-          <h2 className="font-semibold mb-3">More Info</h2>
+          <h2 className="font-semibold mb-3">{t('team.moreInfo')}</h2>
           <div className="space-y-2">
-            <Link 
+            <Link
               to={`/flags/${teamId}`}
               className="text-green-700 hover:underline block"
             >
-              View Flag Collection
+              {t('team.viewFlagCollection')}
             </Link>
           </div>
         </CardContent>
       </Card>
 
       <TeamAwards teamId={teamId} />
-      
+
       <Card>
         <CardContent className="p-4">
-          <h2 className="font-semibold mb-3">Team Stats</h2>
+          <h2 className="font-semibold mb-3">{t('team.teamStats')}</h2>
           {isLoading ? (
-            <p>Loading team stats...</p>
+            <p>{t('team.loadingStats')}</p>
           ) : (
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Team Rating</span>
+                <span className="text-muted-foreground">{t('team.ratingLabel')}</span>
                 <span className="font-medium">{team?.team_rating || '-'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Morale</span>
+                <span className="text-muted-foreground">{t('team.moraleLabel')}</span>
                 <span className="font-medium">{team?.team_morale || '-'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Fans</span>
+                <span className="text-muted-foreground">{t('team.fansLabel')}</span>
                 <span className="font-medium">{team?.fan_count?.toLocaleString() || '-'}</span>
               </div>
               <Separator className="my-2" />
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Recent Form</span>
+                <span className="text-muted-foreground">{t('team.recentForm')}</span>
                 <div className="flex gap-1">
                   {team?.form?.slice(0, 5).map((result, i) => (
-                    <span 
-                      key={i} 
-                      className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-medium ${
-                        result === 'W' ? 'bg-green-500 text-white' :
-                        result === 'L' ? 'bg-red-500 text-white' :
-                        'bg-gray-200 text-gray-800'
-                      }`}
+                    <span
+                      key={i}
+                      className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-medium ${result === 'W' ? 'bg-green-500 text-white' :
+                          result === 'L' ? 'bg-red-500 text-white' :
+                            'bg-gray-200 text-gray-800'
+                        }`}
                     >
                       {result}
                     </span>

@@ -11,7 +11,8 @@ import {
   SelectItem,
   SelectSeparator
 } from "@/components/ui/select";
-import { getCountriesByContinent, fetchAllCountries } from "@/utils/countries";
+import { getCountriesByContinent, fetchAllCountries, localizeCountryName } from "@/utils/countries";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface CountrySelectProps {
   value: string | number;
@@ -22,6 +23,7 @@ interface CountrySelectProps {
 }
 
 export function CountrySelect({ value, onChange, useIds = false, countries, disabled = false }: CountrySelectProps) {
+  const { language } = useLanguage();
   // States for the countries data
   const [countryGroups, setCountryGroups] = useState<Record<string, string[]>>(countries || {});
   const [allCountries, setAllCountries] = useState<{ region_id: number, name: string }[]>([]);
@@ -108,7 +110,7 @@ export function CountrySelect({ value, onChange, useIds = false, countries, disa
           {displayValue && (
             <div className="flex items-center gap-2">
               <Flag country={displayValue} />
-              <span>{displayValue}</span>
+              <span>{localizeCountryName(displayValue, language)}</span>
             </div>
           )}
         </SelectValue>
@@ -125,7 +127,7 @@ export function CountrySelect({ value, onChange, useIds = false, countries, disa
                   <SelectItem key={country} value={country}>
                     <div className="flex items-center gap-2">
                       <Flag country={country} />
-                      <span>{country}</span>
+                      <span>{localizeCountryName(country, language)}</span>
                     </div>
                   </SelectItem>
                 ))}

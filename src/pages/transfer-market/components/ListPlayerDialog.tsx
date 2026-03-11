@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 import { formatMoney } from "../utils";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface ListPlayerDialogProps {
   open: boolean;
@@ -27,11 +28,12 @@ interface ListPlayerDialogProps {
 export const ListPlayerDialog = ({ open, onOpenChange, player, onSuccess }: ListPlayerDialogProps) => {
   const { listPlayerForSale, isProcessing } = useTransferOperations();
   const navigate = useNavigate();
-  
+  const { t } = useLanguage();
+
   // Set initial asking price to 20% above player value
   const suggestedPrice = Math.round(player.value * 1.2);
   const [askingPrice, setAskingPrice] = useState<number>(suggestedPrice);
-  
+
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value.replace(/,/g, ''));
     if (!isNaN(value)) {
@@ -55,7 +57,7 @@ export const ListPlayerDialog = ({ open, onOpenChange, player, onSuccess }: List
     if (success) {
       onOpenChange(false);
       toast.success(`${player.name} has been listed on the transfer market`);
-      
+
       if (onSuccess) {
         onSuccess();
       } else {
@@ -68,33 +70,33 @@ export const ListPlayerDialog = ({ open, onOpenChange, player, onSuccess }: List
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>List Player for Transfer</DialogTitle>
+          <DialogTitle>{t('transfer.listPlayerTitle')}</DialogTitle>
           <DialogDescription>
-            Enter an asking price for {player.name}
+            {t('transfer.enterAskingPrice')} {player.name}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-2 items-center gap-4">
-            <Label htmlFor="name">Player</Label>
+            <Label htmlFor="name">{t('transfer.colPlayer')}</Label>
             <div className="flex items-center gap-2">
               {player.name}
               <Badge variant="outline">{player.position}</Badge>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-2 items-center gap-4">
-            <Label htmlFor="rating">Rating</Label>
+            <Label htmlFor="rating">{t('transfer.ratingLabel')}</Label>
             <div>{player.rating}</div>
           </div>
-          
+
           <div className="grid grid-cols-2 items-center gap-4">
-            <Label htmlFor="value">Market Value</Label>
+            <Label htmlFor="value">{t('transfer.marketValue')}</Label>
             <div>{formatMoney(player.value)}</div>
           </div>
-          
+
           <div className="grid grid-cols-2 items-center gap-4">
-            <Label htmlFor="asking-price">Your Asking Price</Label>
+            <Label htmlFor="asking-price">{t('transfer.askingPrice')}</Label>
             <Input
               id="asking-price"
               type="text"
@@ -105,20 +107,20 @@ export const ListPlayerDialog = ({ open, onOpenChange, player, onSuccess }: List
           </div>
 
           <div className="bg-muted p-3 rounded-md text-sm">
-            <p>This player will be listed for 3 days. During this time, other managers can place bids. At the end of the period, the highest bidder will acquire the player.</p>
+            <p>{t('transfer.listingInfo')}</p>
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t('transfer.cancel')}</Button>
           <Button onClick={handleSubmit} disabled={isProcessing}>
             {isProcessing ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Processing...
+                {t('transfer.processing')}
               </>
             ) : (
-              "List for Sale"
+              t('transfer.listForSale')
             )}
           </Button>
         </DialogFooter>

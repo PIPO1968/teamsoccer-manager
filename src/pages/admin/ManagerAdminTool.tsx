@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/services/apiClient";
-import { UserCog, Search } from "lucide-react";
+import { UserCog, Search, Wrench } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface Manager {
   user_id: number;
@@ -39,6 +40,7 @@ const ManagerAdminTool = () => {
   const [loading, setLoading] = useState(true);
   const [fields, setFields] = useState<FieldConfig[]>([]);
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   // Define which fields should be editable
   const editableFields = [
@@ -72,8 +74,8 @@ const ManagerAdminTool = () => {
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to load managers",
+        title: t('common.error'),
+        description: t('common.failedLoadManagers'),
         variant: "destructive",
       });
     } finally {
@@ -89,6 +91,25 @@ const ManagerAdminTool = () => {
       setCountries(response.countries || []);
     } catch (error) {
       console.error('Error loading countries:', error);
+    }
+  };
+
+  const handleFixSetup = async (managerId: number, username: string) => {
+    try {
+      await apiFetch<{ success: boolean }>('/admin/fix-manager-setup', {
+        method: 'POST',
+        body: JSON.stringify({ managerId }),
+      });
+      toast({
+        title: 'Setup corregido',
+        description: `Liga, jugadores y estadio verificados para ${username}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'No se pudo completar el setup',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -122,14 +143,32 @@ const ManagerAdminTool = () => {
       sortable: true,
       render: (status: string) => (
         <span className={`px-2 py-1 rounded text-xs ${status === 'active' ? 'bg-green-100 text-green-800' :
-            status === 'waiting_list' ? 'bg-yellow-100 text-yellow-800' :
+          status === 'waiting_list' ? 'bg-yellow-100 text-yellow-800' :
+            status === 'carnet_pending' ? 'bg-blue-100 text-blue-800' :
               'bg-red-100 text-red-800'
           }`}>
-          {status}
+          {status === 'carnet_pending' ? 'Carnet pendiente' : status}
         </span>
       )
     },
     { key: 'is_admin', label: 'Admin Level', sortable: true },
+    {
+      key: 'user_id',
+      label: 'Acciones',
+      sortable: false,
+      render: (_: number, row: Manager) => (
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-1 text-orange-600 border-orange-300 hover:bg-orange-50"
+          onClick={(e) => { e.stopPropagation(); handleFixSetup(row.user_id, row.username); }}
+          title="Forzar setup: liga, estadio, jugadores"
+        >
+          <Wrench className="h-3 w-3" />
+          Fix Setup
+        </Button>
+      )
+    },
     {
       key: 'is_premium',
       label: 'Premium',

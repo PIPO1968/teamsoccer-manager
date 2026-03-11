@@ -24,6 +24,7 @@ import NotFound from "./pages/NotFound";
 import TeamView from "./pages/TeamView";
 import PlayerView from "./pages/PlayerView";
 import Training from "./pages/Training";
+import TrainingManualPage from "./pages/training/TrainingManualPage";
 import Manager from "./pages/Manager";
 import ManagerAvatarPage from "./pages/manager/ManagerAvatarPage";
 import SeriesFixtures from "./pages/series/SeriesFixtures";
@@ -31,6 +32,7 @@ import { useState } from "react";
 import Finances from "./pages/Finances";
 import MatchView from "./pages/MatchView";
 import LineupPage from "./pages/match/LineupPage";
+import TeamLineups from "./pages/TeamLineups";
 import ForumLayout from "./pages/forums/ForumLayout";
 import ForumListPage from "./pages/forums/ForumListPage";
 import ForumPage from "./pages/forums/ForumPage";
@@ -57,9 +59,12 @@ import TeamAdminTool from "./pages/admin/TeamAdminTool";
 import PlayerAdminTool from "./pages/admin/PlayerAdminTool";
 import OnlineManagers from "./pages/admin/OnlineManagers";
 import Help from "./pages/Help";
+import MotorJuego from "./pages/ayuda/motor-juego";
 import Community from "./pages/Community";
 import AccessDenied from "./pages/AccessDenied";
 import PlayerImageGallery from "./pages/admin/PlayerImageGallery";
+import CarnetDeManager from "./pages/CarnetDeManager";
+import CarnetLayout from "./components/layout/CarnetLayout";
 
 const App = () => {
   const [queryClient] = useState(() => new QueryClient());
@@ -80,6 +85,7 @@ const App = () => {
                 <Route path="/create-team" element={<CreateTeam />} />
 
                 <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
+                <Route path="/carnet" element={<CarnetLayout><CarnetDeManager /></CarnetLayout>} />
                 <Route path="/world" element={<Layout><World /></Layout>} />
                 <Route path="/team/:teamId" element={<Layout><TeamView /></Layout>} />
                 <Route path="/team/:teamId/players" element={<Layout><Players /></Layout>} />
@@ -92,7 +98,8 @@ const App = () => {
                 <Route path="/matches/:teamId" element={<Layout><Matches /></Layout>} />
                 <Route path="/match/:matchId" element={<Layout><MatchView /></Layout>} />
                 <Route path="/match/:matchId/lineup" element={<Layout><LineupPage /></Layout>} />
-                <Route path="/match-viewer/:matchId" element={<MatchViewer />} />
+                <Route path="/team/:teamId/lineups" element={<Layout><TeamLineups /></Layout>} />
+                <Route path="/match-viewer" element={<Layout><MatchViewer /></Layout>} />
 
                 <Route path="/series/:seriesId" element={<Layout><Series /></Layout>} />
                 <Route path="/series/:seriesId/fixtures" element={<Layout><SeriesFixtures /></Layout>} />
@@ -100,6 +107,7 @@ const App = () => {
                 <Route path="/transfer-market" element={<Layout><TransferMarket /></Layout>} />
                 <Route path="/bids/:teamId" element={<Layout><BidsPage /></Layout>} />
                 <Route path="/training" element={<Layout><Training /></Layout>} />
+                <Route path="/training/manual" element={<Layout><TrainingManualPage /></Layout>} />
                 <Route path="/manager/:managerId" element={<Layout><Manager /></Layout>} />
                 <Route path="/manager/:managerId/avatar" element={<Layout><ManagerAvatarPage /></Layout>} />
 
@@ -123,6 +131,7 @@ const App = () => {
                 <Route path="/community" element={<Layout><Community /></Layout>} />
 
                 <Route path="/help" element={<Layout><Help /></Layout>} />
+                <Route path="/ayuda/motor-juego" element={<Layout><MotorJuego /></Layout>} />
 
                 <Route path="/admin" element={<Layout><AdminArea /></Layout>} />
                 <Route path="/admin/online-managers" element={<Layout><OnlineManagers /></Layout>} />

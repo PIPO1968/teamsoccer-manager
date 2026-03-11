@@ -3,6 +3,7 @@ import { ReactNode } from "react";
 import { RouteGuard } from "../auth/RouteGuard";
 import { useAuth } from "@/contexts/AuthContext";
 import WaitingListLayout from "./WaitingListLayout";
+import CarnetLayout from "./CarnetLayout";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 import GameStatusBar from "../GameStatusBar";
@@ -13,11 +14,10 @@ interface LayoutProps {
 }
 
 const Layout = ({ children }: LayoutProps) => {
-  const { isWaitingList } = useAuth();
+  const { isWaitingList, isCarnetPending } = useAuth();
 
-  // Use waiting list layout for waiting list users
-  if (isWaitingList) {
-    return <WaitingListLayout>{children}</WaitingListLayout>;
+  if (isWaitingList || isCarnetPending) {
+    return <CarnetLayout>{children}</CarnetLayout>;
   }
 
   return (

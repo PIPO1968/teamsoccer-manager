@@ -1,24 +1,3 @@
-{/* Galería de Imágenes de Jugadores */ }
-<Card className="hover:shadow-lg transition-shadow">
-  <CardHeader>
-    <CardTitle className="flex items-center gap-2">
-      <User className="h-5 w-5" />
-      Galería de Imágenes de Jugadores
-    </CardTitle>
-  </CardHeader>
-  <CardContent>
-    <p className="text-sm text-gray-600 mb-4">
-      Visualiza todas las imágenes de jugadores por país y rasgo
-    </p>
-    <Link
-      to="/admin/PlayerImageGallery"
-      className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
-    >
-      Ver Galería de Imágenes
-    </Link>
-  </CardContent>
-</Card>
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { Users, Shield, Newspaper, UserCog, Building, User, Eye } from "lucide-react";
@@ -65,19 +44,21 @@ const AdminArea = () => {
         <Card className="hover:shadow-lg transition-shadow">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5" />
-              Online Managers
+              <div className="flex items-center gap-2">
+                <Eye className="h-5 w-5" />
+                Online Managers
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-gray-600 mb-4">
-              View currently online managers and their status
+              Ver managers conectados en tiempo real con su IP y ubicación
             </p>
             <Link
               to="/admin/online-managers"
               className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
             >
-              View Online Managers
+              Ver detalle completo
             </Link>
           </CardContent>
         </Card>

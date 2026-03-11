@@ -1,6 +1,6 @@
 
 import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 
@@ -16,11 +16,14 @@ export const useTeamVisitors = (teamId: string | undefined) => {
   useEffect(() => {
     const recordVisit = async () => {
       if (!teamId || !manager?.user_id) return;
-      
-      await supabase.rpc('record_team_visit', {
-        p_team_id: parseInt(teamId),
-        p_visitor_id: manager.user_id
-      });
+      try {
+        await apiFetch(`/teams/${parseInt(teamId)}/visit`, {
+          method: 'POST',
+          body: JSON.stringify({ visitorId: manager.user_id }),
+        });
+      } catch {
+        // No crítico
+      }
     };
 
     recordVisit();
@@ -30,13 +33,10 @@ export const useTeamVisitors = (teamId: string | undefined) => {
     queryKey: ['team-visitors', teamId],
     queryFn: async (): Promise<TeamVisitor[]> => {
       if (!teamId) return [];
-      
-      const { data, error } = await supabase.rpc('get_team_recent_visitors', {
-        p_team_id: parseInt(teamId)
-      });
-
-      if (error) throw error;
-      return data || [];
+      const data = await apiFetch<{ success: boolean; visitors: TeamVisitor[] }>(
+        `/teams/${parseInt(teamId)}/visitors`
+      );
+      return data.visitors || [];
     },
     enabled: !!teamId
   });

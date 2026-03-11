@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 import { toast } from "sonner";
 import { useUserTeam } from "../useUserTeam";
 
@@ -8,27 +8,19 @@ export const useListingOperations = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { team } = useUserTeam();
 
-  const listPlayerForSale = async (playerId: number, askingPrice: number) => {
-    if (!team?.team_id) {
-      toast.error("Team not found");
-      return false;
-    }
-
+  const listPlayerForSale = async (playerId: number, askingPrice: number, sellerTeamIdOverride?: number | null) => {
+    // Permitir seller_team_id null para Free agent
+    const sellerTeamId = sellerTeamIdOverride !== undefined ? sellerTeamIdOverride : team?.team_id;
     setIsProcessing(true);
     try {
-      const { error: listingError } = await supabase
-        .from('transfer_listings')
-        .insert({
+      await apiFetch('/transfer-listings', {
+        method: 'POST',
+        body: JSON.stringify({
           player_id: playerId,
           asking_price: askingPrice,
-          seller_team_id: team.team_id,
-          is_active: true,
-          views: 0,
-          bids: 0,
-          hotlists: 0
-        });
-
-      if (listingError) throw listingError;
+          seller_team_id: sellerTeamId ?? null,
+        }),
+      });
 
       toast.success("Player listed for transfer");
       return true;

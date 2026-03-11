@@ -7,7 +7,8 @@ import { PaginatedTable } from "@/components/admin/PaginatedTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-// import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { User, Search, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -46,6 +47,13 @@ interface FieldConfig {
   isEditable: boolean;
 }
 
+const editableFields = [
+  'first_name', 'last_name', 'position', 'age', 'nationality_id',
+  'team_id', 'value', 'wage', 'rating', 'pace', 'finishing', 'passing',
+  'defense', 'dribbling', 'heading', 'stamina', 'fitness', 'form',
+  'personality', 'experience', 'leadership', 'loyalty'
+];
+
 const PlayerAdminTool = () => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [teams, setTeams] = useState<Array<{ team_id: number; name: string }>>([]);
@@ -56,67 +64,60 @@ const PlayerAdminTool = () => {
   const [loading, setLoading] = useState(true);
   const [fields, setFields] = useState<FieldConfig[]>([]);
   const { toast } = useToast();
-
-  // Define which fields should be editable - updated to include nationality_id
-  const editableFields = [
-    'first_name', 'last_name', 'position', 'age', 'nationality_id',
-    'team_id', 'value', 'wage', 'rating', 'pace', 'finishing', 'passing',
-    'defense', 'dribbling', 'heading', 'stamina', 'fitness', 'form',
-    'personality', 'experience', 'leadership', 'loyalty'
-  ];
+  const { t } = useLanguage();
 
   useEffect(() => {
     loadPlayers();
     loadTeams();
     loadCountries();
-    loadTableStructure();
   }, []);
 
-  const loadTableStructure = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('players')
-        .select('*')
-        .limit(1);
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        const sampleRow = data[0];
-        const dynamicFields: FieldConfig[] = Object.keys(sampleRow).map(key => ({
-          name: key,
-          type: typeof sampleRow[key] === 'number' ? 'integer' : 'text',
-          nullable: true,
-          default: null,
-          isEditable: editableFields.includes(key)
-        }));
-        setFields(dynamicFields);
-      }
-    } catch (error) {
-      console.error('Error loading table structure:', error);
-    }
-  };
+  // Campos por defecto para el formulario de creación
+  const defaultFields: FieldConfig[] = [
+    { name: 'first_name', type: 'text', nullable: false, default: '', isEditable: true },
+    { name: 'last_name', type: 'text', nullable: false, default: '', isEditable: true },
+    { name: 'position', type: 'text', nullable: false, default: 'MID', isEditable: true },
+    { name: 'age', type: 'integer', nullable: false, default: 20, isEditable: true },
+    { name: 'nationality_id', type: 'integer', nullable: false, default: 1, isEditable: true },
+    { name: 'team_id', type: 'integer', nullable: true, default: null, isEditable: true },
+    { name: 'value', type: 'integer', nullable: false, default: 100000, isEditable: true },
+    { name: 'wage', type: 'integer', nullable: false, default: 5000, isEditable: true },
+    { name: 'rating', type: 'integer', nullable: false, default: 65, isEditable: true },
+    { name: 'pace', type: 'integer', nullable: false, default: 10, isEditable: true },
+    { name: 'finishing', type: 'integer', nullable: false, default: 10, isEditable: true },
+    { name: 'passing', type: 'integer', nullable: false, default: 10, isEditable: true },
+    { name: 'defense', type: 'integer', nullable: false, default: 10, isEditable: true },
+    { name: 'dribbling', type: 'integer', nullable: false, default: 10, isEditable: true },
+    { name: 'heading', type: 'integer', nullable: false, default: 10, isEditable: true },
+    { name: 'stamina', type: 'integer', nullable: false, default: 10, isEditable: true },
+    { name: 'fitness', type: 'integer', nullable: false, default: 100, isEditable: true },
+    { name: 'form', type: 'text', nullable: false, default: 'Average', isEditable: true },
+    { name: 'personality', type: 'integer', nullable: false, default: 5, isEditable: true },
+    { name: 'experience', type: 'integer', nullable: false, default: 5, isEditable: true },
+    { name: 'leadership', type: 'integer', nullable: false, default: 5, isEditable: true },
+    { name: 'loyalty', type: 'integer', nullable: false, default: 5, isEditable: true }
+  ];
 
   const loadPlayers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('players')
-        .select(`
-          *,
-          teams!players_team_id_fkey (name)
-        `)
-        .order('player_id')
-        .limit(100);
-
-      if (error) throw error;
-      setPlayers(data || []);
+      const data = await apiFetch<{ success: boolean; players: any[] }>('/admin/players?limit=100');
+      setPlayers(data.players || []);
+      if (data.players && data.players.length > 0) {
+        const sample = data.players[0];
+        const dynamicFields: FieldConfig[] = Object.keys(sample)
+          .filter(k => k !== 'teams' && k !== 'team_name')
+          .map(key => ({
+            name: key,
+            type: typeof sample[key] === 'number' ? 'integer' : 'text',
+            nullable: true,
+            default: null,
+            isEditable: editableFields.includes(key)
+          }));
+        setFields(dynamicFields);
+      }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load players",
-        variant: "destructive",
-      });
+      toast({ title: t('common.error'), description: t('common.failedLoadPlayers'), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -124,13 +125,8 @@ const PlayerAdminTool = () => {
 
   const loadTeams = async () => {
     try {
-      const { data, error } = await supabase
-        .from('teams')
-        .select('team_id, name')
-        .order('name');
-
-      if (error) throw error;
-      setTeams(data || []);
+      const data = await apiFetch<{ success: boolean; teams: any[] }>('/teams');
+      setTeams(data.teams || []);
     } catch (error) {
       console.error('Error loading teams:', error);
     }
@@ -138,13 +134,8 @@ const PlayerAdminTool = () => {
 
   const loadCountries = async () => {
     try {
-      const { data, error } = await supabase
-        .from('leagues_regions')
-        .select('region_id, name')
-        .order('name');
-
-      if (error) throw error;
-      setCountries(data || []);
+      const data = await apiFetch<{ success: boolean; countries: any[] }>('/admin/countries');
+      setCountries(data.countries || []);
     } catch (error) {
       console.error('Error loading countries:', error);
     }
@@ -152,49 +143,38 @@ const PlayerAdminTool = () => {
 
   const handleSavePlayer = async (playerData: Record<string, any>) => {
     if (isCreating) {
-      // Remove player_id from the data when creating (it's auto-generated)
       const { player_id, ...createData } = playerData;
-
-      // Ensure all required fields are present and properly typed
       const insertData = {
-        first_name: createData.first_name || '',
-        last_name: createData.last_name || '',
-        position: createData.position || 'MID',
-        age: Number(createData.age) || 20,
-        nationality_id: Number(createData.nationality_id) || 1,
-        team_id: createData.team_id ? Number(createData.team_id) : null,
-        value: Number(createData.value) || 100000,
-        wage: Number(createData.wage) || 5000,
-        rating: Number(createData.rating) || 65,
-        pace: Number(createData.pace) || 10,
-        finishing: Number(createData.finishing) || 10,
-        passing: Number(createData.passing) || 10,
-        defense: Number(createData.defense) || 10,
-        dribbling: Number(createData.dribbling) || 10,
-        heading: Number(createData.heading) || 10,
-        stamina: Number(createData.stamina) || 10,
-        // Include other optional fields if they exist
-        ...(createData.fitness && { fitness: Number(createData.fitness) }),
-        ...(createData.form && { form: createData.form }),
-        ...(createData.personality && { personality: Number(createData.personality) }),
-        ...(createData.experience && { experience: Number(createData.experience) }),
-        ...(createData.leadership && { leadership: Number(createData.leadership) }),
-        ...(createData.loyalty && { loyalty: Number(createData.loyalty) }),
-        // Asignar imagen automáticamente según país
+        first_name: createData.first_name ?? '',
+        last_name: createData.last_name ?? '',
+        position: createData.position ?? 'MID',
+        age: Number(createData.age) > 0 ? Number(createData.age) : 20,
+        nationality_id: Number(createData.nationality_id) > 0 ? Number(createData.nationality_id) : 1,
+        team_id: createData.team_id === null || createData.team_id === undefined || createData.team_id === '' ? null : Number(createData.team_id),
+        value: Number(createData.value) > 0 ? Number(createData.value) : 100000,
+        wage: Number(createData.wage) > 0 ? Number(createData.wage) : 5000,
+        rating: Number(createData.rating) > 0 ? Number(createData.rating) : 65,
+        pace: Number(createData.pace) > 0 ? Number(createData.pace) : 10,
+        finishing: Number(createData.finishing) > 0 ? Number(createData.finishing) : 10,
+        passing: Number(createData.passing) > 0 ? Number(createData.passing) : 10,
+        defense: Number(createData.defense) > 0 ? Number(createData.defense) : 10,
+        dribbling: Number(createData.dribbling) > 0 ? Number(createData.dribbling) : 10,
+        heading: Number(createData.heading) > 0 ? Number(createData.heading) : 10,
+        stamina: Number(createData.stamina) > 0 ? Number(createData.stamina) : 10,
+        fitness: Number(createData.fitness) > 0 ? Number(createData.fitness) : 100,
+        form: createData.form ?? 'Average',
+        personality: Number(createData.personality) > 0 ? Number(createData.personality) : 5,
+        experience: Number(createData.experience) > 0 ? Number(createData.experience) : 5,
+        leadership: Number(createData.leadership) > 0 ? Number(createData.leadership) : 5,
+        loyalty: Number(createData.loyalty) > 0 ? Number(createData.loyalty) : 5,
         image_url: (() => {
           const country = countries.find(c => c.region_id === Number(createData.nationality_id));
-          return getPlayerImageUrl(country ? country.name : "");
+          return getPlayerImageUrl(country ? country.name : "", createData.first_name ?? '', createData.last_name ?? '');
         })()
       };
-
-      const { error } = await supabase
-        .from('players')
-        .insert(insertData);
-
-      if (error) throw error;
+      await apiFetch('/admin/players', { method: 'POST', body: JSON.stringify(insertData) });
     } else if (selectedPlayer) {
-      // Filter out non-editable fields and ensure proper data types
-      const allowedFields = {
+      const allowedFields: Record<string, any> = {
         ...(playerData.first_name !== undefined && { first_name: playerData.first_name }),
         ...(playerData.last_name !== undefined && { last_name: playerData.last_name }),
         ...(playerData.position !== undefined && { position: playerData.position }),
@@ -216,26 +196,18 @@ const PlayerAdminTool = () => {
         ...(playerData.personality !== undefined && { personality: Number(playerData.personality) }),
         ...(playerData.experience !== undefined && { experience: Number(playerData.experience) }),
         ...(playerData.leadership !== undefined && { leadership: Number(playerData.leadership) }),
-        ...(playerData.loyalty !== undefined && { loyalty: Number(playerData.loyalty) })
-        , ...(playerData.image_url !== undefined ? { image_url: playerData.image_url } : {})
+        ...(playerData.loyalty !== undefined && { loyalty: Number(playerData.loyalty) }),
+        ...(playerData.image_url !== undefined ? { image_url: playerData.image_url } : {})
       };
-
-      const { error } = await supabase
-        .from('players')
-        .update(allowedFields)
-        .eq('player_id', selectedPlayer.player_id);
-
-      if (error) throw error;
+      await apiFetch(`/admin/players/${selectedPlayer.player_id}`, { method: 'PUT', body: JSON.stringify(allowedFields) });
     }
-
     await loadPlayers();
     setSelectedPlayer(null);
     setIsCreating(false);
   };
 
   const handleEditPlayer = (player: Player) => {
-    // Ensure all fields are properly set when editing
-    const playerWithDefaults = {
+    setSelectedPlayer({
       ...player,
       leadership: player.leadership || 5,
       position: player.position || 'MID',
@@ -244,20 +216,19 @@ const PlayerAdminTool = () => {
       personality: player.personality || 5,
       experience: player.experience || 5,
       loyalty: player.loyalty || 5
-    };
-    setSelectedPlayer(playerWithDefaults);
+    });
     setIsCreating(false);
   };
 
   const handleCreateNew = () => {
-    const newPlayer: Player = {
-      player_id: 0, // Temporary ID, will be auto-generated by database
+    setSelectedPlayer({
+      player_id: 0,
       first_name: '',
       last_name: '',
       position: 'MID',
       age: 20,
       nationality_id: 1,
-      team_id: 0,
+      team_id: null, // null para "Sin equipo" por defecto
       value: 100000,
       wage: 5000,
       rating: 65,
@@ -274,8 +245,7 @@ const PlayerAdminTool = () => {
       experience: 5,
       leadership: 5,
       loyalty: 5
-    };
-    setSelectedPlayer(newPlayer);
+    });
     setIsCreating(true);
   };
 
@@ -285,42 +255,26 @@ const PlayerAdminTool = () => {
 
   const playerColumns = [
     { key: 'player_id', label: 'ID', sortable: true },
-    {
-      key: 'name',
-      label: 'Name',
-      sortable: true,
-      render: (_: any, player: any) => `${player.first_name} ${player.last_name}`
-    },
+    { key: 'name', label: 'Name', sortable: true, render: (_: any, player: any) => `${player.first_name} ${player.last_name}` },
     { key: 'position', label: 'Position', sortable: true },
     { key: 'age', label: 'Age', sortable: true },
-    {
-      key: 'team',
-      label: 'Team',
-      sortable: true,
-      render: (_: any, player: any) => player.teams?.name || 'Free Agent'
-    },
+    { key: 'team', label: 'Team', sortable: true, render: (_: any, player: any) => player.teams?.name || 'Free Agent' },
     { key: 'rating', label: 'Rating', sortable: true },
-    {
-      key: 'value',
-      label: 'Value',
-      sortable: true,
-      render: (value: number) => `$${(value / 1000000).toFixed(1)}M`
-    }
+    { key: 'value', label: 'Value', sortable: true, render: (value: number) => `$${(value / 1000000).toFixed(1)}M` }
   ];
 
   if (selectedPlayer) {
+    // Si no hay campos generados dinámicamente, usar los campos por defecto
+    const formFields = fields.length > 0 ? fields : defaultFields;
     return (
       <AdminGuard requiredLevel={3}>
         <div className="container mx-auto p-6">
           <DynamicAdminForm
             title={isCreating ? "New Player" : "Player"}
             data={selectedPlayer}
-            fields={fields}
+            fields={formFields}
             onSave={handleSavePlayer}
-            onCancel={() => {
-              setSelectedPlayer(null);
-              setIsCreating(false);
-            }}
+            onCancel={() => { setSelectedPlayer(null); setIsCreating(false); }}
             countries={countries}
             teams={teams}
           />
@@ -336,7 +290,6 @@ const PlayerAdminTool = () => {
           <User className="h-6 w-6 text-blue-600" />
           <h1 className="text-2xl font-bold">Player Administration</h1>
         </div>
-
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">

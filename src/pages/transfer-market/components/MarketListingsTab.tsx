@@ -14,6 +14,7 @@ import { formatMoney } from "../utils";
 import { PlaceBidDialog } from "./PlaceBidDialog";
 import { ListingDetailsDialog } from "./ListingDetailsDialog";
 import { useBidOperations } from "@/hooks/transfer/useBidOperations";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface MarketListingsTabProps {
   searchTerm: string;
@@ -28,14 +29,15 @@ export const MarketListingsTab = ({ searchTerm, positionFilter }: MarketListings
   const { seedTransferListings, isSeeding } = useTransferListingsSeeder();
   const { marketPlayers, isLoading, refetch } = useMarketListings();
   const { getHighestBid } = useBidOperations();
+  const { t } = useLanguage();
 
   const filteredMarketPlayers = marketPlayers.filter(player => {
     const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       player.nationality.toLowerCase().includes(searchTerm.toLowerCase()) ||
       player.team.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesPosition = positionFilter === "all" || player.position === positionFilter;
-    
+
     return matchesSearch && matchesPosition;
   });
 
@@ -49,7 +51,7 @@ export const MarketListingsTab = ({ searchTerm, positionFilter }: MarketListings
     const diffTime = deadlineDate.getTime() - now.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    
+
     if (diffDays > 0) {
       return `${diffDays}d ${diffHours}h`;
     } else if (diffHours > 0) {
@@ -64,12 +66,12 @@ export const MarketListingsTab = ({ searchTerm, positionFilter }: MarketListings
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>Transfer Market</CardTitle>
-          <CardDescription>Players currently available for transfer</CardDescription>
+          <CardTitle>{t('transfer.marketTitle')}</CardTitle>
+          <CardDescription>{t('transfer.marketDesc')}</CardDescription>
         </div>
-        <Button 
-          variant="outline" 
-          onClick={seedTransferListings} 
+        <Button
+          variant="outline"
+          onClick={seedTransferListings}
           disabled={isSeeding}
           className="ml-auto flex items-center"
         >
@@ -78,28 +80,28 @@ export const MarketListingsTab = ({ searchTerm, positionFilter }: MarketListings
           ) : (
             <PackagePlus className="h-4 w-4 mr-2" />
           )}
-          Add Players to Market
+          {t('transfer.addToMarket')}
         </Button>
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <div className="flex justify-center items-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="ml-2">Loading transfer listings...</span>
+            <span className="ml-2">{t('transfer.loadingListings')}</span>
           </div>
         ) : (
           <div className="rounded-md border overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[100px]">Position</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Rating</TableHead>
-                  <TableHead>Team</TableHead>
-                  <TableHead>Starting Price</TableHead>
-                  <TableHead>Current Bid</TableHead>
-                  <TableHead>Deadline</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="w-[100px]">{t('transfer.colPosition')}</TableHead>
+                  <TableHead>{t('transfer.colName')}</TableHead>
+                  <TableHead>{t('transfer.colRating')}</TableHead>
+                  <TableHead>{t('transfer.colTeam')}</TableHead>
+                  <TableHead>{t('transfer.colStartingPrice')}</TableHead>
+                  <TableHead>{t('transfer.colCurrentBid')}</TableHead>
+                  <TableHead>{t('transfer.colDeadline')}</TableHead>
+                  <TableHead className="text-right">{t('transfer.colActions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -129,7 +131,7 @@ export const MarketListingsTab = ({ searchTerm, positionFilter }: MarketListings
                             {player.userHasHighestBid && " (You)"}
                           </span>
                         ) : (
-                          <span className="text-muted-foreground">No bids</span>
+                          <span className="text-muted-foreground">{t('transfer.noBids')}</span>
                         )}
                       </TableCell>
                       <TableCell className="text-sm">
@@ -142,25 +144,25 @@ export const MarketListingsTab = ({ searchTerm, positionFilter }: MarketListings
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => {
                               setSelectedPlayer(player);
                               setIsViewingDetails(true);
                             }}
                           >
-                            Details
+                            {t('transfer.details')}
                           </Button>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => {
                               setSelectedPlayer(player);
                               setIsBiddingPlayer(true);
                             }}
                           >
-                            Place Bid
+                            {t('transfer.placeBid')}
                           </Button>
                         </div>
                       </TableCell>
@@ -169,7 +171,7 @@ export const MarketListingsTab = ({ searchTerm, positionFilter }: MarketListings
                 ) : (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center py-4 text-muted-foreground">
-                      No players found matching your criteria. Click &quot;Add Players to Market&quot; to add some.
+                      {t('transfer.noPlayersFound')}
                     </TableCell>
                   </TableRow>
                 )}

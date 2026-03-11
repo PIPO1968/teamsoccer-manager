@@ -8,6 +8,7 @@ import { useTeamFinances } from "@/hooks/useTeamFinances";
 import { useTransferOperations } from "@/hooks/useTransferOperations";
 import { MarketPlayer } from "../types";
 import { formatMoney } from "../utils";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface BuyPlayerDialogProps {
   open: boolean;
@@ -20,6 +21,7 @@ export const BuyPlayerDialog = ({ open, onOpenChange, player, onSuccess }: BuyPl
   const { team } = useUserTeam();
   const { finances } = useTeamFinances(team?.team_id.toString());
   const { buyPlayer, isProcessing } = useTransferOperations();
+  const { t } = useLanguage();
   const availableBudget = finances?.cash_balance || 0;
 
   const handleBuyPlayer = async () => {
@@ -42,9 +44,9 @@ export const BuyPlayerDialog = ({ open, onOpenChange, player, onSuccess }: BuyPl
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Buy Player</DialogTitle>
+          <DialogTitle>{t('transfer.buyPlayerTitle')}</DialogTitle>
           <DialogDescription>
-            Confirm transfer of {player.name} to your team
+            {t('transfer.confirmTransferPre')} {player.name} {t('transfer.toYourTeam')}
           </DialogDescription>
         </DialogHeader>
         <div className="flex items-center space-x-4 py-4">
@@ -56,46 +58,46 @@ export const BuyPlayerDialog = ({ open, onOpenChange, player, onSuccess }: BuyPl
             <div className="flex items-center space-x-2 mt-1">
               <Badge variant="outline">{player.position}</Badge>
               <span className="text-sm text-muted-foreground">{player.nationality}</span>
-              <span className="text-sm font-medium">Rating: {player.rating}</span>
+              <span className="text-sm font-medium">{t('transfer.ratingLabel')}: {player.rating}</span>
             </div>
             <div className="mt-1">
-              <span className="text-sm text-muted-foreground">Current team: </span>
+              <span className="text-sm text-muted-foreground">{t('transfer.currentTeam')} </span>
               <span className="font-medium">{player.team}</span>
             </div>
           </div>
         </div>
         <div className="space-y-4">
           <div className="bg-accent p-4 rounded-md">
-            <p className="font-medium">Transfer Fee</p>
+            <p className="font-medium">{t('transfer.transferFee')}</p>
             <p className="text-2xl font-bold text-green-600">{formatMoney(player.askingPrice)}</p>
             <div className="flex justify-between mt-2 text-sm">
-              <span className="text-muted-foreground">Your budget</span>
+              <span className="text-muted-foreground">{t('transfer.yourBudget')}</span>
               <span className="font-medium">{formatMoney(availableBudget)}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">After transfer</span>
+              <span className="text-muted-foreground">{t('transfer.afterTransfer')}</span>
               <span className={`font-medium ${availableBudget < player.askingPrice ? 'text-red-600' : ''}`}>
                 {formatMoney(availableBudget - player.askingPrice)}
               </span>
             </div>
           </div>
-          
+
           {availableBudget < player.askingPrice && (
             <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
-              You don't have enough budget for this transfer.
+              {t('transfer.notEnoughBudget')}
             </div>
           )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('transfer.cancel')}
           </Button>
-          <Button 
+          <Button
             onClick={handleBuyPlayer}
             disabled={availableBudget < player.askingPrice || isProcessing}
           >
             {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Complete Transfer
+            {t('transfer.completeTransfer')}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 
@@ -21,37 +21,16 @@ export const useTeamGuestbook = (teamId: string | undefined) => {
 
   const fetchLatestEntries = async () => {
     if (!teamId) return;
-
     try {
       setIsLoading(true);
-      
-      const { data, error } = await supabase
-        .from('team_guestbook')
-        .select(`
-          id,
-          author_id,
-          message,
-          created_at,
-          managers!team_guestbook_author_id_fkey(username)
-        `)
-        .eq('team_id', parseInt(teamId))
-        .order('created_at', { ascending: false })
-        .limit(3);
-        
-      if (error) {
-        console.error("Error fetching latest guestbook entries:", error);
-        return;
+      const data = await apiFetch<{ success: boolean; entries: GuestbookEntry[] }>(
+        `/teams/${parseInt(teamId)}/guestbook?limit=3`
+      );
+      setLatestEntries(data.entries || []);
+      if (manager?.user_id) {
+        const posted = (data.entries || []).some(e => e.author_id === manager.user_id);
+        if (posted) setHasPosted(true);
       }
-      
-      const formattedEntries = data?.map(entry => ({
-        id: entry.id,
-        author_id: entry.author_id,
-        author_name: (entry.managers as any)?.username || 'Unknown',
-        message: entry.message,
-        created_at: entry.created_at
-      })) || [];
-      
-      setLatestEntries(formattedEntries);
     } catch (error) {
       console.error("Error in useTeamGuestbook:", error);
     } finally {
@@ -61,45 +40,16 @@ export const useTeamGuestbook = (teamId: string | undefined) => {
 
   const fetchAllEntries = async () => {
     if (!teamId) return;
-
     try {
       setIsLoading(true);
-      
-      const { data, error } = await supabase
-        .rpc('get_team_guestbook_entries', { p_team_id: parseInt(teamId) });
-        
-      if (error) {
-        console.error("Error fetching guestbook entries:", error);
-        return;
-      }
-      
-      setEntries(data || []);
+      const data = await apiFetch<{ success: boolean; entries: GuestbookEntry[] }>(
+        `/teams/${parseInt(teamId)}/guestbook`
+      );
+      setEntries(data.entries || []);
     } catch (error) {
       console.error("Error in useTeamGuestbook:", error);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const checkUserHasPosted = async () => {
-    if (!teamId || !manager?.user_id) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('team_guestbook')
-        .select('id')
-        .eq('team_id', parseInt(teamId))
-        .eq('author_id', manager.user_id)
-        .limit(1);
-        
-      if (error) {
-        console.error("Error checking if user has posted:", error);
-        return;
-      }
-      
-      setHasPosted(data && data.length > 0);
-    } catch (error) {
-      console.error("Error checking if user has posted:", error);
     }
   };
 
@@ -112,8 +62,7 @@ export const useTeamGuestbook = (teamId: string | undefined) => {
       });
       return false;
     }
-    
-    // Check if user has already posted
+
     if (hasPosted) {
       toast({
         title: "Not allowed",
@@ -122,34 +71,15 @@ export const useTeamGuestbook = (teamId: string | undefined) => {
       });
       return false;
     }
-    
+
     try {
-      const { error } = await supabase
-        .from('team_guestbook')
-        .insert({
-          team_id: parseInt(teamId),
-          author_id: manager.user_id,
-          message
-        });
-        
-      if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to add guestbook entry: " + error.message,
-          variant: "destructive",
-        });
-        return false;
-      }
-      
-      toast({
-        title: "Success",
-        description: "Guestbook entry added",
+      await apiFetch(`/teams/${parseInt(teamId)}/guestbook`, {
+        method: 'POST',
+        body: JSON.stringify({ authorId: manager.user_id, message }),
       });
-      
-      // Update local state
+
+      toast({ title: "Success", description: "Guestbook entry added" });
       setHasPosted(true);
-      
-      // Refresh the latest entries
       fetchLatestEntries();
       return true;
     } catch (error) {
@@ -165,9 +95,6 @@ export const useTeamGuestbook = (teamId: string | undefined) => {
 
   useEffect(() => {
     fetchLatestEntries();
-    if (manager?.user_id) {
-      checkUserHasPosted();
-    }
   }, [teamId, manager?.user_id]);
 
   return {

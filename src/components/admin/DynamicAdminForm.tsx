@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -33,22 +33,23 @@ interface DynamicAdminFormProps {
   series?: Array<{ series_id: number; name: string; division: number; group_number: number }>;
 }
 
-export const DynamicAdminForm = ({ 
-  title, 
-  data, 
-  fields, 
-  onSave, 
+export const DynamicAdminForm = ({
+  title,
+  data,
+  fields,
+  onSave,
   onCancel,
   countries = [],
-  teams = [],
+  teams: teamsProp = [],
   series = []
 }: DynamicAdminFormProps) => {
+  // Asegura que teams siempre sea un array
+  const teams = Array.isArray(teamsProp) ? teamsProp : [];
   const [formData, setFormData] = useState(data);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    console.log('Form data updated:', data);
     setFormData(data);
   }, [data]);
 
@@ -76,7 +77,7 @@ export const DynamicAdminForm = ({
 
     const value = formData[field.name];
     console.log(`Rendering field ${field.name} with value:`, value);
-    
+
     // Special handling for nationality_id with countries
     if (field.name === 'nationality_id' && countries.length > 0) {
       return (
@@ -101,27 +102,41 @@ export const DynamicAdminForm = ({
       );
     }
 
-    // Special handling for team_id
-    if (field.name === 'team_id' && teams.length > 0) {
+    // Autocompletado para team_id
+    if (field.name === 'team_id') {
+      const [teamSearch, setTeamSearch] = useState('');
+      // Filtrar equipos por nombre
+      const filteredTeams = teams.filter(team =>
+        team.name && team.name.toLowerCase().includes(teamSearch.toLowerCase())
+      );
       return (
         <div key={field.name} className="space-y-2">
           <Label htmlFor={field.name}>Team</Label>
-          <Select
-            value={value?.toString() || ''}
-            onValueChange={(newValue) => setFormData(prev => ({ ...prev, [field.name]: newValue === 'null' ? null : parseInt(newValue) }))}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select team" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="null">No Team</SelectItem>
-              {teams.map((team) => (
-                <SelectItem key={team.team_id} value={team.team_id.toString()}>
-                  {team.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Input
+            id={field.name + '_search'}
+            placeholder="Escribe el nombre del equipo..."
+            value={teamSearch}
+            onChange={e => setTeamSearch(e.target.value)}
+            className="mb-2"
+          />
+          <div style={{ maxHeight: 150, overflowY: 'auto', border: '1px solid #eee', borderRadius: 4 }}>
+            <div
+              style={{ padding: 6, cursor: 'pointer', background: value === null ? '#e0e0e0' : 'transparent' }}
+              onClick={() => setFormData(prev => ({ ...prev, [field.name]: null }))}
+            >
+              Sin equipo
+            </div>
+            {filteredTeams.slice(0, 30).map(team => (
+              <div
+                key={team.team_id}
+                style={{ padding: 6, cursor: 'pointer', background: value === team.team_id ? '#e0e0e0' : 'transparent' }}
+                onClick={() => setFormData(prev => ({ ...prev, [field.name]: team.team_id }))}
+              >
+                {team.name}
+              </div>
+            ))}
+            {filteredTeams.length === 0 && <div style={{ padding: 6, color: '#888' }}>No se encontraron equipos</div>}
+          </div>
         </div>
       );
     }
@@ -162,7 +177,7 @@ export const DynamicAdminForm = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="waiting_list">Waiting List</SelectItem>
+              <SelectItem value="carnet_pending">Carnet de Manager</SelectItem>
               <SelectItem value="suspended">Suspended</SelectItem>
             </SelectContent>
           </Select>
@@ -334,7 +349,7 @@ export const DynamicAdminForm = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {fields.map(renderField)}
         </div>
-        
+
         <div className="flex gap-2 pt-4">
           <Button onClick={handleSave} disabled={loading}>
             {loading ? "Saving..." : "Save Changes"}

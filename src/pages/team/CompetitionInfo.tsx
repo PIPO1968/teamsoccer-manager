@@ -1,12 +1,14 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function CompetitionInfo() {
+  const { t } = useLanguage();
   return (
     <Card>
       <CardContent className="p-4">
-        <h2 className="font-semibold mb-3">Ongoing Competitions</h2>
+        <h2 className="font-semibold mb-3">{t('team.ongoingCompetitions')}</h2>
         <div className="space-y-2 text-sm">
           <div>
             <span className="text-muted-foreground"># 1 in</span>{" "}

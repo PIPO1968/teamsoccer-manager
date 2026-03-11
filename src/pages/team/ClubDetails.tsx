@@ -2,6 +2,8 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Trophy, Users, Flag, Star, Trophy as LeagueTrophy } from "lucide-react";
 import type { TeamData } from "@/hooks/useTeamData";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { localizeCountryName } from "@/utils/countries";
 import { Link, useParams } from "react-router-dom";
 import { useTeamLeague } from "@/hooks/useTeamLeague";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,7 +20,8 @@ export default function ClubDetails({ team }: ClubDetailsProps) {
   const { league, isLoading: leagueLoading } = useTeamLeague(team?.team_id?.toString());
   const { manager } = useAuth();
   const { stadiumId } = useStadiumIdByTeamId(team?.team_id);
-  
+  const { t, language } = useLanguage();
+
   console.log('ClubDetails rendering with:', {
     'Team data': team,
     'Team ID from params': teamId,
@@ -26,7 +29,7 @@ export default function ClubDetails({ team }: ClubDetailsProps) {
     'Team manager ID': team?.manager_id,
     'Stadium ID': stadiumId
   });
-  
+
   const getAdminPrefix = (isAdmin: number) => {
     switch (isAdmin) {
       case 4: return 'DEV-';
@@ -43,22 +46,22 @@ export default function ClubDetails({ team }: ClubDetailsProps) {
     <div className="space-y-4">
       <Card>
         <CardContent className="p-4">
-          <h2 className="font-semibold mb-3">Club Details</h2>
+          <h2 className="font-semibold mb-3">{t('team.clubDetails')}</h2>
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2">
               <LeagueTrophy className="h-4 w-4 text-muted-foreground" />
               <span>
                 {leagueLoading ? (
-                  "Loading league info..."
+                  t('team.loadingLeague')
                 ) : league ? (
                   <>
-                    Competes in{" "}
+                    {t('team.competesIn')}{" "}
                     <Link to={`/series/${league.series_id}`} className="text-green-700 hover:underline">
-                      {league.region_name} {toRomanNumeral(league.division)}.{league.group_number}
+                      {localizeCountryName(league.region_name, language)} {toRomanNumeral(league.division)}.{league.group_number}
                     </Link>
                   </>
                 ) : (
-                  "League information not available"
+                  t('team.leagueNotAvailable')
                 )}
               </span>
             </div>
@@ -66,15 +69,15 @@ export default function ClubDetails({ team }: ClubDetailsProps) {
               <Trophy className="h-4 w-4 text-muted-foreground" />
               <span>
                 {team.is_bot === 1
-                  ? "This team does not have a human manager."
+                  ? t('team.noHumanManager')
                   : team.manager_id ? (
                     <div className="flex items-center gap-1">
-                      Managed by{" "}
+                      {t('team.managedBy')}{" "}
                       <Link to={`/manager/${team.manager_id}`} className="text-green-700 hover:underline">
                         {getAdminPrefix(team.is_admin || 0)}{team.manager_username || team.manager_name || "Unknown Manager"}
                       </Link>
                       {team.manager_id && (
-                        <ManagerStatusIndicators 
+                        <ManagerStatusIndicators
                           managerId={parseInt(team.manager_id)}
                           isPremium={team.is_premium || 0}
                           isAdmin={team.is_admin || 0}
@@ -82,27 +85,27 @@ export default function ClubDetails({ team }: ClubDetailsProps) {
                       )}
                     </div>
                   ) : (
-                    "Unknown Manager"
+                    t('team.unknownManager')
                   )
                 }
               </span>
             </div>
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground" />
-              <span>Fan club: {team.fan_count || 0} members</span>
+              <span>{t('team.fanClub').replace('{count}', String(team.fan_count || 0))}</span>
             </div>
             <div className="flex items-center gap-2">
               <Flag className="h-4 w-4 text-muted-foreground" />
-              <span>Stadium: {' '}
+              <span>{t('team.stadiumLabel')}{' '}
                 <Link to={`/stadium/${stadiumId || team.team_id}`} className="text-green-700 hover:underline">
-                  {team.stadium_name || "Unknown"}
+                  {team.stadium_name || '?'}
                 </Link>
-                {' '}(capacity {team.stadium_capacity?.toLocaleString() || "Unknown"})
+                {' '}{t('team.capacityLabel').replace('{capacity}', String(team.stadium_capacity?.toLocaleString() || '?'))}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <Star className="h-4 w-4 text-muted-foreground" />
-              <span>Team spirit: {team.team_spirit || "Unknown"}</span>
+              <span>{t('team.teamSpiritLabel')} {team.team_spirit || '?'}</span>
             </div>
           </div>
         </CardContent>

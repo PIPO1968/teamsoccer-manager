@@ -8,6 +8,7 @@ import { PlayerInfoCard } from "./details/PlayerInfoCard";
 import { PlayerAttributesCard } from "./details/PlayerAttributesCard";
 import { BidsTable } from "./details/BidsTable";
 import { DialogActions } from "./details/DialogActions";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface ListingDetailsDialogProps {
   open: boolean;
@@ -19,6 +20,7 @@ export const ListingDetailsDialog = ({ open, onOpenChange, player }: ListingDeta
   const [bids, setBids] = useState<PlayerBid[]>([]);
   const [loading, setLoading] = useState(false);
   const { getListingBids } = useBidOperations();
+  const { t } = useLanguage();
   
   const isMounted = useRef(true);
   const fetchInProgress = useRef(false);
@@ -74,8 +76,8 @@ export const ListingDetailsDialog = ({ open, onOpenChange, player }: ListingDeta
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-            {player?.name || "Player Details"}
-            <Badge className="ml-2">{player?.position || "Unknown"}</Badge>
+            {player?.name || t('transfer.playerDetails')}
+            <Badge className="ml-2">{player?.position || t('transfer.statusUnknown')}</Badge>
           </DialogTitle>
         </DialogHeader>
 

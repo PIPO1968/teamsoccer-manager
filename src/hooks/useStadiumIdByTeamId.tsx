@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { apiFetch } from "@/services/apiClient";
 
 export const useStadiumIdByTeamId = (teamId: number | undefined) => {
   const [stadiumId, setStadiumId] = useState<number | null>(null);
@@ -15,18 +15,10 @@ export const useStadiumIdByTeamId = (teamId: number | undefined) => {
       }
 
       try {
-        const { data, error: fetchError } = await supabase
-          .from("stadiums")
-          .select("stadium_id")
-          .eq("team_id", teamId)
-          .maybeSingle();
-
-        if (fetchError) throw fetchError;
-        
-        if (data) {
-          setStadiumId(data.stadium_id);
-        }
-        
+        const data = await apiFetch<{ success: boolean; stadiumId: number | null }>(
+          `/stadiums/by-team/${teamId}`
+        );
+        setStadiumId(data.stadiumId);
       } catch (err) {
         console.error("Error fetching stadium ID:", err);
         setError(err instanceof Error ? err.message : "Error fetching stadium ID");
@@ -35,9 +27,7 @@ export const useStadiumIdByTeamId = (teamId: number | undefined) => {
       }
     };
 
-    if (teamId) {
-      fetchStadiumId();
-    }
+    if (teamId) fetchStadiumId();
   }, [teamId]);
 
   return { stadiumId, isLoading, error };

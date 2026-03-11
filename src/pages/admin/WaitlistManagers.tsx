@@ -6,6 +6,7 @@ import { ManagerStatusIndicators } from "@/components/manager/ManagerStatusIndic
 import { ArrowLeft, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/services/apiClient";
@@ -14,17 +15,18 @@ interface WaitlistManager {
   user_id: number;
   username: string;
   email: string;
+  status: string;
   country_id: number;
   country_name: string;
   team_name?: string;
   created_at: string;
-  has_league_structure: boolean;
   is_admin: number;
   is_premium: number;
 }
 
 const WaitlistManagers = () => {
   const { manager } = useAuth();
+  const { t } = useLanguage();
 
   // Check if user has required admin level
   if (!manager?.is_admin || manager.is_admin <= 1) {
@@ -48,7 +50,7 @@ const WaitlistManagers = () => {
           <Link to="/admin" className="text-blue-600 hover:text-blue-800">
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <h1 className="text-2xl font-bold">Loading...</h1>
+          <h1 className="text-2xl font-bold">{t('waitlist.loading')}</h1>
         </div>
       </div>
     );
@@ -61,7 +63,7 @@ const WaitlistManagers = () => {
           <Link to="/admin" className="text-blue-600 hover:text-blue-800">
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <h1 className="text-2xl font-bold text-red-600">Error loading waitlist managers</h1>
+          <h1 className="text-2xl font-bold text-red-600">{t('waitlist.error')}</h1>
         </div>
       </div>
     );
@@ -74,24 +76,24 @@ const WaitlistManagers = () => {
           <ArrowLeft className="h-5 w-5" />
         </Link>
         <Users className="h-6 w-6 text-blue-600" />
-        <h1 className="text-2xl font-bold">Waitlist Managers</h1>
+        <h1 className="text-2xl font-bold">{t('waitlist.title')}</h1>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Managers in Waiting List ({waitlistManagers?.length || 0})</CardTitle>
+          <CardTitle>{t('waitlist.pending')} ({waitlistManagers?.length || 0})</CardTitle>
         </CardHeader>
         <CardContent>
           {waitlistManagers && waitlistManagers.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Manager</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Country</TableHead>
-                  <TableHead>League Structure</TableHead>
-                  <TableHead>Team Name</TableHead>
-                  <TableHead>Joined</TableHead>
+                  <TableHead>{t('waitlist.colManager')}</TableHead>
+                  <TableHead>{t('waitlist.colEmail')}</TableHead>
+                  <TableHead>{t('waitlist.colStatus')}</TableHead>
+                  <TableHead>{t('waitlist.colCountry')}</TableHead>
+                  <TableHead>{t('waitlist.colTeamName')}</TableHead>
+                  <TableHead>{t('waitlist.colJoined')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -109,18 +111,18 @@ const WaitlistManagers = () => {
                     </TableCell>
                     <TableCell>{manager.email}</TableCell>
                     <TableCell>
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${manager.status === 'waiting_list'
+                          ? 'bg-orange-100 text-orange-800'
+                          : 'bg-blue-100 text-blue-800'
+                        }`}>
+                        {manager.status === 'waiting_list' ? t('waitlist.statusWaiting') : t('waitlist.statusPending')}
+                      </span>
+                    </TableCell>
+                    <TableCell>
                       <div className="flex items-center gap-2">
                         <Flag countryId={manager.country_id} className="max-w-[20px] max-h-[15px]" />
                         <span>{manager.country_name}</span>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 rounded text-xs ${manager.has_league_structure
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                        }`}>
-                        {manager.has_league_structure ? 'Available' : 'Missing'}
-                      </span>
                     </TableCell>
                     <TableCell>{manager.team_name || 'No team'}</TableCell>
                     <TableCell>
@@ -133,7 +135,7 @@ const WaitlistManagers = () => {
           ) : (
             <div className="text-center py-8 text-gray-500">
               <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No managers in waitlist</p>
+              <p>{t('waitlist.noManagers')}</p>
             </div>
           )}
         </CardContent>
