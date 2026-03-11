@@ -2659,8 +2659,8 @@ app.delete('/groups/:id', async (req, res) => {
         await client.query('DELETE FROM group_members WHERE group_id=$1', [groupId]);
         await client.query('DELETE FROM groups WHERE id=$1', [groupId]);
         if (forumId) {
-            const threadIds = await client.query('SELECT id FROM forum_threads WHERE forum_id=$1', [forumId]);
-            const threadIds = threadIds.rows.map(r => r.id);
+            const threadIdsResult = await client.query('SELECT id FROM forum_threads WHERE forum_id=$1', [forumId]);
+            const threadIds = threadIdsResult.rows.map(r => r.id);
             if (threadIds.length > 0) {
                 await client.query('DELETE FROM forum_posts WHERE thread_id = ANY($1)', [threadIds]);
                 await client.query('DELETE FROM forum_threads WHERE forum_id=$1', [forumId]);
