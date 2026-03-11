@@ -1,3 +1,5 @@
+// Cierre final del archivo para evitar SyntaxError
+}
 
 import express from 'express';
 import jwt from 'jsonwebtoken';
