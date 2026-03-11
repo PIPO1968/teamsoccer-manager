@@ -7,12 +7,7 @@ import bcrypt from 'bcryptjs';
 import https from 'https';
 import http from 'http';
 
-// Cambio menor para forzar build Railway - 2026-03-10
 
-dotenv.config({ path: './.env' });
-
-const app = express();
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
 
 // Endpoint: obtener la temporada actual
 app.get('/meta/current-season', async (req, res) => {
