@@ -109,12 +109,10 @@ app.post('/register', async (req, res) => {
             return res.status(409).json({ error: 'Usuario ya existe' });
         }
 
-        const passwordHash = await bcrypt.hash(password, 10);
-
-        // 1. Crear usuario
+        // Guardar la contraseña directamente (sin cifrado, solo para pruebas)
         const userResult = await client.query(
             'INSERT INTO users (email, password_hash, username) VALUES ($1, $2, $3) RETURNING id',
-            [email, passwordHash, username]
+            [email, password, username]
         );
         const userId = userResult.rows[0].id;
 
@@ -175,8 +173,8 @@ app.post('/login', async (req, res) => {
         }
 
         const user = userResult.rows[0];
-        const passwordOk = await bcrypt.compare(password, user.password_hash);
-        if (!passwordOk) {
+        // Comparar la contraseña directamente (sin cifrado, solo para pruebas)
+        if (password !== user.password_hash) {
             return res.status(401).json({ error: 'Credenciales incorrectas' });
         }
 
@@ -194,8 +192,8 @@ app.post('/login', async (req, res) => {
 
 // Obtener manager por id
 app.get('/managers/:id', async (req, res) => {
-    const managerId = parseInt(req.params.id, 10);
-    if (!managerId) {
+    const managerId = req.params.id;
+    if (!managerId || typeof managerId !== 'string') {
         return res.status(400).json({ error: 'managerId invalido' });
     }
 
@@ -217,8 +215,8 @@ app.get('/managers/:id', async (req, res) => {
 
 // Obtener equipo por manager
 app.get('/teams/by-manager/:id', async (req, res) => {
-    const managerId = parseInt(req.params.id, 10);
-    if (!managerId) {
+    const managerId = req.params.id;
+    if (!managerId || typeof managerId !== 'string') {
         return res.status(400).json({ error: 'managerId invalido' });
     }
 

@@ -7,11 +7,19 @@ import { componentTagger } from "lovable-tagger";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const isDevelopment = process.env.VITE_IS_DEVELOPMENT === 'true';
-  
+
   return {
     server: {
       host: "::",
       port: 8080,
+      proxy: {
+        // Redirige todas las peticiones que empiezan por /login, /register, /teams, /managers, /api, etc. al backend
+        '/login': 'http://localhost:3001',
+        '/register': 'http://localhost:3001',
+        '/teams': 'http://localhost:3001',
+        '/managers': 'http://localhost:3001',
+        '/api': 'http://localhost:3001',
+      },
     },
     plugins: [
       react(),
