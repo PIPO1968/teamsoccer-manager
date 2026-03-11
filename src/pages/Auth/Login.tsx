@@ -41,12 +41,12 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await apiPost<AuthenticationResponse, { email: string; password: string }>(
+      const response = await apiPost<any, { email: string; password: string }>(
         "/login",
         { email, password }
       );
 
-      if (!response.success || !response.manager) {
+      if (!response.success || !response.manager || !response.token) {
         toast({
           title: t('auth.signInError') || 'Login failed',
           description: 'Manager not found',
@@ -55,6 +55,8 @@ const Login = () => {
         return;
       }
 
+      // Guardar JWT en localStorage
+      localStorage.setItem('jwt', response.token);
       signIn(response.manager);
       setLoading(false);
       const status = response.manager.status;
