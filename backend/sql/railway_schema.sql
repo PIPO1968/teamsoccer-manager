@@ -145,3 +145,13 @@ INSERT INTO leagues_regions (region_id, name) VALUES
   (2, 'England'),
   (3, 'France')
 ON CONFLICT (region_id) DO NOTHING;
+
+-- Tabla meta para temporada actual
+CREATE TABLE IF NOT EXISTS meta (
+    id SERIAL PRIMARY KEY,
+    current_season INTEGER NOT NULL DEFAULT 1
+);
+
+-- Registro por defecto para meta
+INSERT INTO meta (current_season)
+SELECT 1 WHERE NOT EXISTS (SELECT 1 FROM meta);
