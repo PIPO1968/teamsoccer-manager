@@ -11,12 +11,27 @@ const League = () => {
   const { stats, isLoading, error } = useLeagueStats(leagueId);
   const { t } = useLanguage();
 
+
   if (isLoading) {
-    return <div>{t('league.loading')}</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-xl text-gray-600">{t('league.loading')}</div>
+      </div>
+    );
   }
 
   if (error || !stats) {
-    return <div>{t('league.error')}: {error || t('league.notFound')}</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold mb-4">{t('league.error')}</h1>
+          <p className="text-lg text-gray-600 mb-4">{error || t('league.notFound')}</p>
+          <a href="/" className="text-blue-500 hover:text-blue-700 underline">
+            {t('common.returnHome', 'Volver al inicio')}
+          </a>
+        </div>
+      </div>
+    );
   }
 
   return (
