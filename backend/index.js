@@ -1,7 +1,8 @@
 
 
 // ...después de la inicialización de app...
-// Ruta raíz para evitar 404 y mostrar mensaje personalizado
+
+// Después de la inicialización de app
 app.get('/', (req, res) => {
     res.send('TeamSoccer API - Backend funcionando');
 });
