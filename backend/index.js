@@ -3967,6 +3967,43 @@ app.get('/managers/:id/info', async (req, res) => {
 // ===================== END GROUPS =====================
 
 
+// Obtener managers online y total registrados
+app.get('/admin/online-managers', async (req, res) => {
+    try {
+        // Managers online
+        const onlineResult = await pool.query(`
+            SELECT user_id, username, is_admin, is_premium, last_login, country_id, current_url, last_ip, connection_country
+            FROM managers
+            WHERE is_online = true
+            ORDER BY last_login DESC
+        `);
+        // Total managers registrados
+        const totalResult = await pool.query('SELECT COUNT(*) AS total FROM managers');
+        // Enriquecer con nombre de país
+        let managers = onlineResult.rows;
+        if (managers.length > 0) {
+            // Obtener nombres de país para los managers online
+            const countryIds = managers.map(m => m.country_id).filter(Boolean);
+            let countryMap = {};
+            if (countryIds.length > 0) {
+                const countries = await pool.query('SELECT region_id, name FROM leagues_regions WHERE region_id = ANY($1)', [countryIds]);
+                countryMap = Object.fromEntries(countries.rows.map(r => [r.region_id, r.name]));
+            }
+            managers = managers.map(m => ({
+                ...m,
+                country_name: countryMap[m.country_id] || null
+            }));
+        }
+        res.json({
+            success: true,
+            managers,
+            totalManagers: parseInt(totalResult.rows[0]?.total || '0', 10)
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // GET /teams - list all teams
 app.get('/teams', async (req, res) => {
     try {
