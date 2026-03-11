@@ -536,17 +536,17 @@ const initDb = async () => {
             WHERE m.status = 'active' AND t.series_id IS NULL
         `);
         for (const row of unassigned.rows) {
-            const repairClient = await pool.connect();
+            const client = await pool.connect();
             try {
-                await repairClient.query('BEGIN');
-                await fullyActivateManager(repairClient, row.user_id);
-                await repairClient.query('COMMIT');
+                await client.query('BEGIN');
+                await fullyActivateManager(client, row.user_id);
+                await client.query('COMMIT');
                 console.log(`✅ Liga reparada para manager ${row.user_id}`);
-            } catch (repairErr) {
-                await repairClient.query('ROLLBACK');
-                console.error(`❌ Error reparando manager ${row.user_id}:`, repairErr.message);
+            } catch (err) {
+                await client.query('ROLLBACK');
+                console.error(`❌ Error reparando manager ${row.user_id}:`, err.message);
             } finally {
-                repairClient.release();
+                client.release();
             }
         }
         if (unassigned.rows.length > 0) console.log(`✅ ${unassigned.rows.length} manager(s) reparados`);
@@ -1595,7 +1595,7 @@ app.post('/stadiums/:id/expand', async (req, res) => {
 // Obtener partidos de un estadio (partidos del equipo local)
 app.get('/stadiums/:id/matches', async (req, res) => {
     const stadiumId = parseInt(req.params.id, 10);
-    if (!stadiumId) return res.status(400).json({ error: 'stadiumId invalido' });
+    if (!stadiumId) return res.json({ success: true, matches: [] });
     try {
         const stadRes = await pool.query(
             'SELECT team_id FROM stadiums WHERE stadium_id = $1 LIMIT 1',
@@ -2659,8 +2659,8 @@ app.delete('/groups/:id', async (req, res) => {
         await client.query('DELETE FROM group_members WHERE group_id=$1', [groupId]);
         await client.query('DELETE FROM groups WHERE id=$1', [groupId]);
         if (forumId) {
-            const threadsRes = await client.query('SELECT id FROM forum_threads WHERE forum_id=$1', [forumId]);
-            const threadIds = threadsRes.rows.map(r => r.id);
+            const threadIds = await client.query('SELECT id FROM forum_threads WHERE forum_id=$1', [forumId]);
+            const threadIds = threadIds.rows.map(r => r.id);
             if (threadIds.length > 0) {
                 await client.query('DELETE FROM forum_posts WHERE thread_id = ANY($1)', [threadIds]);
                 await client.query('DELETE FROM forum_threads WHERE forum_id=$1', [forumId]);
@@ -2884,16 +2884,13 @@ app.post('/forums/:id/threads', async (req, res) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
+        const now = new Date().toISOString();
         const threadResult = await client.query(
-            `INSERT INTO forum_threads (forum_id, title, user_id, is_locked, is_sticky, view_count, created_at, last_post_at, last_post_user_id)
-             VALUES ($1, $2, $3, false, false, 0, NOW(), NOW(), $3) RETURNING *`,
-            [forumId, title, userId]
+            `INSERT INTO forum_threads (title, forum_id, user_id, last_post_at, last_post_user_id, view_count, is_locked, is_sticky, created_at) VALUES ($1, $2, $3, $4, $3, 0, false, false, $4) RETURNING *`,
+            [title, forumId, userId, now]
         );
         const thread = threadResult.rows[0];
-        await client.query(
-            `INSERT INTO forum_posts (thread_id, content, user_id, created_at) VALUES ($1, $2, $3, NOW())`,
-            [thread.id, content, userId]
-        );
+        await client.query(`INSERT INTO forum_posts (thread_id, content, user_id, created_at) VALUES ($1, $2, $3, $4)`, [thread.id, content, userId, now]);
         await client.query('COMMIT');
         res.json({ success: true, thread });
     } catch (err) {
