@@ -1,3 +1,7 @@
+// Ruta raíz para evitar 404 y mostrar mensaje personalizado
+app.get('/', (req, res) => {
+    res.send('TeamSoccer API - Backend funcionando');
+});
 
 import express from 'express';
 import jwt from 'jsonwebtoken';
