@@ -1,10 +1,6 @@
-// Handler global para errores no capturados
-process.on('uncaughtException', err => {
-    console.error('Uncaught Exception:', err);
-});
-process.on('unhandledRejection', err => {
-    console.error('Unhandled Rejection:', err);
-});
+
+
+// ...después de la inicialización de app...
 // Ruta raíz para evitar 404 y mostrar mensaje personalizado
 app.get('/', (req, res) => {
     res.send('TeamSoccer API - Backend funcionando');
