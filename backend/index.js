@@ -1,3 +1,5 @@
+// ...existing code...
+
 // Endpoint: obtener la temporada actual
 app.get('/meta/current-season', async (req, res) => {
     try {
