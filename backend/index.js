@@ -1,3 +1,18 @@
+// Endpoint: obtener la temporada actual
+app.get('/meta/current-season', async (req, res) => {
+    try {
+        // Puedes ajustar la lógica según tu modelo de datos
+        // Ejemplo: obtener la temporada actual de la base de datos
+        const result = await pool.query('SELECT current_season FROM meta LIMIT 1');
+        if (result.rows.length > 0) {
+            res.json({ success: true, currentSeason: result.rows[0].current_season });
+        } else {
+            res.status(404).json({ success: false, error: 'No se encontró la temporada actual' });
+        }
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
