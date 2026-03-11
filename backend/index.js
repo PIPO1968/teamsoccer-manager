@@ -68,7 +68,7 @@ app.use(cors({
             callback(new Error('No permitido por CORS'));
         }
     },
-    credentials: true
+    credentials: false // No se usan cookies/sesión
 }));
 console.log('CORS configurado. allowedOrigins:', allowedOrigins);
 app.use(express.json({ limit: '5mb' }));
