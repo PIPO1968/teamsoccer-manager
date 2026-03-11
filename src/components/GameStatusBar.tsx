@@ -55,7 +55,7 @@ const GameStatusBar = () => {
               <span className="text-white/40">|</span>
               <div className="flex items-center space-x-1">
                 <Users className="w-4 h-4" />
-                <span>{playersLoading ? "..." : `${totalManagers.toLocaleString()} ${t('gameStatus.registered')}`}</span>
+                <span>{typeof totalManagers === 'number' ? `${totalManagers.toLocaleString()} ${t('gameStatus.registered')}` : `0 ${t('gameStatus.registered')}`}</span>
               </div>
               {!seasonLoading && seasonInfo && (
                 <>
