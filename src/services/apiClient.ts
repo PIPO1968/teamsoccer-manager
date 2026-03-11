@@ -11,10 +11,16 @@ const toAbsoluteUrl = (path: string) => {
 };
 
 export const apiFetch = async <T>(path: string, options: RequestInit = {}): Promise<T> => {
+    // Obtener x-manager-id de localStorage o sessionStorage si existe
+    let managerId = null;
+    if (typeof window !== 'undefined') {
+        managerId = localStorage.getItem('managerId') || sessionStorage.getItem('managerId');
+    }
     const response = await fetch(toAbsoluteUrl(path), {
         ...options,
         headers: {
             "Content-Type": "application/json",
+            ...(managerId ? { "x-manager-id": managerId } : {}),
             ...(options.headers || {}),
         },
     });

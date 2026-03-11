@@ -23,3 +23,12 @@ CREATE TABLE IF NOT EXISTS player_training_assignments (
   training_type text NOT NULL,
   assigned_at timestamptz DEFAULT now()
 );
+
+-- Tabla para desafíos de equipos
+CREATE TABLE IF NOT EXISTS team_challenges (
+  id serial PRIMARY KEY,
+  team_id integer REFERENCES teams(team_id) ON DELETE CASCADE,
+  challenge_type text NOT NULL,
+  created_at timestamptz DEFAULT now(),
+  status text DEFAULT 'pending'
+);
