@@ -53,8 +53,8 @@ const Landing = () => {
               </h2>
               <div className="aspect-video bg-gradient-to-b from-sky-400 to-sky-300 rounded-lg mb-6 flex items-center justify-center relative overflow-hidden">
                 <img
-                  src="/teamsoccer-assets/06dfc4b1-c0ea-4de3-af56-84bcea0a199e.png"
-                  alt="Team Soccer Manager principal"
+                  src="/teamsoccer-assets/Football Manager Game.png"
+                  alt="Football Manager Game"
                   className="w-full h-full object-contain"
                 />
               </div>
