@@ -4673,6 +4673,9 @@ app.post('/login', async (req, res) => {
             }
         }
         setTimeout(initBotsInBackground, 15000);
+    } catch (err) {
+        console.error('❌ Error global en initBotsInBackground:', err.message);
+        setTimeout(initBotsInBackground, 30000);
     }
 
 
