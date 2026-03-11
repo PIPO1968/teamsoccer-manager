@@ -1,3 +1,30 @@
+import jwt from 'jsonwebtoken';
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
+// Endpoint de login con JWT
+app.post('/login', async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+        return res.status(400).json({ success: false, error: 'Email y contraseña requeridos' });
+    }
+    try {
+        const result = await pool.query('SELECT * FROM managers WHERE email = $1', [email]);
+        const manager = result.rows[0];
+        if (!manager) {
+            return res.status(401).json({ success: false, error: 'Usuario no encontrado' });
+        }
+        const valid = await bcrypt.compare(password, manager.password_hash || '');
+        if (!valid) {
+            return res.status(401).json({ success: false, error: 'Contraseña incorrecta' });
+        }
+        // Generar JWT
+        const token = jwt.sign({ user_id: manager.user_id, email: manager.email }, JWT_SECRET, { expiresIn: '7d' });
+        // No enviar password_hash al frontend
+        delete manager.password_hash;
+        res.json({ success: true, token, manager });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
 
 
 
@@ -20,25 +47,28 @@ const app = express();
 
 // Endpoint /auth/me: devuelve el manager autenticado si hay sesión/cookie válida
 app.get('/auth/me', async (req, res) => {
-    // Solo autenticación por header x-manager-id
-    const managerId = req.headers['x-manager-id'];
-    if (!managerId) {
+    // Autenticación por JWT en Authorization: Bearer <token>
+    const authHeader = req.headers['authorization'];
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.json({ success: true, manager: null });
     }
+    const token = authHeader.split(' ')[1];
     try {
+        const payload = jwt.verify(token, JWT_SECRET);
+        const userId = payload.user_id;
         const result = await pool.query(
             `SELECT m.*, t.team_id
              FROM managers m
              LEFT JOIN teams t ON t.manager_id = m.user_id
              WHERE m.user_id = $1`,
-            [managerId]
+            [userId]
         );
         if (result.rows.length === 0) {
             return res.json({ success: true, manager: null });
         }
         res.json({ success: true, manager: result.rows[0] });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        return res.json({ success: true, manager: null });
     }
 });
 
@@ -58,7 +88,10 @@ app.delete('/admin/delete-all-matches', async (req, res) => {
 
 // CORS seguro: solo dominios frontend y backend oficiales
 const allowedOrigins = [
-    'https://teamsoccer-manager-production-f836.up.railway.app'
+    'https://teamsoccer-manager-production-f836.up.railway.app',
+    'https://thriving-fascination-production.up.railway.app', // Permitir también el backend como origen (opcional)
+    'https://teamsoccer-manager-production-f836.up.railway.app', // Frontend antiguo (por si acaso)
+    'https://teamsoccer-manager-production-f836.up.railway.app', // Frontend actual
 ];
 app.use(cors({
     origin: function (origin, callback) {
