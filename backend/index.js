@@ -20,10 +20,8 @@ const app = express();
 
 // Endpoint /auth/me: devuelve el manager autenticado si hay sesión/cookie válida
 app.get('/auth/me', async (req, res) => {
-    // Suponiendo que usas cookies de sesión, por ejemplo req.session.managerId
-    // Si usas JWT, deberías extraer el token del header y validarlo aquí
-    // Aquí ejemplo simple: busca managerId en cookie o header
-    const managerId = req.session?.managerId || req.cookies?.managerId || req.headers['x-manager-id'];
+    // Solo autenticación por header x-manager-id
+    const managerId = req.headers['x-manager-id'];
     if (!managerId) {
         return res.json({ success: true, manager: null });
     }
