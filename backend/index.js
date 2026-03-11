@@ -1,5 +1,7 @@
 // ===================== ENDPOINTS PARA FRONTEND =====================
 
+// (¡IMPORTANTE! Estos endpoints deben ir después de la declaración de app y middlewares)
+
 // Obtener manager autenticado por JWT (token en Authorization: Bearer ...)
 app.get('/auth/me', async (req, res) => {
     const auth = req.headers['authorization'];
