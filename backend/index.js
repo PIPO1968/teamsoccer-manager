@@ -1,3 +1,4 @@
+
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
@@ -6,6 +7,7 @@ import cors from 'cors';
 import bcrypt from 'bcryptjs';
 import https from 'https';
 import http from 'http';
+import { getTimezoneForCountry } from './utils/countryTimezones.js';
 
 
 
@@ -1381,7 +1383,7 @@ app.post('/login', async (req, res) => {
         // Obtener partidos de un equipo
 
         // NUEVO: obtener partidos de un equipo con país y zona horaria de local y visitante
-        import { getTimezoneForCountry } from './utils/countryTimezones.js';
+
 
         app.get('/teams/:id/matches', async (req, res) => {
             const teamId = parseInt(req.params.id, 10);
