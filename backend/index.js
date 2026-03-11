@@ -1,10 +1,22 @@
-// ...existing code...
+import express from 'express';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+import { Pool } from 'pg';
+import cors from 'cors';
+import bcrypt from 'bcryptjs';
+import https from 'https';
+import http from 'http';
+
+// Cambio menor para forzar build Railway - 2026-03-10
+
+dotenv.config({ path: './.env' });
+
+const app = express();
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
 
 // Endpoint: obtener la temporada actual
 app.get('/meta/current-season', async (req, res) => {
     try {
-        // Puedes ajustar la lógica según tu modelo de datos
-        // Ejemplo: obtener la temporada actual de la base de datos
         const result = await pool.query('SELECT current_season FROM meta LIMIT 1');
         if (result.rows.length > 0) {
             res.json({ success: true, currentSeason: result.rows[0].current_season });
