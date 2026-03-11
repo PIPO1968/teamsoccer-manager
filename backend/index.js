@@ -8,7 +8,6 @@ import https from 'https';
 import http from 'http';
 
 
-dotenv.config({ path: './.env' });
 
 
 // Endpoint: obtener la temporada actual
