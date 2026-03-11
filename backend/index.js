@@ -10,6 +10,11 @@ import http from 'http';
 
 
 
+// ...existing code...
+
+const app = express();
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
+
 // Endpoint: obtener la temporada actual
 app.get('/meta/current-season', async (req, res) => {
     try {
