@@ -13,6 +13,15 @@ import { getTimezoneForCountry } from './utils/countryTimezones.js';
 // Configuración principal
 const app = express();
 
+// Servir archivos estáticos desde la carpeta public
+import path from 'path';
+app.use(express.static(path.join(process.cwd(), '../public')));
+
+// Redirigir todo lo que no sea archivo estático a index.html (para SPA)
+app.get(/^\/((?!api|backend|assets|teamsoccer-assets|favicon\.png|favicon\.ico|robots\.txt|placeholder\.svg).)*$/, (req, res) => {
+    res.sendFile(path.join(process.cwd(), '../public/index.html'));
+});
+
 // CORS seguro: solo dominios frontend y backend oficiales
 const allowedOrigins = [
     'https://teamsoccer-manager-production-f836.up.railway.app',
