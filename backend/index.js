@@ -947,10 +947,11 @@ app.post('/register', async (req, res) => {
             return res.status(409).json({ error: 'Usuario ya existe' });
         }
 
-        // Guardar la contraseña directamente (sin cifrado, solo para pruebas)
+        // Guardar la contraseña cifrada con bcrypt
+        const passwordHash = await bcrypt.hash(password, 10);
         const userResult = await client.query(
             'INSERT INTO users (email, password_hash, username) VALUES ($1, $2, $3) RETURNING id',
-            [email, password, username]
+            [email, passwordHash, username]
         );
         const userId = userResult.rows[0].id;
 
@@ -959,6 +960,7 @@ app.post('/register', async (req, res) => {
         const isAdmin = username === ADMIN_USERNAME || email === ADMIN_EMAIL;
         const isAdminLevel = isAdmin ? 10 : 0;
 
+        const managerStatus = 'waiting_list';
         const managerResult = await client.query(
             `INSERT INTO managers (
                 user_id, username, email, country_id, is_admin, status
