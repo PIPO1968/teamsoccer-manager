@@ -20,7 +20,13 @@ app.use(express.static(path.join(process.cwd(), '../public')));
 
 // ...existing code...
 // Redirigir todo lo que no sea archivo estático a index.html (para SPA)
-app.get(/^\/((?!api|backend|assets|teamsoccer-assets|favicon\.png|favicon\.ico|robots\.txt|placeholder\.svg).)*$/, (req, res) => {
+// Regla SPA mejorada: solo rutas sin punto y que no sean endpoints conocidos
+app.get('*', (req, res, next) => {
+    // Si la ruta contiene un punto (archivo estático), o empieza por /api, /auth, /world, /meta, /login, /admin, /series, ignorar
+    if (req.path.includes('.') ||
+        /^\/(api|auth|world|meta|login|admin|series)/.test(req.path)) {
+        return next();
+    }
     res.sendFile(path.join(process.cwd(), '../public/index.html'));
 });
 
