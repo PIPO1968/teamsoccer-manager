@@ -8,11 +8,8 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// Detectar Railway por variable de entorno
-const isRailway = process.env.RAILWAY_STATIC_URL || process.env.RAILWAY_ENVIRONMENT_ID;
-if (isRailway) {
-    dotenv.config({ path: path.join(__dirname, '.env.railway') });
-} else {
+// Solo cargar dotenv en local
+if (!process.env.RAILWAY_STATIC_URL && !process.env.RAILWAY_ENVIRONMENT_ID) {
     dotenv.config({ path: path.join(__dirname, '.env') });
 }
 
