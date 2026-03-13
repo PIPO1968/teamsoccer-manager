@@ -1,3 +1,36 @@
+
+import express from 'express';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+import { Pool } from 'pg';
+import cors from 'cors';
+import bcrypt from 'bcryptjs';
+import https from 'https';
+import http from 'http';
+import { getTimezoneForCountry } from './utils/countryTimezones.js';
+
+// Configuración principal
+
+// CORS seguro: solo dominios frontend y backend oficiales
+const allowedOrigins = [
+    'https://teamsoccer-manager-production-f836.up.railway.app',
+    'https://thriving-fascination-production.up.railway.app', // Permitir también el backend como origen (opcional)
+    'https://teamsoccer-manager-production-f836.up.railway.app', // Frontend antiguo (por si acaso)
+    'https://teamsoccer-manager-production-f836.up.railway.app', // Frontend actual
+];
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('No permitido por CORS'));
+        }
+    },
+    credentials: false // No se usan cookies/sesión
+}));
+console.log('CORS configurado. allowedOrigins:', allowedOrigins);
+app.use(express.json({ limit: '5mb' }));
+
 // Endpoint: /auth/me — Devuelve info básica del usuario autenticado (mock, sin JWT)
 app.get('/auth/me', async (req, res) => {
     // En producción, deberías extraer el usuario del JWT
@@ -36,51 +69,6 @@ app.get('/world/stats', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
-
-
-
-import express from 'express';
-import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
-import { Pool } from 'pg';
-import cors from 'cors';
-import bcrypt from 'bcryptjs';
-import https from 'https';
-import http from 'http';
-import { getTimezoneForCountry } from './utils/countryTimezones.js';
-
-
-
-
-// ...existing code...
-
-
-
-
-// Configuración principal
-dotenv.config({ path: './.env' });
-const app = express();
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
-
-// CORS seguro: solo dominios frontend y backend oficiales
-const allowedOrigins = [
-    'https://teamsoccer-manager-production-f836.up.railway.app',
-    'https://thriving-fascination-production.up.railway.app', // Permitir también el backend como origen (opcional)
-    'https://teamsoccer-manager-production-f836.up.railway.app', // Frontend antiguo (por si acaso)
-    'https://teamsoccer-manager-production-f836.up.railway.app', // Frontend actual
-];
-app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('No permitido por CORS'));
-        }
-    },
-    credentials: false // No se usan cookies/sesión
-}));
-console.log('CORS configurado. allowedOrigins:', allowedOrigins);
-app.use(express.json({ limit: '5mb' }));
 
 // Endpoint: obtener la temporada actual
 app.get('/meta/current-season', async (req, res) => {
