@@ -9,7 +9,9 @@ import https from 'https';
 import http from 'http';
 import { getTimezoneForCountry } from './utils/countryTimezones.js';
 
+
 // Configuración principal
+const app = express();
 
 // CORS seguro: solo dominios frontend y backend oficiales
 const allowedOrigins = [
