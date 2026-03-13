@@ -52,25 +52,41 @@ app.get('/auth/me', async (req, res) => {
 // Endpoint: /world/stats — Estadísticas globales simples
 app.get('/world/stats', async (req, res) => {
     try {
-        const [users, managers, teams, matches] = await Promise.all([
-            pool.query('SELECT COUNT(*) FROM users'),
+        // Estadísticas globales para la web principal
+        const [
+            managers,
+            teams,
+            matches,
+            regions,
+            waitingManagers,
+            leagues,
+            activeTeams
+        ] = await Promise.all([
             pool.query('SELECT COUNT(*) FROM managers'),
             pool.query('SELECT COUNT(*) FROM teams'),
             pool.query('SELECT COUNT(*) FROM matches'),
+            pool.query('SELECT COUNT(*) FROM leagues_regions'),
+            pool.query("SELECT COUNT(*) FROM managers WHERE status = 'waiting_list'"),
+            pool.query('SELECT COUNT(*) FROM series'),
+            pool.query('SELECT COUNT(*) FROM teams WHERE is_bot = 0 AND manager_id IS NOT NULL'),
         ]);
         res.json({
             success: true,
             stats: {
-                users: parseInt(users.rows[0].count),
+                users: parseInt(managers.rows[0].count),
                 managers: parseInt(managers.rows[0].count),
                 teams: parseInt(teams.rows[0].count),
                 matches: parseInt(matches.rows[0].count),
+                totalRegions: parseInt(regions.rows[0].count),
+                totalWaitingManagers: parseInt(waitingManagers.rows[0].count),
+                totalLeagues: parseInt(leagues.rows[0].count),
+                totalActiveTeams: parseInt(activeTeams.rows[0].count)
             }
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
-});
+})
 
 // Endpoint: obtener la temporada actual
 app.get('/meta/current-season', async (req, res) => {
@@ -93,12 +109,16 @@ app.post('/login', async (req, res) => {
         return res.status(400).json({ success: false, error: 'Email y contraseña requeridos' });
     }
     try {
+        console.log('Intentando login con email:', email);
         const result = await pool.query('SELECT * FROM managers WHERE email = $1', [email]);
         const manager = result.rows[0];
         if (!manager) {
+            console.log('No se encontró manager con email:', email);
             return res.status(401).json({ success: false, error: 'Usuario no encontrado' });
         }
+        console.log('Manager encontrado:', manager);
         const valid = await bcrypt.compare(password, manager.password_hash || '');
+        console.log('Resultado bcrypt:', valid);
         if (!valid) {
             return res.status(401).json({ success: false, error: 'Contraseña incorrecta' });
         }
@@ -108,9 +128,10 @@ app.post('/login', async (req, res) => {
         delete manager.password_hash;
         res.json({ success: true, token, manager });
     } catch (err) {
+        console.error('Error en login:', err);
         res.status(500).json({ success: false, error: err.message });
     }
-});
+})
 
 // ENDPOINT TEMPORAL: Eliminar todos los partidos (requiere clave secreta por seguridad)
 app.delete('/admin/delete-all-matches', async (req, res) => {
