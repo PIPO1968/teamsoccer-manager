@@ -11,12 +11,14 @@ import { getTimezoneForCountry } from './utils/countryTimezones.js';
 
 
 // Configuración principal
+console.log('🚀 Backend iniciado: index.js');
 const app = express();
 
 // Servir archivos estáticos desde la carpeta public
 import path from 'path';
 app.use(express.static(path.join(process.cwd(), '../public')));
 
+// ...existing code...
 // Redirigir todo lo que no sea archivo estático a index.html (para SPA)
 app.get(/^\/((?!api|backend|assets|teamsoccer-assets|favicon\.png|favicon\.ico|robots\.txt|placeholder\.svg).)*$/, (req, res) => {
     res.sendFile(path.join(process.cwd(), '../public/index.html'));
@@ -47,13 +49,20 @@ app.get('/auth/me', async (req, res) => {
     // En producción, deberías extraer el usuario del JWT
     // Aquí solo se simula con un parámetro userId
     const userId = parseInt(req.query.userId, 10);
-    if (!userId) return res.status(401).json({ error: 'No autenticado' });
+    if (!userId) {
+        console.error('❌ /auth/me: userId no proporcionado');
+        return res.status(401).json({ error: 'No autenticado' });
+    }
     try {
         const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
-        if (userResult.rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
+        if (userResult.rows.length === 0) {
+            console.error('❌ /auth/me: Usuario no encontrado', userId);
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
         const managerResult = await pool.query('SELECT * FROM managers WHERE user_id = $1', [userId]);
         res.json({ success: true, user: userResult.rows[0], manager: managerResult.rows[0] || null });
     } catch (err) {
+        console.error('❌ /auth/me: Error', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -92,6 +101,7 @@ app.get('/world/stats', async (req, res) => {
             }
         });
     } catch (err) {
+        console.error('❌ /world/stats: Error', err);
         res.status(500).json({ error: err.message });
     }
 })
@@ -103,9 +113,11 @@ app.get('/meta/current-season', async (req, res) => {
         if (result.rows.length > 0) {
             res.json({ success: true, currentSeason: result.rows[0].current_season });
         } else {
+            console.error('❌ /meta/current-season: No se encontró la temporada actual');
             res.status(404).json({ success: false, error: 'No se encontró la temporada actual' });
         }
     } catch (err) {
+        console.error('❌ /meta/current-season: Error', err);
         res.status(500).json({ success: false, error: err.message });
     }
 });
@@ -114,6 +126,7 @@ app.get('/meta/current-season', async (req, res) => {
 app.post('/login', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
+        console.error('❌ /login: Email o contraseña faltan');
         return res.status(400).json({ success: false, error: 'Email y contraseña requeridos' });
     }
     try {
@@ -121,13 +134,14 @@ app.post('/login', async (req, res) => {
         const result = await pool.query('SELECT * FROM managers WHERE email = $1', [email]);
         const manager = result.rows[0];
         if (!manager) {
-            console.log('No se encontró manager con email:', email);
+            console.error('❌ /login: No se encontró manager con email', email);
             return res.status(401).json({ success: false, error: 'Usuario no encontrado' });
         }
         console.log('Manager encontrado:', manager);
         const valid = await bcrypt.compare(password, manager.password_hash || '');
         console.log('Resultado bcrypt:', valid);
         if (!valid) {
+            console.error('❌ /login: Contraseña incorrecta');
             return res.status(401).json({ success: false, error: 'Contraseña incorrecta' });
         }
         // Generar JWT
@@ -136,7 +150,7 @@ app.post('/login', async (req, res) => {
         delete manager.password_hash;
         res.json({ success: true, token, manager });
     } catch (err) {
-        console.error('Error en login:', err);
+        console.error('❌ /login: Error', err);
         res.status(500).json({ success: false, error: err.message });
     }
 })
@@ -145,12 +159,14 @@ app.post('/login', async (req, res) => {
 app.delete('/admin/delete-all-matches', async (req, res) => {
     const secret = req.headers['x-admin-secret'] || req.query.secret;
     if (secret !== process.env.ADMIN_DELETE_SECRET) {
+        console.error('❌ /admin/delete-all-matches: Clave secreta incorrecta');
         return res.status(403).json({ error: 'No autorizado' });
     }
     try {
         await pool.query('DELETE FROM matches');
         res.json({ success: true, message: 'Todos los partidos eliminados' });
     } catch (err) {
+        console.error('❌ /admin/delete-all-matches: Error', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -159,7 +175,10 @@ app.delete('/admin/delete-all-matches', async (req, res) => {
 app.get('/series/:id/fixtures', async (req, res) => {
     const seriesId = parseInt(req.params.id, 10);
     const season = parseInt(req.query.season, 10) || 1;
-    if (!seriesId) return res.status(400).json({ error: 'seriesId inválido' });
+    if (!seriesId) {
+        console.error('❌ /series/:id/fixtures: seriesId inválido');
+        return res.status(400).json({ error: 'seriesId inválido' });
+    }
     try {
         // Obtener todos los partidos de la serie y temporada (liga y amistosos)
         const matchesResult = await pool.query(
@@ -180,6 +199,7 @@ app.get('/series/:id/fixtures', async (req, res) => {
         matches = matches.filter(m => m.home_team_id !== m.away_team_id && m.match_date && !isNaN(new Date(m.match_date)));
         res.json({ success: true, fixtures: matches });
     } catch (err) {
+        console.error('❌ /series/:id/fixtures: Error', err);
         res.status(500).json({ error: err.message });
     }
 });
