@@ -5,6 +5,7 @@
     "type": "module",
     "scripts": {
         "start": "node index.js",
+        "start-backend": "node index.js",
         "migrate": "node migrate.js",
         "migrate:all": "node migrate.js && node migrate_additional.js",
         "seed:admin": "node seed_admin.js"
