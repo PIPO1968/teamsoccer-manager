@@ -73,9 +73,8 @@ app.get('/world/stats', async (req, res) => {
         res.json({
             success: true,
             stats: {
-                users: parseInt(managers.rows[0].count),
-                managers: parseInt(managers.rows[0].count),
-                teams: parseInt(teams.rows[0].count),
+                totalManagers: parseInt(managers.rows[0].count),
+                totalTeams: parseInt(teams.rows[0].count),
                 matches: parseInt(matches.rows[0].count),
                 totalRegions: parseInt(regions.rows[0].count),
                 totalWaitingManagers: parseInt(waitingManagers.rows[0].count),
