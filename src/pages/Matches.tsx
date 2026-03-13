@@ -47,7 +47,7 @@ const Matches = () => {
     );
   }
 
-  const upcomingMatches = matches.filter(match => match.status === 'scheduled').slice().reverse();
+  const upcomingMatches = matches.filter(match => match.status === 'scheduled');
   const pastMatches = matches.filter(match => match.status === 'completed');
 
   // Get the latest finished match (most recent)
