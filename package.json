@@ -9,7 +9,10 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "vite preview --port $PORT"
+    "start": "vite preview --port $PORT",
+    "start-backend": "node backend/index.js",
+    "migrate": "node backend/migrate.js",
+    "migrate:all": "node backend/migrate.js && node backend/migrate_additional.js"
   },
   "dependencies": {
     "@apiverve/countryboundaries": "^1.1.9",

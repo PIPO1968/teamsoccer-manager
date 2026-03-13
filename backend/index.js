@@ -1,3 +1,41 @@
+// Endpoint: /auth/me — Devuelve info básica del usuario autenticado (mock, sin JWT)
+app.get('/auth/me', async (req, res) => {
+    // En producción, deberías extraer el usuario del JWT
+    // Aquí solo se simula con un parámetro userId
+    const userId = parseInt(req.query.userId, 10);
+    if (!userId) return res.status(401).json({ error: 'No autenticado' });
+    try {
+        const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+        if (userResult.rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
+        const managerResult = await pool.query('SELECT * FROM managers WHERE user_id = $1', [userId]);
+        res.json({ success: true, user: userResult.rows[0], manager: managerResult.rows[0] || null });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Endpoint: /world/stats — Estadísticas globales simples
+app.get('/world/stats', async (req, res) => {
+    try {
+        const [users, managers, teams, matches] = await Promise.all([
+            pool.query('SELECT COUNT(*) FROM users'),
+            pool.query('SELECT COUNT(*) FROM managers'),
+            pool.query('SELECT COUNT(*) FROM teams'),
+            pool.query('SELECT COUNT(*) FROM matches'),
+        ]);
+        res.json({
+            success: true,
+            stats: {
+                users: parseInt(users.rows[0].count),
+                managers: parseInt(managers.rows[0].count),
+                teams: parseInt(teams.rows[0].count),
+                matches: parseInt(matches.rows[0].count),
+            }
+        });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 
 
