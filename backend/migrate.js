@@ -2,6 +2,7 @@ import { Pool } from 'pg';
 
 // Cambio menor para forzar build Railway - 2026-03-10
 
+
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
@@ -9,7 +10,13 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-dotenv.config({ path: path.join(__dirname, '.env.local') });
+// Detectar Railway por variable de entorno
+const isRailway = process.env.RAILWAY_STATIC_URL || process.env.RAILWAY_ENVIRONMENT_ID;
+if (isRailway) {
+    dotenv.config({ path: path.join(__dirname, '.env.railway') });
+} else {
+    dotenv.config({ path: path.join(__dirname, '.env') });
+}
 
 const pool = new Pool({
     host: process.env.PGHOST,
