@@ -20,7 +20,7 @@ const app = express();
 
 // Servir archivos estáticos desde la carpeta public
 import path from 'path';
-app.use(express.static(path.join(process.cwd(), '../public')));
+app.use(express.static(path.join(__dirname, '../public')));
 
 // ...existing code...
 // Redirigir todo lo que no sea archivo estático a index.html (para SPA)
@@ -31,7 +31,7 @@ app.get('*', (req, res, next) => {
         /^\/(api|auth|world|meta|login|admin|series)/.test(req.path)) {
         return next();
     }
-    res.sendFile(path.join(process.cwd(), '../public/index.html'));
+    res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
 const allowedOrigins = [
