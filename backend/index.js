@@ -53,6 +53,7 @@ const allowedOrigins = [
     'http://localhost:3000', // Desarrollo local
     'http://127.0.0.1:3000', // Desarrollo local
 ];
+console.log('CORS configurado. allowedOrigins:', allowedOrigins);
 app.use(cors({
     origin: function (origin, callback) {
         if (!origin || allowedOrigins.includes(origin)) {
@@ -63,7 +64,6 @@ app.use(cors({
     },
     credentials: true // Permitir credenciales (cookies/JWT)
 }));
-console.log('CORS configurado. allowedOrigins:', allowedOrigins);
 app.use(express.json({ limit: '5mb' }));
 
 // Endpoint: /auth/me — Devuelve info básica del usuario autenticado (mock, sin JWT)
