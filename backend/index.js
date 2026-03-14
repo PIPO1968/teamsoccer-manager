@@ -2889,376 +2889,374 @@ app.delete('/groups/:id', async (req, res) => {
                     is_premium: manager.is_premium || 0,
                     premium_expires_at: manager.premium_expires_at || null,
                     country_name: manager.country_name || null
-
-                }
-});
-        // Obtener hilo con posts paginados
-        app.get('/threads/:id', async (req, res) => {
-            const threadId = parseInt(req.params.id, 10);
-            const page = parseInt(req.query.page || '1', 10);
-            const perPage = parseInt(req.query.perPage || '10', 10);
-            const offset = (page - 1) * perPage;
-            if (!threadId) return res.status(400).json({ error: 'threadId invalido' });
-            try {
-                const threadResult = await pool.query(
-                    `SELECT ft.*, f.category_id AS forum_category_id
+                });
+                // Obtener hilo con posts paginados
+                app.get('/threads/:id', async (req, res) => {
+                    const threadId = parseInt(req.params.id, 10);
+                    const page = parseInt(req.query.page || '1', 10);
+                    const perPage = parseInt(req.query.perPage || '10', 10);
+                    const offset = (page - 1) * perPage;
+                    if (!threadId) return res.status(400).json({ error: 'threadId invalido' });
+                    try {
+                        const threadResult = await pool.query(
+                            `SELECT ft.*, f.category_id AS forum_category_id
              FROM forum_threads ft
              LEFT JOIN forums f ON f.id = ft.forum_id
              WHERE ft.id = $1`,
-                    [threadId]
-                );
-                if (!threadResult.rows[0]) return res.status(404).json({ error: 'Hilo no encontrado' });
-                const countResult = await pool.query(
-                    'SELECT COUNT(*)::int AS total FROM forum_posts WHERE thread_id = $1', [threadId]
-                );
-                const totalPosts = countResult.rows[0].total;
+                            [threadId]
+                        );
+                        if (!threadResult.rows[0]) return res.status(404).json({ error: 'Hilo no encontrado' });
+                        const countResult = await pool.query(
+                            'SELECT COUNT(*)::int AS total FROM forum_posts WHERE thread_id = $1', [threadId]
+                        );
+                        const totalPosts = countResult.rows[0].total;
 
-                const postsResult = await pool.query(
-                    `SELECT fp.*, m.username AS author_username
+                        const postsResult = await pool.query(
+                            `SELECT fp.*, m.username AS author_username
              FROM forum_posts fp
              LEFT JOIN managers m ON m.user_id = fp.user_id
              WHERE fp.thread_id = $1
              ORDER BY fp.created_at ASC
              LIMIT $2 OFFSET $3`,
-                    [threadId, perPage, offset]
-                );
-                pool.query('UPDATE forum_threads SET view_count = COALESCE(view_count,0)+1 WHERE id=$1', [threadId]).catch(() => { });
-                const total = countResult.rows[0].total;
-                res.json({
-                    success: true, thread: threadResult.rows[0], posts: postsResult.rows,
-                    totalPosts, totalPages: Math.ceil(total / perPage), currentPage: page
+                            [threadId, perPage, offset]
+                        );
+                        pool.query('UPDATE forum_threads SET view_count = COALESCE(view_count,0)+1 WHERE id=$1', [threadId]).catch(() => { });
+                        const total = countResult.rows[0].total;
+                        res.json({
+                            success: true, thread: threadResult.rows[0], posts: postsResult.rows,
+                            totalPosts, totalPages: Math.ceil(total / perPage), currentPage: page
+                        });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
                 });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
 
-        // GET /threads/:id/access?managerId=X
-        app.get('/threads/:id/access', async (req, res) => {
-            const threadId = parseInt(req.params.id);
-            const { managerId } = req.query;
-            try {
-                const result = await pool.query(`
+                // GET /threads/:id/access?managerId=X
+                app.get('/threads/:id/access', async (req, res) => {
+                    const threadId = parseInt(req.params.id);
+                    const { managerId } = req.query;
+                    try {
+                        const result = await pool.query(`
             SELECT f.category_id FROM forum_threads ft
             JOIN forums f ON f.id = ft.forum_id
             WHERE ft.id = $1
         `, [threadId]);
-                if (!result.rows.length) return res.json({ success: true, hasAccess: false });
+                        if (!result.rows.length) return res.json({ success: true, hasAccess: false });
 
-                const { category_id } = result.rows[0];
-                if (category_id === 4) {
-                    if (!managerId) return res.json({ success: true, hasAccess: false });
-                    const adminResult = await pool.query(
-                        'SELECT is_admin FROM managers WHERE user_id = $1', [managerId]
-                    );
-                    const isAdmin = adminResult.rows[0]?.is_admin > 0;
-                    return res.json({ success: true, hasAccess: isAdmin });
-                }
-                res.json({ success: true, hasAccess: true });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                        const { category_id } = result.rows[0];
+                        if (category_id === 4) {
+                            if (!managerId) return res.json({ success: true, hasAccess: false });
+                            const adminResult = await pool.query(
+                                'SELECT is_admin FROM managers WHERE user_id = $1', [managerId]
+                            );
+                            const isAdmin = adminResult.rows[0]?.is_admin > 0;
+                            return res.json({ success: true, hasAccess: isAdmin });
+                        }
+                        res.json({ success: true, hasAccess: true });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // POST /threads/:id/view — increment view count
-        app.post('/threads/:id/view', async (req, res) => {
-            const threadId = parseInt(req.params.id);
-            try {
-                await pool.query(
-                    'UPDATE forum_threads SET view_count = COALESCE(view_count, 0) + 1 WHERE id = $1',
-                    [threadId]
-                );
-                res.json({ success: true });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                // POST /threads/:id/view — increment view count
+                app.post('/threads/:id/view', async (req, res) => {
+                    const threadId = parseInt(req.params.id);
+                    try {
+                        await pool.query(
+                            'UPDATE forum_threads SET view_count = COALESCE(view_count, 0) + 1 WHERE id = $1',
+                            [threadId]
+                        );
+                        res.json({ success: true });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // PUT /threads/:id/lock — toggle is_locked
-        app.put('/threads/:id/lock', async (req, res) => {
-            const threadId = parseInt(req.params.id);
-            const { isLocked } = req.body;
-            try {
-                const result = await pool.query(
-                    'UPDATE forum_threads SET is_locked = $1 WHERE id = $2 RETURNING *',
-                    [isLocked, threadId]
-                );
-                res.json({ success: true, thread: result.rows[0] });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                // PUT /threads/:id/lock — toggle is_locked
+                app.put('/threads/:id/lock', async (req, res) => {
+                    const threadId = parseInt(req.params.id);
+                    const { isLocked } = req.body;
+                    try {
+                        const result = await pool.query(
+                            'UPDATE forum_threads SET is_locked = $1 WHERE id = $2 RETURNING *',
+                            [isLocked, threadId]
+                        );
+                        res.json({ success: true, thread: result.rows[0] });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // PUT /threads/:id/sticky — toggle is_sticky (also handles /stick for compat)
-        app.put('/threads/:id/sticky', async (req, res) => {
-            const threadId = parseInt(req.params.id);
-            const { isSticky } = req.body;
-            try {
-                const result = await pool.query(
-                    'UPDATE forum_threads SET is_sticky = $1 WHERE id = $2 RETURNING *',
-                    [isSticky, threadId]
-                );
-                res.json({ success: true, thread: result.rows[0] });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                // PUT /threads/:id/sticky — toggle is_sticky (also handles /stick for compat)
+                app.put('/threads/:id/sticky', async (req, res) => {
+                    const threadId = parseInt(req.params.id);
+                    const { isSticky } = req.body;
+                    try {
+                        const result = await pool.query(
+                            'UPDATE forum_threads SET is_sticky = $1 WHERE id = $2 RETURNING *',
+                            [isSticky, threadId]
+                        );
+                        res.json({ success: true, thread: result.rows[0] });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // POST /threads/:id/posts — create post
-        app.post('/threads/:id/posts', async (req, res) => {
-            const threadId = parseInt(req.params.id);
-            const { content, userId } = req.body;
-            if (!content || !userId) return res.status(400).json({ error: 'Faltan datos' });
-            const client = await pool.connect();
-            try {
-                await client.query('BEGIN');
-                const postResult = await client.query(
-                    `INSERT INTO forum_posts (thread_id, content, user_id, created_at) VALUES ($1, $2, $3, NOW()) RETURNING *`,
-                    [threadId, content, userId]
-                );
-                await client.query(
-                    `UPDATE forum_threads SET last_post_user_id = $1, last_post_at = NOW() WHERE id = $2`,
-                    [userId, threadId]
-                );
-                await client.query('COMMIT');
-                res.json({ success: true, post: postResult.rows[0] });
-            } catch (err) {
-                await client.query('ROLLBACK');
-                res.status(500).json({ error: err.message });
-            } finally {
-                client.release();
-            }
-        });
+                // POST /threads/:id/posts — create post
+                app.post('/threads/:id/posts', async (req, res) => {
+                    const threadId = parseInt(req.params.id);
+                    const { content, userId } = req.body;
+                    if (!content || !userId) return res.status(400).json({ error: 'Faltan datos' });
+                    const client = await pool.connect();
+                    try {
+                        await client.query('BEGIN');
+                        const postResult = await client.query(
+                            `INSERT INTO forum_posts (thread_id, content, user_id, created_at) VALUES ($1, $2, $3, NOW()) RETURNING *`,
+                            [threadId, content, userId]
+                        );
+                        await client.query(
+                            `UPDATE forum_threads SET last_post_user_id = $1, last_post_at = NOW() WHERE id = $2`,
+                            [userId, threadId]
+                        );
+                        await client.query('COMMIT');
+                        res.json({ success: true, post: postResult.rows[0] });
+                    } catch (err) {
+                        await client.query('ROLLBACK');
+                        res.status(500).json({ error: err.message });
+                    } finally {
+                        client.release();
+                    }
+                });
 
-        // PUT /forum-posts/:id — edit post
-        app.put('/forum-posts/:id', async (req, res) => {
-            const postId = parseInt(req.params.id);
-            const { content } = req.body;
-            if (!content) return res.status(400).json({ error: 'Falta content' });
-            try {
-                const result = await pool.query(
-                    `UPDATE forum_posts SET content = $1, is_edited = true, edited_at = NOW() WHERE id = $2 RETURNING *`,
-                    [content, postId]
-                );
-                res.json({ success: true, post: result.rows[0] });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                // PUT /forum-posts/:id — edit post
+                app.put('/forum-posts/:id', async (req, res) => {
+                    const postId = parseInt(req.params.id);
+                    const { content } = req.body;
+                    if (!content) return res.status(400).json({ error: 'Falta content' });
+                    try {
+                        const result = await pool.query(
+                            `UPDATE forum_posts SET content = $1, is_edited = true, edited_at = NOW() WHERE id = $2 RETURNING *`,
+                            [content, postId]
+                        );
+                        res.json({ success: true, post: result.rows[0] });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // DELETE /forum-posts/:id — delete post
-        app.delete('/forum-posts/:id', async (req, res) => {
-            const postId = parseInt(req.params.id);
-            try {
-                await pool.query('DELETE FROM forum_posts WHERE id = $1', [postId]);
-                res.json({ success: true });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                // DELETE /forum-posts/:id — delete post
+                app.delete('/forum-posts/:id', async (req, res) => {
+                    const postId = parseInt(req.params.id);
+                    try {
+                        await pool.query('DELETE FROM forum_posts WHERE id = $1', [postId]);
+                        res.json({ success: true });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // Aliases used by frontend: /posts/:id
-        app.put('/posts/:id', async (req, res) => {
-            const postId = parseInt(req.params.id);
-            const { content } = req.body;
-            if (!content) return res.status(400).json({ error: 'Falta content' });
-            try {
-                const result = await pool.query(
-                    `UPDATE forum_posts SET content = $1, is_edited = true, edited_at = NOW() WHERE id = $2 RETURNING *`,
-                    [content, postId]
-                );
-                res.json({ success: true, post: result.rows[0] });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                // Aliases used by frontend: /posts/:id
+                app.put('/posts/:id', async (req, res) => {
+                    const postId = parseInt(req.params.id);
+                    const { content } = req.body;
+                    if (!content) return res.status(400).json({ error: 'Falta content' });
+                    try {
+                        const result = await pool.query(
+                            `UPDATE forum_posts SET content = $1, is_edited = true, edited_at = NOW() WHERE id = $2 RETURNING *`,
+                            [content, postId]
+                        );
+                        res.json({ success: true, post: result.rows[0] });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        app.delete('/posts/:id', async (req, res) => {
-            const postId = parseInt(req.params.id);
-            try {
-                await pool.query('DELETE FROM forum_posts WHERE id = $1', [postId]);
-                res.json({ success: true });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                app.delete('/posts/:id', async (req, res) => {
+                    const postId = parseInt(req.params.id);
+                    try {
+                        await pool.query('DELETE FROM forum_posts WHERE id = $1', [postId]);
+                        res.json({ success: true });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // ===================== GROUPS =====================
+                // ===================== GROUPS =====================
 
-        // GET /groups — all groups with member count
-        app.get('/groups', async (req, res) => {
-            try {
-                const result = await pool.query(`
+                // GET /groups — all groups with member count
+                app.get('/groups', async (req, res) => {
+                    try {
+                        const result = await pool.query(`
             SELECT g.*, COUNT(gm.id) FILTER (WHERE gm.is_active = true) AS member_count
             FROM groups g LEFT JOIN group_members gm ON gm.group_id = g.id
             GROUP BY g.id ORDER BY g.created_at DESC
         `);
-                res.json({ success: true, groups: result.rows });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
-
-        // POST /groups — create group
-        app.post('/groups', async (req, res) => {
-            const { name, description, ownerId } = req.body;
-            if (!name || !ownerId) return res.status(400).json({ error: 'Faltan datos' });
-            try {
-                const result = await pool.query(
-                    `INSERT INTO groups (name, description, owner_id) VALUES ($1, $2, $3) RETURNING *`,
-                    [name, description || null, ownerId]
-                );
-                res.json({ success: true, group: result.rows[0] });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
-
-        // DELETE /groups/:id — delete group (owner only, cascade)
-        app.delete('/groups/:id', async (req, res) => {
-            const groupId = parseInt(req.params.id);
-            const { managerId } = req.body;
-            const client = await pool.connect();
-            try {
-                await client.query('BEGIN');
-                const groupResult = await client.query(
-                    'SELECT * FROM groups WHERE id = $1 AND owner_id = $2', [groupId, managerId]
-                );
-                if (!groupResult.rows.length) {
-                    await client.query('ROLLBACK');
-                    return res.status(403).json({ error: 'Grupo no encontrado o sin permiso' });
-                }
-                const forumId = groupResult.rows[0].forum_id;
-
-                await client.query('DELETE FROM group_applications WHERE group_id = $1', [groupId]);
-                await client.query('DELETE FROM group_members WHERE group_id = $1', [groupId]);
-                await client.query('DELETE FROM groups WHERE id = $1', [groupId]);
-
-                if (forumId) {
-                    const threadIds = await client.query('SELECT id FROM forum_threads WHERE forum_id = $1', [forumId]);
-                    if (threadIds.rows.length) {
-                        const ids = threadIds.rows.map(r => r.id);
-                        await client.query('DELETE FROM forum_posts WHERE thread_id = ANY($1)', [ids]);
-                        await client.query('DELETE FROM forum_threads WHERE forum_id = $1', [forumId]);
+                        res.json({ success: true, groups: result.rows });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
                     }
-                    await client.query('DELETE FROM forums WHERE id = $1', [forumId]);
-                }
-                await client.query('COMMIT');
-                res.json({ success: true });
-            } catch (err) {
-                await client.query('ROLLBACK');
-                res.status(500).json({ error: err.message });
-            } finally {
-                client.release();
-            }
-        });
+                });
 
-        // GET /groups/:id/members
-        app.get('/groups/:id/members', async (req, res) => {
-            const groupId = parseInt(req.params.id);
-            try {
-                const result = await pool.query(`
+                // POST /groups — create group
+                app.post('/groups', async (req, res) => {
+                    const { name, description, ownerId } = req.body;
+                    if (!name || !ownerId) return res.status(400).json({ error: 'Faltan datos' });
+                    try {
+                        const result = await pool.query(
+                            `INSERT INTO groups (name, description, owner_id) VALUES ($1, $2, $3) RETURNING *`,
+                            [name, description || null, ownerId]
+                        );
+                        res.json({ success: true, group: result.rows[0] });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
+
+                // DELETE /groups/:id — delete group (owner only, cascade)
+                app.delete('/groups/:id', async (req, res) => {
+                    const groupId = parseInt(req.params.id);
+                    const { managerId } = req.body;
+                    const client = await pool.connect();
+                    try {
+                        await client.query('BEGIN');
+                        const groupResult = await client.query(
+                            'SELECT * FROM groups WHERE id = $1 AND owner_id = $2', [groupId, managerId]
+                        );
+                        if (!groupResult.rows.length) {
+                            await client.query('ROLLBACK');
+                            return res.status(403).json({ error: 'Grupo no encontrado o sin permiso' });
+                        }
+                        const forumId = groupResult.rows[0].forum_id;
+
+                        await client.query('DELETE FROM group_applications WHERE group_id = $1', [groupId]);
+                        await client.query('DELETE FROM group_members WHERE group_id = $1', [groupId]);
+                        await client.query('DELETE FROM groups WHERE id = $1', [groupId]);
+
+                        if (forumId) {
+                            const threadIds = await client.query('SELECT id FROM forum_threads WHERE forum_id = $1', [forumId]);
+                            if (threadIds.rows.length) {
+                                const ids = threadIds.rows.map(r => r.id);
+                                await client.query('DELETE FROM forum_posts WHERE thread_id = ANY($1)', [ids]);
+                                await client.query('DELETE FROM forum_threads WHERE forum_id = $1', [forumId]);
+                            }
+                            await client.query('DELETE FROM forums WHERE id = $1', [forumId]);
+                        }
+                        await client.query('COMMIT');
+                        res.json({ success: true });
+                    } catch (err) {
+                        await client.query('ROLLBACK');
+                        res.status(500).json({ error: err.message });
+                    } finally {
+                        client.release();
+                    }
+                });
+
+                // GET /groups/:id/members
+                app.get('/groups/:id/members', async (req, res) => {
+                    const groupId = parseInt(req.params.id);
+                    try {
+                        const result = await pool.query(`
             SELECT gm.*, m.username AS manager_username
             FROM group_members gm
             JOIN managers m ON m.user_id = gm.manager_id
             WHERE gm.group_id = $1 AND gm.is_active = true
         `, [groupId]);
-                res.json({ success: true, members: result.rows });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                        res.json({ success: true, members: result.rows });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // GET /groups/:id/applications — pending applications
-        app.get('/groups/:id/applications', async (req, res) => {
-            const groupId = parseInt(req.params.id);
-            try {
-                const result = await pool.query(`
+                // GET /groups/:id/applications — pending applications
+                app.get('/groups/:id/applications', async (req, res) => {
+                    const groupId = parseInt(req.params.id);
+                    try {
+                        const result = await pool.query(`
             SELECT ga.*, m.username AS applicant_username
             FROM group_applications ga
             JOIN managers m ON m.user_id = ga.applicant_id
             WHERE ga.group_id = $1 AND ga.status = 'pending'
         `, [groupId]);
-                res.json({ success: true, applications: result.rows });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
-
-        // GET /groups/:id/user-application?managerId=X
-        app.get('/groups/:id/user-application', async (req, res) => {
-            const groupId = parseInt(req.params.id);
-            const { managerId } = req.query;
-            if (!managerId) return res.json({ success: true, application: null });
-            try {
-                const result = await pool.query(
-                    `SELECT * FROM group_applications WHERE group_id = $1 AND applicant_id = $2 AND status = 'pending'`,
-                    [groupId, managerId]
-                );
-                res.json({ success: true, application: result.rows[0] || null });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
-
-        // PUT /group-applications/:id — handle application
-        app.put('/group-applications/:id', async (req, res) => {
-            const applicationId = parseInt(req.params.id);
-            const { status } = req.body; // 'approved' | 'rejected'
-            if (!status) return res.status(400).json({ error: 'Falta status' });
-            const client = await pool.connect();
-            try {
-                await client.query('BEGIN');
-                if (status === 'approved') {
-                    const appResult = await client.query(
-                        'SELECT applicant_id, group_id FROM group_applications WHERE id = $1', [applicationId]
-                    );
-                    if (appResult.rows[0]) {
-                        await client.query(
-                            `INSERT INTO group_members (group_id, manager_id, role, is_active) VALUES ($1, $2, 'member', true)`,
-                            [appResult.rows[0].applicant_id, appResult.rows[0].group_id]
-                        );
+                        res.json({ success: true, applications: result.rows });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
                     }
-                }
-                const result = await client.query(
-                    `UPDATE group_applications SET status = $1, responded_at = NOW() WHERE id = $2 RETURNING *`,
-                    [status, applicationId]
-                );
-                await client.query('COMMIT');
-                res.json({ success: true, application: result.rows[0] });
-            } catch (err) {
-                await client.query('ROLLBACK');
-                res.status(500).json({ error: err.message });
-            } finally {
-                client.release();
-            }
-        });
+                });
 
-        // PUT /groups/:id/logo — update group logo (base64)
-        app.put('/groups/:id/logo', async (req, res) => {
-            const groupId = parseInt(req.params.id);
-            const { clubLogo, managerId } = req.body;
-            if (!clubLogo || !managerId) return res.status(400).json({ error: 'Faltan datos' });
-            try {
-                const result = await pool.query(
-                    `UPDATE groups SET club_logo = $1, updated_at = NOW() WHERE id = $2 AND owner_id = $3 RETURNING id`,
-                    [clubLogo, groupId, managerId]
-                );
-                if (!result.rows.length) return res.status(403).json({ error: 'Sin permiso o grupo no encontrado' });
-                res.json({ success: true });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                // GET /groups/:id/user-application?managerId=X
+                app.get('/groups/:id/user-application', async (req, res) => {
+                    const groupId = parseInt(req.params.id);
+                    const { managerId } = req.query;
+                    if (!managerId) return res.json({ success: true, application: null });
+                    try {
+                        const result = await pool.query(
+                            `SELECT * FROM group_applications WHERE group_id = $1 AND applicant_id = $2 AND status = 'pending'`,
+                            [groupId, managerId]
+                        );
+                        res.json({ success: true, application: result.rows[0] || null });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // ===================== END FORUMS/GROUPS =====================
+                // PUT /group-applications/:id — handle application
+                app.put('/group-applications/:id', async (req, res) => {
+                    const applicationId = parseInt(req.params.id);
+                    const { status } = req.body; // 'approved' | 'rejected'
+                    if (!status) return res.status(400).json({ error: 'Falta status' });
+                    const client = await pool.connect();
+                    try {
+                        await client.query('BEGIN');
+                        if (status === 'approved') {
+                            const appResult = await client.query(
+                                'SELECT applicant_id, group_id FROM group_applications WHERE id = $1', [applicationId]
+                            );
+                            if (appResult.rows[0]) {
+                                await client.query(
+                                    `INSERT INTO group_members (group_id, manager_id, role, is_active) VALUES ($1, $2, 'member', true)`,
+                                    [appResult.rows[0].applicant_id, appResult.rows[0].group_id]
+                                );
+                            }
+                        }
+                        const result = await client.query(
+                            `UPDATE group_applications SET status = $1, responded_at = NOW() WHERE id = $2 RETURNING *`,
+                            [status, applicationId]
+                        );
+                        await client.query('COMMIT');
+                        res.json({ success: true, application: result.rows[0] });
+                    } catch (err) {
+                        await client.query('ROLLBACK');
+                        res.status(500).json({ error: err.message });
+                    } finally {
+                        client.release();
+                    }
+                });
 
-        // ===================== TRANSFER MARKET =====================
+                // PUT /groups/:id/logo — update group logo (base64)
+                app.put('/groups/:id/logo', async (req, res) => {
+                    const groupId = parseInt(req.params.id);
+                    const { clubLogo, managerId } = req.body;
+                    if (!clubLogo || !managerId) return res.status(400).json({ error: 'Faltan datos' });
+                    try {
+                        const result = await pool.query(
+                            `UPDATE groups SET club_logo = $1, updated_at = NOW() WHERE id = $2 AND owner_id = $3 RETURNING id`,
+                            [clubLogo, groupId, managerId]
+                        );
+                        if (!result.rows.length) return res.status(403).json({ error: 'Sin permiso o grupo no encontrado' });
+                        res.json({ success: true });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // GET /transfer-listings — active listings with player + team data
-        app.get('/transfer-listings', async (req, res) => {
-            try {
-                const result = await pool.query(`
+                // ===================== END FORUMS/GROUPS =====================
+
+                // ===================== TRANSFER MARKET =====================
+
+                // GET /transfer-listings — active listings with player + team data
+                app.get('/transfer-listings', async (req, res) => {
+                    try {
+                        const result = await pool.query(`
             SELECT
                 tl.id, tl.player_id, tl.asking_price, tl.seller_team_id,
                 tl.is_active, tl.views, tl.bids, tl.hotlists, tl.deadline, tl.created_at,
@@ -3272,112 +3270,112 @@ app.delete('/groups/:id', async (req, res) => {
             WHERE tl.is_active = true
             ORDER BY tl.created_at DESC
         `);
-                res.json({ success: true, listings: result.rows });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                        res.json({ success: true, listings: result.rows });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // POST /transfer-listings — create new listing
-        app.post('/transfer-listings', async (req, res) => {
-            const { player_id, asking_price, seller_team_id } = req.body;
-            if (!player_id || !asking_price) {
-                return res.status(400).json({ error: 'Faltan datos requeridos' });
-            }
-            try {
-                const result = await pool.query(
-                    `INSERT INTO transfer_listings (player_id, asking_price, seller_team_id, is_active, views, bids, hotlists)
+                // POST /transfer-listings — create new listing
+                app.post('/transfer-listings', async (req, res) => {
+                    const { player_id, asking_price, seller_team_id } = req.body;
+                    if (!player_id || !asking_price) {
+                        return res.status(400).json({ error: 'Faltan datos requeridos' });
+                    }
+                    try {
+                        const result = await pool.query(
+                            `INSERT INTO transfer_listings (player_id, asking_price, seller_team_id, is_active, views, bids, hotlists)
              VALUES ($1, $2, $3, true, 0, 0, 0) RETURNING *`,
-                    [player_id, asking_price, seller_team_id ?? null]
-                );
-                res.json({ success: true, listing: result.rows[0] });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                            [player_id, asking_price, seller_team_id ?? null]
+                        );
+                        res.json({ success: true, listing: result.rows[0] });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // GET /transfer-listings/:id — single listing
-        app.get('/transfer-listings/:id', async (req, res) => {
-            const { id } = req.params;
-            try {
-                const result = await pool.query(
-                    'SELECT * FROM transfer_listings WHERE id = $1',
-                    [id]
-                );
-                if (!result.rows.length) return res.status(404).json({ error: 'Listing no encontrado' });
-                res.json({ success: true, listing: result.rows[0] });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                // GET /transfer-listings/:id — single listing
+                app.get('/transfer-listings/:id', async (req, res) => {
+                    const { id } = req.params;
+                    try {
+                        const result = await pool.query(
+                            'SELECT * FROM transfer_listings WHERE id = $1',
+                            [id]
+                        );
+                        if (!result.rows.length) return res.status(404).json({ error: 'Listing no encontrado' });
+                        res.json({ success: true, listing: result.rows[0] });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // POST /transfer-listings/:id/buy — complete purchase (atomic transaction)
-        app.post('/transfer-listings/:id/buy', async (req, res) => {
-            const listingId = parseInt(req.params.id);
-            const { buyerTeamId } = req.body;
-            if (!buyerTeamId) return res.status(400).json({ error: 'Falta buyerTeamId' });
+                // POST /transfer-listings/:id/buy — complete purchase (atomic transaction)
+                app.post('/transfer-listings/:id/buy', async (req, res) => {
+                    const listingId = parseInt(req.params.id);
+                    const { buyerTeamId } = req.body;
+                    if (!buyerTeamId) return res.status(400).json({ error: 'Falta buyerTeamId' });
 
-            const client = await pool.connect();
-            try {
-                await client.query('BEGIN');
+                    const client = await pool.connect();
+                    try {
+                        await client.query('BEGIN');
 
-                // Get listing
-                const listingResult = await client.query(
-                    'SELECT * FROM transfer_listings WHERE id = $1 AND is_active = true',
-                    [listingId]
-                );
-                if (!listingResult.rows.length) {
-                    await client.query('ROLLBACK');
-                    return res.status(404).json({ error: 'Listing no encontrado o inactivo' });
-                }
-                const listing = listingResult.rows[0];
-                const { player_id, asking_price, seller_team_id } = listing;
+                        // Get listing
+                        const listingResult = await client.query(
+                            'SELECT * FROM transfer_listings WHERE id = $1 AND is_active = true',
+                            [listingId]
+                        );
+                        if (!listingResult.rows.length) {
+                            await client.query('ROLLBACK');
+                            return res.status(404).json({ error: 'Listing no encontrado o inactivo' });
+                        }
+                        const listing = listingResult.rows[0];
+                        const { player_id, asking_price, seller_team_id } = listing;
 
-                // Deactivate all listings for this player
-                await client.query(
-                    'UPDATE transfer_listings SET is_active = false WHERE player_id = $1',
-                    [player_id]
-                );
+                        // Deactivate all listings for this player
+                        await client.query(
+                            'UPDATE transfer_listings SET is_active = false WHERE player_id = $1',
+                            [player_id]
+                        );
 
-                // Update player's team
-                await client.query(
-                    "UPDATE players SET team_id = $1, owned_since = NOW() WHERE player_id = $2",
-                    [buyerTeamId, player_id]
-                );
+                        // Update player's team
+                        await client.query(
+                            "UPDATE players SET team_id = $1, owned_since = NOW() WHERE player_id = $2",
+                            [buyerTeamId, player_id]
+                        );
 
-                // Deduct from buyer finances
-                await client.query(
-                    `UPDATE team_finances
+                        // Deduct from buyer finances
+                        await client.query(
+                            `UPDATE team_finances
              SET cash_balance = cash_balance - $1, new_signings_expenses = new_signings_expenses + $1
              WHERE team_id = $2`,
-                    [asking_price, buyerTeamId]
-                );
+                            [asking_price, buyerTeamId]
+                        );
 
-                // Add to seller finances (if not free agent)
-                if (seller_team_id) {
-                    await client.query(
-                        `UPDATE team_finances
+                        // Add to seller finances (if not free agent)
+                        if (seller_team_id) {
+                            await client.query(
+                                `UPDATE team_finances
                  SET cash_balance = cash_balance + $1, player_sales_income = player_sales_income + $1
                  WHERE team_id = $2`,
-                        [asking_price, seller_team_id]
-                    );
-                }
+                                [asking_price, seller_team_id]
+                            );
+                        }
 
-                await client.query('COMMIT');
-                res.json({ success: true });
-            } catch (err) {
-                await client.query('ROLLBACK');
-                res.status(500).json({ error: err.message });
-            } finally {
-                client.release();
-            }
-        });
+                        await client.query('COMMIT');
+                        res.json({ success: true });
+                    } catch (err) {
+                        await client.query('ROLLBACK');
+                        res.status(500).json({ error: err.message });
+                    } finally {
+                        client.release();
+                    }
+                });
 
-        // GET /transfer-listings/:id/bids — all bids for a listing (ordered by amount desc)
-        app.get('/transfer-listings/:id/bids', async (req, res) => {
-            const { id } = req.params;
-            try {
-                const result = await pool.query(`
+                // GET /transfer-listings/:id/bids — all bids for a listing (ordered by amount desc)
+                app.get('/transfer-listings/:id/bids', async (req, res) => {
+                    const { id } = req.params;
+                    try {
+                        const result = await pool.query(`
             SELECT tb.id, tb.transfer_listing_id, tb.bidder_team_id,
                    tb.bid_amount, tb.status, tb.created_at,
                    t.name AS bidder_name
@@ -3386,95 +3384,95 @@ app.delete('/groups/:id', async (req, res) => {
             WHERE tb.transfer_listing_id = $1
             ORDER BY tb.bid_amount DESC
         `, [id]);
-                res.json({ success: true, bids: result.rows });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                        res.json({ success: true, bids: result.rows });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // GET /transfer-listings/:id/highest-bid
-        app.get('/transfer-listings/:id/highest-bid', async (req, res) => {
-            const { id } = req.params;
-            try {
-                const result = await pool.query(`
+                // GET /transfer-listings/:id/highest-bid
+                app.get('/transfer-listings/:id/highest-bid', async (req, res) => {
+                    const { id } = req.params;
+                    try {
+                        const result = await pool.query(`
             SELECT id, bid_amount, bidder_team_id
             FROM transfer_bids
             WHERE transfer_listing_id = $1 AND status = 'pending'
             ORDER BY bid_amount DESC
             LIMIT 1
         `, [id]);
-                if (!result.rows.length) {
-                    return res.json({ success: true, bid: null });
-                }
-                res.json({ success: true, bid: result.rows[0] });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
-
-        // POST /transfer-listings/:id/bids — place or update a bid
-        app.post('/transfer-listings/:id/bids', async (req, res) => {
-            const listingId = parseInt(req.params.id);
-            const { bidderTeamId, bidAmount } = req.body;
-            if (!bidderTeamId || !bidAmount) return res.status(400).json({ error: 'Faltan datos' });
-
-            const client = await pool.connect();
-            try {
-                await client.query('BEGIN');
-
-                // Check for existing pending bid
-                const existingResult = await client.query(
-                    `SELECT id, bid_amount FROM transfer_bids
-             WHERE transfer_listing_id = $1 AND bidder_team_id = $2 AND status = 'pending'`,
-                    [listingId, bidderTeamId]
-                );
-
-                if (existingResult.rows.length > 0) {
-                    const existing = existingResult.rows[0];
-                    if (existing.bid_amount >= bidAmount) {
-                        await client.query('ROLLBACK');
-                        return res.status(400).json({ error: 'La nueva oferta debe ser mayor que la actual' });
+                        if (!result.rows.length) {
+                            return res.json({ success: true, bid: null });
+                        }
+                        res.json({ success: true, bid: result.rows[0] });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
                     }
-                    // Update existing bid
-                    await client.query(
-                        `UPDATE transfer_bids SET bid_amount = $1, updated_at = NOW() WHERE id = $2`,
-                        [bidAmount, existing.id]
-                    );
-                } else {
-                    // Create new bid
-                    await client.query(
-                        `INSERT INTO transfer_bids (transfer_listing_id, bidder_team_id, bid_amount, status)
+                });
+
+                // POST /transfer-listings/:id/bids — place or update a bid
+                app.post('/transfer-listings/:id/bids', async (req, res) => {
+                    const listingId = parseInt(req.params.id);
+                    const { bidderTeamId, bidAmount } = req.body;
+                    if (!bidderTeamId || !bidAmount) return res.status(400).json({ error: 'Faltan datos' });
+
+                    const client = await pool.connect();
+                    try {
+                        await client.query('BEGIN');
+
+                        // Check for existing pending bid
+                        const existingResult = await client.query(
+                            `SELECT id, bid_amount FROM transfer_bids
+             WHERE transfer_listing_id = $1 AND bidder_team_id = $2 AND status = 'pending'`,
+                            [listingId, bidderTeamId]
+                        );
+
+                        if (existingResult.rows.length > 0) {
+                            const existing = existingResult.rows[0];
+                            if (existing.bid_amount >= bidAmount) {
+                                await client.query('ROLLBACK');
+                                return res.status(400).json({ error: 'La nueva oferta debe ser mayor que la actual' });
+                            }
+                            // Update existing bid
+                            await client.query(
+                                `UPDATE transfer_bids SET bid_amount = $1, updated_at = NOW() WHERE id = $2`,
+                                [bidAmount, existing.id]
+                            );
+                        } else {
+                            // Create new bid
+                            await client.query(
+                                `INSERT INTO transfer_bids (transfer_listing_id, bidder_team_id, bid_amount, status)
                  VALUES ($1, $2, $3, 'pending')`,
-                        [listingId, bidderTeamId, bidAmount]
-                    );
-                }
+                                [listingId, bidderTeamId, bidAmount]
+                            );
+                        }
 
-                // Update bid count on listing
-                const countResult = await client.query(
-                    `SELECT COUNT(*) FROM transfer_bids WHERE transfer_listing_id = $1`,
-                    [listingId]
-                );
-                await client.query(
-                    `UPDATE transfer_listings SET bids = $1 WHERE id = $2`,
-                    [parseInt(countResult.rows[0].count), listingId]
-                );
+                        // Update bid count on listing
+                        const countResult = await client.query(
+                            `SELECT COUNT(*) FROM transfer_bids WHERE transfer_listing_id = $1`,
+                            [listingId]
+                        );
+                        await client.query(
+                            `UPDATE transfer_listings SET bids = $1 WHERE id = $2`,
+                            [parseInt(countResult.rows[0].count), listingId]
+                        );
 
-                await client.query('COMMIT');
-                res.json({ success: true });
-            } catch (err) {
-                await client.query('ROLLBACK');
-                res.status(500).json({ error: err.message });
-            } finally {
-                client.release();
-            }
-        });
+                        await client.query('COMMIT');
+                        res.json({ success: true });
+                    } catch (err) {
+                        await client.query('ROLLBACK');
+                        res.status(500).json({ error: err.message });
+                    } finally {
+                        client.release();
+                    }
+                });
 
-        // GET /transfer-bids?teamId=X — enriched user bids
-        app.get('/transfer-bids', async (req, res) => {
-            const { teamId } = req.query;
-            if (!teamId) return res.status(400).json({ error: 'Falta teamId' });
-            try {
-                const result = await pool.query(`
+                // GET /transfer-bids?teamId=X — enriched user bids
+                app.get('/transfer-bids', async (req, res) => {
+                    const { teamId } = req.query;
+                    if (!teamId) return res.status(400).json({ error: 'Falta teamId' });
+                    try {
+                        const result = await pool.query(`
             SELECT
                 tb.id, tb.transfer_listing_id, tb.bidder_team_id,
                 tb.bid_amount, tb.status, tb.created_at,
@@ -3490,596 +3488,596 @@ app.delete('/groups/:id', async (req, res) => {
             WHERE tb.bidder_team_id = $1
             ORDER BY tb.created_at DESC
         `, [teamId]);
-                res.json({ success: true, bids: result.rows });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
-
-        // ===================== END TRANSFER MARKET =====================
-
-        // ===================== FORUMS =====================
-
-        // GET /forums?managerId=X&isAdmin=true
-        app.get('/forums', async (req, res) => {
-            const { managerId, isAdmin } = req.query;
-            const admin = isAdmin === 'true';
-            try {
-                const categoriesResult = await pool.query('SELECT * FROM forum_categories ORDER BY order_number');
-                const allCategories = categoriesResult.rows;
-                const filteredCategories = admin ? allCategories : allCategories.filter(c => c.id !== 4);
-                let userGroupIds = [];
-                if (managerId) {
-                    const groupsRes = await pool.query(
-                        `SELECT group_id FROM group_members WHERE manager_id = $1 AND is_active = true`,
-                        [managerId]
-                    );
-                    userGroupIds = groupsRes.rows.map(r => r.group_id);
-                }
-                let forumsResult;
-                if (userGroupIds.length === 0) {
-                    const q = `SELECT f.* FROM forums f LEFT JOIN groups g ON g.forum_id = f.id WHERE g.id IS NULL ${admin ? '' : 'AND f.category_id != 4'}`;
-                    forumsResult = await pool.query(q);
-                } else {
-                    const q = `SELECT f.* FROM forums f LEFT JOIN groups g ON g.forum_id = f.id WHERE (g.id IS NULL OR g.id = ANY($1::int[])`;
-                    forumsResult = await pool.query(q, [userGroupIds]);
-                }
-                const forums = await Promise.all(forumsResult.rows.map(async (forum) => {
-                    const tcRes = await pool.query(`SELECT COUNT(*) FROM forum_threads WHERE forum_id = $1`, [forum.id]);
-                    const threadCount = parseInt(tcRes.rows[0].count) || 0;
-                    if (threadCount === 0) return { ...forum, thread_count: 0, post_count: 0 };
-                    const pcRes = await pool.query(
-                        `SELECT COUNT(*) FROM forum_posts fp JOIN forum_threads ft ON ft.id = fp.thread_id WHERE ft.forum_id = $1`, [forum.id]
-                    );
-                    return { ...forum, thread_count: threadCount, post_count: parseInt(pcRes.rows[0].count) || 0 };
-                }));
-                res.json({ success: true, categories: filteredCategories, forums });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
-
-        // GET /forums/:id/threads?page=1&limit=10
-        app.get('/forums/:id/threads', async (req, res) => {
-            const forumId = parseInt(req.params.id);
-            const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 10;
-            const offset = (page - 1) * limit;
-            try {
-                const threadsResult = await pool.query(
-                    `SELECT * FROM forum_threads WHERE forum_id = $1 ORDER BY is_sticky DESC, last_post_at DESC`,
-                    [forumId]
-                );
-                const allThreads = threadsResult.rows;
-                const stickyThreads = allThreads.filter(t => t.is_sticky);
-                const normalThreads = allThreads.filter(t => !t.is_sticky);
-                const paginatedNormal = normalThreads.slice(offset, offset + limit);
-                const toProcess = [...stickyThreads, ...paginatedNormal];
-                const enriched = await Promise.all(toProcess.map(async (thread) => {
-                    const pcRes = await pool.query(`SELECT COUNT(*) FROM forum_posts WHERE thread_id = $1`, [thread.id]);
-                    let lastPostManagerUsername = null;
-                    if (thread.last_post_user_id) {
-                        const mRes = await pool.query(`SELECT username FROM managers WHERE user_id = $1`, [thread.last_post_user_id]);
-                        lastPostManagerUsername = mRes.rows[0]?.username || null;
+                        res.json({ success: true, bids: result.rows });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
                     }
-                    return { ...thread, reply_count: parseInt(pcRes.rows[0].count) || 0, last_post_manager_username: lastPostManagerUsername };
-                }));
-                res.json({
-                    success: true,
-                    stickyThreads: enriched.filter(t => t.is_sticky),
-                    normalThreads: enriched.filter(t => !t.is_sticky),
-                    totalCount: normalThreads.length,
-                    totalPages: Math.ceil(normalThreads.length / limit),
-                    currentPage: page
                 });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
 
-        // GET /forum-threads/:id?page=1&postsPerPage=10
-        app.get('/forum-threads/:id', async (req, res) => {
-            const threadId = parseInt(req.params.id);
-            const page = parseInt(req.query.page) || 1;
-            const postsPerPage = parseInt(req.query.postsPerPage) || 10;
-            const offset = (page - 1) * postsPerPage;
-            try {
-                const threadResult = await pool.query(`SELECT * FROM forum_threads WHERE id = $1`, [threadId]);
-                if (!threadResult.rows.length) return res.status(404).json({ error: 'Thread no encontrado' });
-                const thread = threadResult.rows[0];
-                const countResult = await pool.query(`SELECT COUNT(*) FROM forum_posts WHERE thread_id = $1`, [threadId]);
-                const totalPosts = parseInt(countResult.rows[0].count) || 0;
-                const postsResult = await pool.query(
-                    `SELECT * FROM forum_posts WHERE thread_id = $1 ORDER BY created_at LIMIT $2 OFFSET $3`,
-                    [threadId, postsPerPage, offset]
-                );
-                const posts = postsResult.rows;
-                if (!posts.length) {
-                    return res.json({ success: true, thread, posts: [], totalPosts, totalPages: Math.ceil(totalPosts / postsPerPage), currentPage: page });
-                }
-                const userIds = [...new Set(posts.map(p => p.user_id))];
-                const managersResult = await pool.query(`SELECT user_id, username FROM managers WHERE user_id = ANY($1::int[])`, [userIds]);
-                const usernameMap = {};
-                managersResult.rows.forEach(m => { usernameMap[m.user_id] = m.username; });
-                const enrichedPosts = posts.map(p => ({ ...p, author_username: usernameMap[p.user_id] || 'Unknown' }));
-                res.json({ success: true, thread, posts: enrichedPosts, totalPosts, totalPages: Math.ceil(totalPosts / postsPerPage), currentPage: page });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                // ===================== END TRANSFER MARKET =====================
 
-        // POST /forums/threads
-        app.post('/forums/threads', async (req, res) => {
-            const { title, content, forum_id, author_id } = req.body;
-            if (!title || !content || !forum_id || !author_id) return res.status(400).json({ error: 'Faltan datos' });
-            const client = await pool.connect();
-            try {
-                await client.query('BEGIN');
-                const now = new Date().toISOString();
-                const threadResult = await client.query(
-                    `INSERT INTO forum_threads (title, forum_id, user_id, last_post_at, last_post_user_id, view_count, is_locked, is_sticky, created_at) VALUES ($1, $2, $3, $4, $3, 0, false, false, $4) RETURNING *`,
-                    [title, forum_id, author_id, now]
-                );
-                const thread = threadResult.rows[0];
-                await client.query(`INSERT INTO forum_posts (thread_id, content, user_id, created_at) VALUES ($1, $2, $3, $4)`, [thread.id, content, author_id, now]);
-                await client.query('COMMIT');
-                res.json({ success: true, thread });
-            } catch (err) {
-                await client.query('ROLLBACK');
-                res.status(500).json({ error: err.message });
-            } finally {
-                client.release();
-            }
-        });
+                // ===================== FORUMS =====================
 
-        // POST /forum-posts
-        app.post('/forum-posts', async (req, res) => {
-            const { thread_id, content, user_id } = req.body;
-            if (!thread_id || !content || !user_id) return res.status(400).json({ error: 'Faltan datos' });
-            const client = await pool.connect();
-            try {
-                await client.query('BEGIN');
-                const now = new Date().toISOString();
-                const result = await client.query(`INSERT INTO forum_posts (thread_id, content, user_id, created_at) VALUES ($1, $2, $3, $4) RETURNING *`, [thread_id, content, user_id, now]);
-                await client.query(`UPDATE forum_threads SET last_post_at = $1, last_post_user_id = $2 WHERE id = $3`, [now, user_id, thread_id]);
-                await client.query('COMMIT');
-                res.json({ success: true, post: result.rows[0] });
-            } catch (err) {
-                await client.query('ROLLBACK');
-                res.status(500).json({ error: err.message });
-            } finally {
-                client.release();
-            }
-        });
+                // GET /forums?managerId=X&isAdmin=true
+                app.get('/forums', async (req, res) => {
+                    const { managerId, isAdmin } = req.query;
+                    const admin = isAdmin === 'true';
+                    try {
+                        const categoriesResult = await pool.query('SELECT * FROM forum_categories ORDER BY order_number');
+                        const allCategories = categoriesResult.rows;
+                        const filteredCategories = admin ? allCategories : allCategories.filter(c => c.id !== 4);
+                        let userGroupIds = [];
+                        if (managerId) {
+                            const groupsRes = await pool.query(
+                                `SELECT group_id FROM group_members WHERE manager_id = $1 AND is_active = true`,
+                                [managerId]
+                            );
+                            userGroupIds = groupsRes.rows.map(r => r.group_id);
+                        }
+                        let forumsResult;
+                        if (userGroupIds.length === 0) {
+                            const q = `SELECT f.* FROM forums f LEFT JOIN groups g ON g.forum_id = f.id WHERE g.id IS NULL ${admin ? '' : 'AND f.category_id != 4'}`;
+                            forumsResult = await pool.query(q);
+                        } else {
+                            const q = `SELECT f.* FROM forums f LEFT JOIN groups g ON g.forum_id = f.id WHERE (g.id IS NULL OR g.id = ANY($1::int[])`;
+                            forumsResult = await pool.query(q, [userGroupIds]);
+                        }
+                        const forums = await Promise.all(forumsResult.rows.map(async (forum) => {
+                            const tcRes = await pool.query(`SELECT COUNT(*) FROM forum_threads WHERE forum_id = $1`, [forum.id]);
+                            const threadCount = parseInt(tcRes.rows[0].count) || 0;
+                            if (threadCount === 0) return { ...forum, thread_count: 0, post_count: 0 };
+                            const pcRes = await pool.query(
+                                `SELECT COUNT(*) FROM forum_posts fp JOIN forum_threads ft ON ft.id = fp.thread_id WHERE ft.forum_id = $1`, [forum.id]
+                            );
+                            return { ...forum, thread_count: threadCount, post_count: parseInt(pcRes.rows[0].count) || 0 };
+                        }));
+                        res.json({ success: true, categories: filteredCategories, forums });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // PUT /forum-posts/:id
-        app.put('/forum-posts/:id', async (req, res) => {
-            const { id } = req.params;
-            const { content } = req.body;
-            if (!content) return res.status(400).json({ error: 'Falta contenido' });
-            try {
-                const result = await pool.query(`UPDATE forum_posts SET content = $1, is_edited = true, edited_at = NOW() WHERE id = $2 RETURNING *`, [content, id]);
-                if (!result.rows.length) return res.status(404).json({ error: 'Post no encontrado' });
-                res.json({ success: true, post: result.rows[0] });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                // GET /forums/:id/threads?page=1&limit=10
+                app.get('/forums/:id/threads', async (req, res) => {
+                    const forumId = parseInt(req.params.id);
+                    const page = parseInt(req.query.page) || 1;
+                    const limit = parseInt(req.query.limit) || 10;
+                    const offset = (page - 1) * limit;
+                    try {
+                        const threadsResult = await pool.query(
+                            `SELECT * FROM forum_threads WHERE forum_id = $1 ORDER BY is_sticky DESC, last_post_at DESC`,
+                            [forumId]
+                        );
+                        const allThreads = threadsResult.rows;
+                        const stickyThreads = allThreads.filter(t => t.is_sticky);
+                        const normalThreads = allThreads.filter(t => !t.is_sticky);
+                        const paginatedNormal = normalThreads.slice(offset, offset + limit);
+                        const toProcess = [...stickyThreads, ...paginatedNormal];
+                        const enriched = await Promise.all(toProcess.map(async (thread) => {
+                            const pcRes = await pool.query(`SELECT COUNT(*) FROM forum_posts WHERE thread_id = $1`, [thread.id]);
+                            let lastPostManagerUsername = null;
+                            if (thread.last_post_user_id) {
+                                const mRes = await pool.query(`SELECT username FROM managers WHERE user_id = $1`, [thread.last_post_user_id]);
+                                lastPostManagerUsername = mRes.rows[0]?.username || null;
+                            }
+                            return { ...thread, reply_count: parseInt(pcRes.rows[0].count) || 0, last_post_manager_username: lastPostManagerUsername };
+                        }));
+                        res.json({
+                            success: true,
+                            stickyThreads: enriched.filter(t => t.is_sticky),
+                            normalThreads: enriched.filter(t => !t.is_sticky),
+                            totalCount: normalThreads.length,
+                            totalPages: Math.ceil(normalThreads.length / limit),
+                            currentPage: page
+                        });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // DELETE /forum-posts/:id
-        app.delete('/forum-posts/:id', async (req, res) => {
-            const { id } = req.params;
-            try {
-                await pool.query(`DELETE FROM forum_posts WHERE id = $1`, [id]);
-                res.json({ success: true });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                // GET /forum-threads/:id?page=1&postsPerPage=10
+                app.get('/forum-threads/:id', async (req, res) => {
+                    const threadId = parseInt(req.params.id);
+                    const page = parseInt(req.query.page) || 1;
+                    const postsPerPage = parseInt(req.query.postsPerPage) || 10;
+                    const offset = (page - 1) * postsPerPage;
+                    try {
+                        const threadResult = await pool.query(`SELECT * FROM forum_threads WHERE id = $1`, [threadId]);
+                        if (!threadResult.rows.length) return res.status(404).json({ error: 'Thread no encontrado' });
+                        const thread = threadResult.rows[0];
+                        const countResult = await pool.query(`SELECT COUNT(*) FROM forum_posts WHERE thread_id = $1`, [threadId]);
+                        const totalPosts = parseInt(countResult.rows[0].count) || 0;
+                        const postsResult = await pool.query(
+                            `SELECT * FROM forum_posts WHERE thread_id = $1 ORDER BY created_at LIMIT $2 OFFSET $3`,
+                            [threadId, postsPerPage, offset]
+                        );
+                        const posts = postsResult.rows;
+                        if (!posts.length) {
+                            return res.json({ success: true, thread, posts: [], totalPosts, totalPages: Math.ceil(totalPosts / postsPerPage), currentPage: page });
+                        }
+                        const userIds = [...new Set(posts.map(p => p.user_id))];
+                        const managersResult = await pool.query(`SELECT user_id, username FROM managers WHERE user_id = ANY($1::int[])`, [userIds]);
+                        const usernameMap = {};
+                        managersResult.rows.forEach(m => { usernameMap[m.user_id] = m.username; });
+                        const enrichedPosts = posts.map(p => ({ ...p, author_username: usernameMap[p.user_id] || 'Unknown' }));
+                        res.json({ success: true, thread, posts: enrichedPosts, totalPosts, totalPages: Math.ceil(totalPosts / postsPerPage), currentPage: page });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // PUT /forum-threads/:id/lock
-        app.put('/forum-threads/:id/lock', async (req, res) => {
-            const { id } = req.params;
-            const { is_locked } = req.body;
-            try {
-                const result = await pool.query(`UPDATE forum_threads SET is_locked = $1 WHERE id = $2 RETURNING *`, [is_locked, id]);
-                if (!result.rows.length) return res.status(404).json({ error: 'Thread no encontrado' });
-                res.json({ success: true, thread: result.rows[0] });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                // POST /forums/threads
+                app.post('/forums/threads', async (req, res) => {
+                    const { title, content, forum_id, author_id } = req.body;
+                    if (!title || !content || !forum_id || !author_id) return res.status(400).json({ error: 'Faltan datos' });
+                    const client = await pool.connect();
+                    try {
+                        await client.query('BEGIN');
+                        const now = new Date().toISOString();
+                        const threadResult = await client.query(
+                            `INSERT INTO forum_threads (title, forum_id, user_id, last_post_at, last_post_user_id, view_count, is_locked, is_sticky, created_at) VALUES ($1, $2, $3, $4, $3, 0, false, false, $4) RETURNING *`,
+                            [title, forum_id, author_id, now]
+                        );
+                        const thread = threadResult.rows[0];
+                        await client.query(`INSERT INTO forum_posts (thread_id, content, user_id, created_at) VALUES ($1, $2, $3, $4)`, [thread.id, content, author_id, now]);
+                        await client.query('COMMIT');
+                        res.json({ success: true, thread });
+                    } catch (err) {
+                        await client.query('ROLLBACK');
+                        res.status(500).json({ error: err.message });
+                    } finally {
+                        client.release();
+                    }
+                });
 
-        // PUT /forum-threads/:id/stick
-        app.put('/forum-threads/:id/stick', async (req, res) => {
-            const { id } = req.params;
-            const { is_sticky } = req.body;
-            try {
-                const result = await pool.query(`UPDATE forum_threads SET is_sticky = $1 WHERE id = $2 RETURNING *`, [is_sticky, id]);
-                if (!result.rows.length) return res.status(404).json({ error: 'Thread no encontrado' });
-                res.json({ success: true, thread: result.rows[0] });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                // POST /forum-posts
+                app.post('/forum-posts', async (req, res) => {
+                    const { thread_id, content, user_id } = req.body;
+                    if (!thread_id || !content || !user_id) return res.status(400).json({ error: 'Faltan datos' });
+                    const client = await pool.connect();
+                    try {
+                        await client.query('BEGIN');
+                        const now = new Date().toISOString();
+                        const result = await client.query(`INSERT INTO forum_posts (thread_id, content, user_id, created_at) VALUES ($1, $2, $3, $4) RETURNING *`, [thread_id, content, user_id, now]);
+                        await client.query(`UPDATE forum_threads SET last_post_at = $1, last_post_user_id = $2 WHERE id = $3`, [now, user_id, thread_id]);
+                        await client.query('COMMIT');
+                        res.json({ success: true, post: result.rows[0] });
+                    } catch (err) {
+                        await client.query('ROLLBACK');
+                        res.status(500).json({ error: err.message });
+                    } finally {
+                        client.release();
+                    }
+                });
 
-        // PUT /forum-threads/:id/view
-        app.put('/forum-threads/:id/view', async (req, res) => {
-            const { id } = req.params;
-            const { view_count } = req.body;
-            try {
-                await pool.query(`UPDATE forum_threads SET view_count = $1 WHERE id = $2`, [view_count, id]);
-                res.json({ success: true });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                // PUT /forum-posts/:id
+                app.put('/forum-posts/:id', async (req, res) => {
+                    const { id } = req.params;
+                    const { content } = req.body;
+                    if (!content) return res.status(400).json({ error: 'Falta contenido' });
+                    try {
+                        const result = await pool.query(`UPDATE forum_posts SET content = $1, is_edited = true, edited_at = NOW() WHERE id = $2 RETURNING *`, [content, id]);
+                        if (!result.rows.length) return res.status(404).json({ error: 'Post no encontrado' });
+                        res.json({ success: true, post: result.rows[0] });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // GET /forum-threads/:id/access?managerId=X
-        app.get('/forum-threads/:id/access', async (req, res) => {
-            const { id } = req.params;
-            const { managerId } = req.query;
-            try {
-                const threadResult = await pool.query(
-                    `SELECT f.category_id FROM forum_threads ft JOIN forums f ON f.id = ft.forum_id WHERE ft.id = $1`, [id]
-                );
-                if (!threadResult.rows.length) return res.status(404).json({ error: 'Thread no encontrado' });
-                const { category_id } = threadResult.rows[0];
-                if (category_id !== 4) return res.json({ success: true, hasAccess: true });
-                if (!managerId) return res.json({ success: true, hasAccess: false });
-                const mResult = await pool.query(`SELECT is_admin FROM managers WHERE user_id = $1`, [managerId]);
-                res.json({ success: true, hasAccess: (mResult.rows[0]?.is_admin || 0) > 0 });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                // DELETE /forum-posts/:id
+                app.delete('/forum-posts/:id', async (req, res) => {
+                    const { id } = req.params;
+                    try {
+                        await pool.query(`DELETE FROM forum_posts WHERE id = $1`, [id]);
+                        res.json({ success: true });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // ===================== END FORUMS =====================
+                // PUT /forum-threads/:id/lock
+                app.put('/forum-threads/:id/lock', async (req, res) => {
+                    const { id } = req.params;
+                    const { is_locked } = req.body;
+                    try {
+                        const result = await pool.query(`UPDATE forum_threads SET is_locked = $1 WHERE id = $2 RETURNING *`, [is_locked, id]);
+                        if (!result.rows.length) return res.status(404).json({ error: 'Thread no encontrado' });
+                        res.json({ success: true, thread: result.rows[0] });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // ===================== GROUPS =====================
+                // PUT /forum-threads/:id/stick
+                app.put('/forum-threads/:id/stick', async (req, res) => {
+                    const { id } = req.params;
+                    const { is_sticky } = req.body;
+                    try {
+                        const result = await pool.query(`UPDATE forum_threads SET is_sticky = $1 WHERE id = $2 RETURNING *`, [is_sticky, id]);
+                        if (!result.rows.length) return res.status(404).json({ error: 'Thread no encontrado' });
+                        res.json({ success: true, thread: result.rows[0] });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // GET /groups
-        app.get('/groups', async (req, res) => {
-            try {
-                const result = await pool.query(`
+                // PUT /forum-threads/:id/view
+                app.put('/forum-threads/:id/view', async (req, res) => {
+                    const { id } = req.params;
+                    const { view_count } = req.body;
+                    try {
+                        await pool.query(`UPDATE forum_threads SET view_count = $1 WHERE id = $2`, [view_count, id]);
+                        res.json({ success: true });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
+
+                // GET /forum-threads/:id/access?managerId=X
+                app.get('/forum-threads/:id/access', async (req, res) => {
+                    const { id } = req.params;
+                    const { managerId } = req.query;
+                    try {
+                        const threadResult = await pool.query(
+                            `SELECT f.category_id FROM forum_threads ft JOIN forums f ON f.id = ft.forum_id WHERE ft.id = $1`, [id]
+                        );
+                        if (!threadResult.rows.length) return res.status(404).json({ error: 'Thread no encontrado' });
+                        const { category_id } = threadResult.rows[0];
+                        if (category_id !== 4) return res.json({ success: true, hasAccess: true });
+                        if (!managerId) return res.json({ success: true, hasAccess: false });
+                        const mResult = await pool.query(`SELECT is_admin FROM managers WHERE user_id = $1`, [managerId]);
+                        res.json({ success: true, hasAccess: (mResult.rows[0]?.is_admin || 0) > 0 });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
+
+                // ===================== END FORUMS =====================
+
+                // ===================== GROUPS =====================
+
+                // GET /groups
+                app.get('/groups', async (req, res) => {
+                    try {
+                        const result = await pool.query(`
             SELECT g.*, COUNT(gm.id) FILTER (WHERE gm.is_active = true) AS member_count
             FROM groups g LEFT JOIN group_members gm ON gm.group_id = g.id
             GROUP BY g.id ORDER BY g.created_at DESC
         `);
-                res.json({ success: true, groups: result.rows });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
-
-        // POST /groups
-        app.post('/groups', async (req, res) => {
-            const { name, description, owner_id } = req.body;
-            if (!name || !owner_id) return res.status(400).json({ error: 'Faltan datos' });
-            try {
-                const result = await pool.query(
-                    `INSERT INTO groups (name, description, owner_id) VALUES ($1, $2, $3) RETURNING *`,
-                    [name, description || null, owner_id]
-                );
-                res.json({ success: true, group: result.rows[0] });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
-
-        // DELETE /groups/:id
-        app.delete('/groups/:id', async (req, res) => {
-            const groupId = parseInt(req.params.id);
-            const { managerId } = req.body;
-            const client = await pool.connect();
-            try {
-                await client.query('BEGIN');
-                const groupResult = await client.query(`SELECT * FROM groups WHERE id = $1 AND owner_id = $2`, [groupId, managerId]);
-                if (!groupResult.rows.length) {
-                    await client.query('ROLLBACK');
-                    return res.status(403).json({ error: 'No tienes permiso para borrar este grupo' });
-                }
-                const forumId = groupResult.rows[0].forum_id;
-                await client.query(`DELETE FROM group_applications WHERE group_id = $1`, [groupId]);
-                await client.query(`DELETE FROM group_members WHERE group_id = $1`, [groupId]);
-                await client.query(`DELETE FROM groups WHERE id = $1`, [groupId]);
-                if (forumId) {
-                    const threadIds = await client.query(`SELECT id FROM forum_threads WHERE forum_id = $1`, [forumId]);
-                    if (threadIds.rows.length) {
-                        const ids = threadIds.rows.map(r => r.id);
-                        await client.query(`DELETE FROM forum_posts WHERE thread_id = ANY($1::int[])`, [ids]);
-                        await client.query(`DELETE FROM forum_threads WHERE forum_id = $1`, [forumId]);
+                        res.json({ success: true, groups: result.rows });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
                     }
-                    await client.query(`DELETE FROM forums WHERE id = $1`, [forumId]);
-                }
-                await client.query('COMMIT');
-                res.json({ success: true });
-            } catch (err) {
-                await client.query('ROLLBACK');
-                res.status(500).json({ error: err.message });
-            } finally {
-                client.release();
-            }
-        });
+                });
 
-        // GET /groups/:id/members
-        app.get('/groups/:id/members', async (req, res) => {
-            const { id } = req.params;
-            try {
-                const result = await pool.query(`
+                // POST /groups
+                app.post('/groups', async (req, res) => {
+                    const { name, description, owner_id } = req.body;
+                    if (!name || !owner_id) return res.status(400).json({ error: 'Faltan datos' });
+                    try {
+                        const result = await pool.query(
+                            `INSERT INTO groups (name, description, owner_id) VALUES ($1, $2, $3) RETURNING *`,
+                            [name, description || null, owner_id]
+                        );
+                        res.json({ success: true, group: result.rows[0] });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
+
+                // DELETE /groups/:id
+                app.delete('/groups/:id', async (req, res) => {
+                    const groupId = parseInt(req.params.id);
+                    const { managerId } = req.body;
+                    const client = await pool.connect();
+                    try {
+                        await client.query('BEGIN');
+                        const groupResult = await client.query(`SELECT * FROM groups WHERE id = $1 AND owner_id = $2`, [groupId, managerId]);
+                        if (!groupResult.rows.length) {
+                            await client.query('ROLLBACK');
+                            return res.status(403).json({ error: 'No tienes permiso para borrar este grupo' });
+                        }
+                        const forumId = groupResult.rows[0].forum_id;
+                        await client.query(`DELETE FROM group_applications WHERE group_id = $1`, [groupId]);
+                        await client.query(`DELETE FROM group_members WHERE group_id = $1`, [groupId]);
+                        await client.query(`DELETE FROM groups WHERE id = $1`, [groupId]);
+                        if (forumId) {
+                            const threadIds = await client.query(`SELECT id FROM forum_threads WHERE forum_id = $1`, [forumId]);
+                            if (threadIds.rows.length) {
+                                const ids = threadIds.rows.map(r => r.id);
+                                await client.query(`DELETE FROM forum_posts WHERE thread_id = ANY($1::int[])`, [ids]);
+                                await client.query(`DELETE FROM forum_threads WHERE forum_id = $1`, [forumId]);
+                            }
+                            await client.query(`DELETE FROM forums WHERE id = $1`, [forumId]);
+                        }
+                        await client.query('COMMIT');
+                        res.json({ success: true });
+                    } catch (err) {
+                        await client.query('ROLLBACK');
+                        res.status(500).json({ error: err.message });
+                    } finally {
+                        client.release();
+                    }
+                });
+
+                // GET /groups/:id/members
+                app.get('/groups/:id/members', async (req, res) => {
+                    const { id } = req.params;
+                    try {
+                        const result = await pool.query(`
             SELECT gm.*, m.username AS manager_username
             FROM group_members gm
             JOIN managers m ON m.user_id = gm.manager_id
             WHERE gm.group_id = $1 AND gm.is_active = true
         `, [id]);
-                const members = result.rows.map(r => ({ ...r, manager: { username: r.manager_username } }));
-                res.json({ success: true, members });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                        const members = result.rows.map(r => ({ ...r, manager: { username: r.manager_username } }));
+                        res.json({ success: true, members });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // GET /groups/:id/applications
-        app.get('/groups/:id/applications', async (req, res) => {
-            const { id } = req.params;
-            try {
-                const result = await pool.query(`
+                // GET /groups/:id/applications
+                app.get('/groups/:id/applications', async (req, res) => {
+                    const { id } = req.params;
+                    try {
+                        const result = await pool.query(`
             SELECT ga.*, m.username AS applicant_username
             FROM group_applications ga
             JOIN managers m ON m.user_id = ga.applicant_id
             WHERE ga.group_id = $1 AND ga.status = 'pending'
         `, [id]);
-                const applications = result.rows.map(r => ({ ...r, applicant: { username: r.applicant_username } }));
-                res.json({ success: true, applications });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                        const applications = result.rows.map(r => ({ ...r, applicant: { username: r.applicant_username } }));
+                        res.json({ success: true, applications });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // GET /groups/:id/user-application?managerId=X
-        app.get('/groups/:id/user-application', async (req, res) => {
-            const { id } = req.params;
-            const { managerId } = req.query;
-            if (!managerId) return res.json({ success: true, application: null });
-            try {
-                const result = await pool.query(
-                    `SELECT * FROM group_applications WHERE group_id = $1 AND applicant_id = $2 AND status = 'pending' LIMIT 1`,
-                    [id, managerId]
-                );
-                res.json({ success: true, application: result.rows[0] || null });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                // GET /groups/:id/user-application?managerId=X
+                app.get('/groups/:id/user-application', async (req, res) => {
+                    const { id } = req.params;
+                    const { managerId } = req.query;
+                    if (!managerId) return res.json({ success: true, application: null });
+                    try {
+                        const result = await pool.query(
+                            `SELECT * FROM group_applications WHERE group_id = $1 AND applicant_id = $2 AND status = 'pending' LIMIT 1`,
+                            [id, managerId]
+                        );
+                        res.json({ success: true, application: result.rows[0] || null });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // POST /groups/:id/apply
-        app.post('/groups/:id/apply', async (req, res) => {
-            const groupId = parseInt(req.params.id);
-            const { managerId, message } = req.body;
-            if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
-            try {
-                const existing = await pool.query(
-                    `SELECT id FROM group_applications WHERE group_id = $1 AND applicant_id = $2 AND status = 'pending'`,
-                    [groupId, managerId]
-                );
-                if (existing.rows.length) return res.status(400).json({ error: 'Ya tienes una solicitud pendiente' });
-                const result = await pool.query(
-                    `INSERT INTO group_applications (group_id, applicant_id, message, status) VALUES ($1, $2, $3, 'pending') RETURNING *`,
-                    [groupId, managerId, message || null]
-                );
-                res.json({ success: true, application: result.rows[0] });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                // POST /groups/:id/apply
+                app.post('/groups/:id/apply', async (req, res) => {
+                    const groupId = parseInt(req.params.id);
+                    const { managerId, message } = req.body;
+                    if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
+                    try {
+                        const existing = await pool.query(
+                            `SELECT id FROM group_applications WHERE group_id = $1 AND applicant_id = $2 AND status = 'pending'`,
+                            [groupId, managerId]
+                        );
+                        if (existing.rows.length) return res.status(400).json({ error: 'Ya tienes una solicitud pendiente' });
+                        const result = await pool.query(
+                            `INSERT INTO group_applications (group_id, applicant_id, message, status) VALUES ($1, $2, $3, 'pending') RETURNING *`,
+                            [groupId, managerId, message || null]
+                        );
+                        res.json({ success: true, application: result.rows[0] });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // PUT /group-applications/:id/respond
-        app.put('/group-applications/:id/respond', async (req, res) => {
-            const appId = parseInt(req.params.id);
-            const { status } = req.body;
-            if (!status) return res.status(400).json({ error: 'Falta status' });
-            const client = await pool.connect();
-            try {
-                await client.query('BEGIN');
-                const appResult = await client.query(`SELECT * FROM group_applications WHERE id = $1`, [appId]);
-                if (!appResult.rows.length) {
-                    await client.query('ROLLBACK');
-                    return res.status(404).json({ error: 'Solicitud no encontrada' });
-                }
-                const application = appResult.rows[0];
-                if (status === 'approved') {
-                    await client.query(
-                        `INSERT INTO group_members (group_id, manager_id, role, is_active) VALUES ($1, $2, 'member', true) ON CONFLICT DO NOTHING`,
-                        [application.group_id, application.applicant_id]
-                    );
-                }
-                const result = await client.query(
-                    `UPDATE group_applications SET status = $1, responded_at = NOW() WHERE id = $2 RETURNING *`,
-                    [status, appId]
-                );
-                await client.query('COMMIT');
-                res.json({ success: true, application: result.rows[0] });
-            } catch (err) {
-                await client.query('ROLLBACK');
-                res.status(500).json({ error: err.message });
-            } finally {
-                client.release();
-            }
-        });
+                // PUT /group-applications/:id/respond
+                app.put('/group-applications/:id/respond', async (req, res) => {
+                    const appId = parseInt(req.params.id);
+                    const { status } = req.body;
+                    if (!status) return res.status(400).json({ error: 'Falta status' });
+                    const client = await pool.connect();
+                    try {
+                        await client.query('BEGIN');
+                        const appResult = await client.query(`SELECT * FROM group_applications WHERE id = $1`, [appId]);
+                        if (!appResult.rows.length) {
+                            await client.query('ROLLBACK');
+                            return res.status(404).json({ error: 'Solicitud no encontrada' });
+                        }
+                        const application = appResult.rows[0];
+                        if (status === 'approved') {
+                            await client.query(
+                                `INSERT INTO group_members (group_id, manager_id, role, is_active) VALUES ($1, $2, 'member', true) ON CONFLICT DO NOTHING`,
+                                [application.group_id, application.applicant_id]
+                            );
+                        }
+                        const result = await client.query(
+                            `UPDATE group_applications SET status = $1, responded_at = NOW() WHERE id = $2 RETURNING *`,
+                            [status, appId]
+                        );
+                        await client.query('COMMIT');
+                        res.json({ success: true, application: result.rows[0] });
+                    } catch (err) {
+                        await client.query('ROLLBACK');
+                        res.status(500).json({ error: err.message });
+                    } finally {
+                        client.release();
+                    }
+                });
 
-        // PUT /groups/:id/logo
-        app.put('/groups/:id/logo', async (req, res) => {
-            const { id } = req.params;
-            const { club_logo, managerId } = req.body;
-            if (!club_logo) return res.status(400).json({ error: 'Falta club_logo' });
-            try {
-                const result = await pool.query(
-                    `UPDATE groups SET club_logo = $1, updated_at = NOW() WHERE id = $2 AND owner_id = $3 RETURNING id`,
-                    [club_logo, id, managerId]
-                );
-                if (!result.rows.length) return res.status(403).json({ error: 'No autorizado' });
-                res.json({ success: true });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                // PUT /groups/:id/logo
+                app.put('/groups/:id/logo', async (req, res) => {
+                    const { id } = req.params;
+                    const { club_logo, managerId } = req.body;
+                    if (!club_logo) return res.status(400).json({ error: 'Falta club_logo' });
+                    try {
+                        const result = await pool.query(
+                            `UPDATE groups SET club_logo = $1, updated_at = NOW() WHERE id = $2 AND owner_id = $3 RETURNING id`,
+                            [club_logo, id, managerId]
+                        );
+                        if (!result.rows.length) return res.status(403).json({ error: 'No autorizado' });
+                        res.json({ success: true });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // GET /managers/:id/info
-        app.get('/managers/:id/info', async (req, res) => {
-            const { id } = req.params;
-            try {
-                const mResult = await pool.query(
-                    `SELECT m.username, m.is_admin, m.is_premium, m.premium_expires_at, r.name AS country_name
+                // GET /managers/:id/info
+                app.get('/managers/:id/info', async (req, res) => {
+                    const { id } = req.params;
+                    try {
+                        const mResult = await pool.query(
+                            `SELECT m.username, m.is_admin, m.is_premium, m.premium_expires_at, r.name AS country_name
              FROM managers m
              LEFT JOIN leagues_regions r ON r.region_id = m.country_id
              WHERE m.user_id = $1`,
-                    [id]
-                );
-                if (!mResult.rows.length) return res.status(404).json({ error: 'Manager no encontrado' });
-                const manager = mResult.rows[0];
-                const tResult = await pool.query(`SELECT name, team_id FROM teams WHERE manager_id = $1`, [id]);
-                const team = tResult.rows[0] || null;
-                res.json({
-                    success: true,
-                    manager_name: manager.username,
-                    team_name: team?.name || null,
-                    team_id: team?.team_id || null,
-                    is_admin: manager.is_admin || 0,
-                    is_premium: manager.is_premium || 0,
-                    premium_expires_at: manager.premium_expires_at || null,
-                    country_name: manager.country_name || null
+                            [id]
+                        );
+                        if (!mResult.rows.length) return res.status(404).json({ error: 'Manager no encontrado' });
+                        const manager = mResult.rows[0];
+                        const tResult = await pool.query(`SELECT name, team_id FROM teams WHERE manager_id = $1`, [id]);
+                        const team = tResult.rows[0] || null;
+                        res.json({
+                            success: true,
+                            manager_name: manager.username,
+                            team_name: team?.name || null,
+                            team_id: team?.team_id || null,
+                            is_admin: manager.is_admin || 0,
+                            is_premium: manager.is_premium || 0,
+                            premium_expires_at: manager.premium_expires_at || null,
+                            country_name: manager.country_name || null
+                        });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
                 });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
 
-        // ===================== END GROUPS =====================
+                // ===================== END GROUPS =====================
 
 
-        // Obtener managers online y total registrados
-        app.get('/admin/online-managers', async (req, res) => {
-            try {
-                // Managers online
-                const onlineResult = await pool.query(`
+                // Obtener managers online y total registrados
+                app.get('/admin/online-managers', async (req, res) => {
+                    try {
+                        // Managers online
+                        const onlineResult = await pool.query(`
             SELECT user_id, username, is_admin, is_premium, last_login, country_id, current_url, last_ip, connection_country
             FROM managers
             WHERE is_online = true
             ORDER BY last_login DESC
         `);
-                // Total managers registrados
-                const totalResult = await pool.query('SELECT COUNT(*) AS total FROM managers');
-                // Enriquecer con nombre de país
-                let managers = onlineResult.rows;
-                if (managers.length > 0) {
-                    // Obtener nombres de país para los managers online
-                    const countryIds = managers.map(m => m.country_id).filter(Boolean);
-                    let countryMap = {};
-                    if (countryIds.length > 0) {
-                        const countries = await pool.query('SELECT region_id, name FROM leagues_regions WHERE region_id = ANY($1)', [countryIds]);
-                        countryMap = Object.fromEntries(countries.rows.map(r => [r.region_id, r.name]));
+                        // Total managers registrados
+                        const totalResult = await pool.query('SELECT COUNT(*) AS total FROM managers');
+                        // Enriquecer con nombre de país
+                        let managers = onlineResult.rows;
+                        if (managers.length > 0) {
+                            // Obtener nombres de país para los managers online
+                            const countryIds = managers.map(m => m.country_id).filter(Boolean);
+                            let countryMap = {};
+                            if (countryIds.length > 0) {
+                                const countries = await pool.query('SELECT region_id, name FROM leagues_regions WHERE region_id = ANY($1)', [countryIds]);
+                                countryMap = Object.fromEntries(countries.rows.map(r => [r.region_id, r.name]));
+                            }
+                            managers = managers.map(m => ({
+                                ...m,
+                                country_name: countryMap[m.country_id] || null
+                            }));
+                        }
+                        res.json({
+                            success: true,
+                            managers,
+                            totalManagers: parseInt(totalResult.rows[0]?.total || '0', 10)
+                        });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
                     }
-                    managers = managers.map(m => ({
-                        ...m,
-                        country_name: countryMap[m.country_id] || null
-                    }));
-                }
-                res.json({
-                    success: true,
-                    managers,
-                    totalManagers: parseInt(totalResult.rows[0]?.total || '0', 10)
                 });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
 
-        // GET /teams - list all teams
-        app.get('/teams', async (req, res) => {
-            try {
-                const result = await pool.query('SELECT team_id, name FROM teams ORDER BY name');
-                res.json({ success: true, teams: result.rows });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                // GET /teams - list all teams
+                app.get('/teams', async (req, res) => {
+                    try {
+                        const result = await pool.query('SELECT team_id, name FROM teams ORDER BY name');
+                        res.json({ success: true, teams: result.rows });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // === ADMIN NEWS ===
-        app.get('/admin/news', async (req, res) => {
-            try {
-                const result = await pool.query(
-                    'SELECT cn.*, m.username AS author_username FROM community_news cn LEFT JOIN managers m ON m.user_id = cn.author_id ORDER BY cn.created_at DESC'
-                );
-                const articles = result.rows.map(r => ({ ...r, author: { username: r.author_username } }));
-                res.json({ success: true, articles });
-            } catch (err) { res.status(500).json({ error: err.message }); }
-        });
+                // === ADMIN NEWS ===
+                app.get('/admin/news', async (req, res) => {
+                    try {
+                        const result = await pool.query(
+                            'SELECT cn.*, m.username AS author_username FROM community_news cn LEFT JOIN managers m ON m.user_id = cn.author_id ORDER BY cn.created_at DESC'
+                        );
+                        const articles = result.rows.map(r => ({ ...r, author: { username: r.author_username } }));
+                        res.json({ success: true, articles });
+                    } catch (err) { res.status(500).json({ error: err.message }); }
+                });
 
-        app.post('/admin/news', async (req, res) => {
-            const { title, content, author_id, is_published } = req.body;
-            if (!title || !content || !author_id) return res.status(400).json({ error: 'Faltan datos' });
-            try {
-                const result = await pool.query(
-                    'INSERT INTO community_news (title, content, author_id, is_published) VALUES ($1, $2, $3, $4) RETURNING *',
-                    [title, content, author_id, is_published !== undefined ? is_published : true]
-                );
-                res.json({ success: true, article: result.rows[0] });
-            } catch (err) { res.status(500).json({ error: err.message }); }
-        });
+                app.post('/admin/news', async (req, res) => {
+                    const { title, content, author_id, is_published } = req.body;
+                    if (!title || !content || !author_id) return res.status(400).json({ error: 'Faltan datos' });
+                    try {
+                        const result = await pool.query(
+                            'INSERT INTO community_news (title, content, author_id, is_published) VALUES ($1, $2, $3, $4) RETURNING *',
+                            [title, content, author_id, is_published !== undefined ? is_published : true]
+                        );
+                        res.json({ success: true, article: result.rows[0] });
+                    } catch (err) { res.status(500).json({ error: err.message }); }
+                });
 
-        app.put('/admin/news/:id', async (req, res) => {
-            const { id } = req.params;
-            const { title, content } = req.body;
-            if (!title || !content) return res.status(400).json({ error: 'Faltan datos' });
-            try {
-                const result = await pool.query(
-                    'UPDATE community_news SET title = $1, content = $2 WHERE id = $3 RETURNING *',
-                    [title, content, id]
-                );
-                if (!result.rows.length) return res.status(404).json({ error: 'No encontrado' });
-                res.json({ success: true, article: result.rows[0] });
-            } catch (err) { res.status(500).json({ error: err.message }); }
-        });
+                app.put('/admin/news/:id', async (req, res) => {
+                    const { id } = req.params;
+                    const { title, content } = req.body;
+                    if (!title || !content) return res.status(400).json({ error: 'Faltan datos' });
+                    try {
+                        const result = await pool.query(
+                            'UPDATE community_news SET title = $1, content = $2 WHERE id = $3 RETURNING *',
+                            [title, content, id]
+                        );
+                        if (!result.rows.length) return res.status(404).json({ error: 'No encontrado' });
+                        res.json({ success: true, article: result.rows[0] });
+                    } catch (err) { res.status(500).json({ error: err.message }); }
+                });
 
-        app.put('/admin/news/:id/publish', async (req, res) => {
-            const { id } = req.params;
-            const { is_published } = req.body;
-            try {
-                const result = await pool.query(
-                    'UPDATE community_news SET is_published = $1 WHERE id = $2 RETURNING *',
-                    [is_published, id]
-                );
-                if (!result.rows.length) return res.status(404).json({ error: 'No encontrado' });
-                res.json({ success: true, article: result.rows[0] });
-            } catch (err) { res.status(500).json({ error: err.message }); }
-        });
+                app.put('/admin/news/:id/publish', async (req, res) => {
+                    const { id } = req.params;
+                    const { is_published } = req.body;
+                    try {
+                        const result = await pool.query(
+                            'UPDATE community_news SET is_published = $1 WHERE id = $2 RETURNING *',
+                            [is_published, id]
+                        );
+                        if (!result.rows.length) return res.status(404).json({ error: 'No encontrado' });
+                        res.json({ success: true, article: result.rows[0] });
+                    } catch (err) { res.status(500).json({ error: err.message }); }
+                });
 
-        app.delete('/admin/news/:id', async (req, res) => {
-            const { id } = req.params;
-            try {
-                await pool.query('DELETE FROM community_news WHERE id = $1', [id]);
-                res.json({ success: true });
-            } catch (err) { res.status(500).json({ error: err.message }); }
-        });
+                app.delete('/admin/news/:id', async (req, res) => {
+                    const { id } = req.params;
+                    try {
+                        await pool.query('DELETE FROM community_news WHERE id = $1', [id]);
+                        res.json({ success: true });
+                    } catch (err) { res.status(500).json({ error: err.message }); }
+                });
 
-        // === ADMIN PLAYERS ===
-        app.get('/admin/players', async (req, res) => {
-            const limit = parseInt(req.query.limit) || 100;
-            try {
-                const result = await pool.query(
-                    'SELECT p.*, t.name AS team_name FROM players p LEFT JOIN teams t ON t.team_id = p.team_id ORDER BY p.player_id LIMIT $1',
-                    [limit]
-                );
-                const players = result.rows.map(r => ({ ...r, teams: r.team_name ? { name: r.team_name } : null }));
-                res.json({ success: true, players });
-            } catch (err) { res.status(500).json({ error: err.message }); }
-        });
+                // === ADMIN PLAYERS ===
+                app.get('/admin/players', async (req, res) => {
+                    const limit = parseInt(req.query.limit) || 100;
+                    try {
+                        const result = await pool.query(
+                            'SELECT p.*, t.name AS team_name FROM players p LEFT JOIN teams t ON t.team_id = p.team_id ORDER BY p.player_id LIMIT $1',
+                            [limit]
+                        );
+                        const players = result.rows.map(r => ({ ...r, teams: r.team_name ? { name: r.team_name } : null }));
+                        res.json({ success: true, players });
+                    } catch (err) { res.status(500).json({ error: err.message }); }
+                });
 
-        app.post('/admin/players', async (req, res) => {
-            const p = req.body;
-            try {
-                const result = await pool.query(
-                    `INSERT INTO players (
+                app.post('/admin/players', async (req, res) => {
+                    const p = req.body;
+                    try {
+                        const result = await pool.query(
+                            `INSERT INTO players (
                 first_name,last_name,position,age,nationality_id,team_id,
                 value,wage,rating,pace,finishing,passing,defense,dribbling,heading,stamina,goalkeeper,crosses,ball_control,creativity,
                 fitness,form,personality,experience,leadership,loyalty,image_url,
@@ -4090,257 +4088,257 @@ app.delete('/groups/:id', async (req, res) => {
                 $21,$22,$23,$24,$25,$26,$27,
                 $28,$29,$30,$31,$32,$33
             ) RETURNING *`,
-                    [
-                        p.first_name, p.last_name, p.position || 'MID', p.age || 20, p.nationality_id || 1, p.team_id || null,
-                        p.value || 100000, p.wage || 5000, p.rating || 65, p.pace || 10, p.finishing || 10, p.passing || 10,
-                        p.defense || 10, p.dribbling || 10, p.heading || 10, p.stamina || 10,
-                        p.position === 'GK' ? (p.goalkeeper || 60) : (p.goalkeeper || 10),
-                        p.crosses || 30, p.ball_control || 30, p.creativity || 30,
-                        p.fitness || 100, p.form || 'Average', p.personality || 5, p.experience || 5, p.leadership || 5, p.loyalty || 5, p.image_url || null,
-                        p.contract_until || '2027', 0, 0, 0, 0, new Date().toISOString().split('T')[0]
-                    ]
-                );
-                res.json({ success: true, player: result.rows[0] });
-            } catch (err) { res.status(500).json({ error: err.message }); }
-        });
+                            [
+                                p.first_name, p.last_name, p.position || 'MID', p.age || 20, p.nationality_id || 1, p.team_id || null,
+                                p.value || 100000, p.wage || 5000, p.rating || 65, p.pace || 10, p.finishing || 10, p.passing || 10,
+                                p.defense || 10, p.dribbling || 10, p.heading || 10, p.stamina || 10,
+                                p.position === 'GK' ? (p.goalkeeper || 60) : (p.goalkeeper || 10),
+                                p.crosses || 30, p.ball_control || 30, p.creativity || 30,
+                                p.fitness || 100, p.form || 'Average', p.personality || 5, p.experience || 5, p.leadership || 5, p.loyalty || 5, p.image_url || null,
+                                p.contract_until || '2027', 0, 0, 0, 0, new Date().toISOString().split('T')[0]
+                            ]
+                        );
+                        res.json({ success: true, player: result.rows[0] });
+                    } catch (err) { res.status(500).json({ error: err.message }); }
+                });
 
-        app.post('/admin/players/batch', async (req, res) => {
-            const { players } = req.body;
-            if (!players || !Array.isArray(players)) return res.status(400).json({ error: 'Falta players array' });
-            const client = await pool.connect();
-            try {
-                await client.query('BEGIN');
-                const inserted = [];
-                for (const p of players) {
-                    const r = await client.query(
-                        'INSERT INTO players (first_name,last_name,position,age,nationality_id,value,team_id) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *',
-                        [p.first_name, p.last_name, p.position, p.age, p.nationality_id, p.value, p.team_id || null]
-                    );
-                    inserted.push(r.rows[0]);
-                }
-                await client.query('COMMIT');
-                res.json({ success: true, players: inserted });
-            } catch (err) {
-                await client.query('ROLLBACK');
-                res.status(500).json({ error: err.message });
-            } finally { client.release(); }
-        });
+                app.post('/admin/players/batch', async (req, res) => {
+                    const { players } = req.body;
+                    if (!players || !Array.isArray(players)) return res.status(400).json({ error: 'Falta players array' });
+                    const client = await pool.connect();
+                    try {
+                        await client.query('BEGIN');
+                        const inserted = [];
+                        for (const p of players) {
+                            const r = await client.query(
+                                'INSERT INTO players (first_name,last_name,position,age,nationality_id,value,team_id) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *',
+                                [p.first_name, p.last_name, p.position, p.age, p.nationality_id, p.value, p.team_id || null]
+                            );
+                            inserted.push(r.rows[0]);
+                        }
+                        await client.query('COMMIT');
+                        res.json({ success: true, players: inserted });
+                    } catch (err) {
+                        await client.query('ROLLBACK');
+                        res.status(500).json({ error: err.message });
+                    } finally { client.release(); }
+                });
 
-        app.put('/admin/players/:id', async (req, res) => {
-            const { id } = req.params;
-            const fields = req.body;
-            const allowed = ['first_name', 'last_name', 'position', 'age', 'nationality_id', 'team_id', 'value', 'wage', 'rating', 'pace', 'finishing', 'passing', 'defense', 'dribbling', 'heading', 'stamina', 'goalkeeper', 'crosses', 'ball_control', 'creativity', 'fitness', 'form', 'personality', 'experience', 'leadership', 'loyalty', 'image_url'];
-            const updates = Object.entries(fields).filter(([k]) => allowed.includes(k));
-            if (!updates.length) return res.status(400).json({ error: 'Sin campos validos' });
-            const setClauses = updates.map(([k], i) => k + ' = $' + (i + 1)).join(', ');
-            const values = [...updates.map(([, v]) => v), id];
-            try {
-                const result = await pool.query(
-                    'UPDATE players SET ' + setClauses + ' WHERE player_id = $' + values.length + ' RETURNING *',
-                    values
-                );
-                if (!result.rows.length) return res.status(404).json({ error: 'No encontrado' });
-                res.json({ success: true, player: result.rows[0] });
-            } catch (err) { res.status(500).json({ error: err.message }); }
-        });
+                app.put('/admin/players/:id', async (req, res) => {
+                    const { id } = req.params;
+                    const fields = req.body;
+                    const allowed = ['first_name', 'last_name', 'position', 'age', 'nationality_id', 'team_id', 'value', 'wage', 'rating', 'pace', 'finishing', 'passing', 'defense', 'dribbling', 'heading', 'stamina', 'goalkeeper', 'crosses', 'ball_control', 'creativity', 'fitness', 'form', 'personality', 'experience', 'leadership', 'loyalty', 'image_url'];
+                    const updates = Object.entries(fields).filter(([k]) => allowed.includes(k));
+                    if (!updates.length) return res.status(400).json({ error: 'Sin campos validos' });
+                    const setClauses = updates.map(([k], i) => k + ' = $' + (i + 1)).join(', ');
+                    const values = [...updates.map(([, v]) => v), id];
+                    try {
+                        const result = await pool.query(
+                            'UPDATE players SET ' + setClauses + ' WHERE player_id = $' + values.length + ' RETURNING *',
+                            values
+                        );
+                        if (!result.rows.length) return res.status(404).json({ error: 'No encontrado' });
+                        res.json({ success: true, player: result.rows[0] });
+                    } catch (err) { res.status(500).json({ error: err.message }); }
+                });
 
 
 
-        // ===================== CARNET DE MANAGER =====================
+                // ===================== CARNET DE MANAGER =====================
 
-        // GET /manager-license?managerId=X — active tests, user progress, routing ids
-        app.get('/manager-license', async (req, res) => {
-            const { managerId } = req.query;
-            if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
-            try {
-                const tests = await pool.query('SELECT * FROM manager_license_tests WHERE is_active = TRUE ORDER BY sort_order');
-                const progress = await pool.query('SELECT test_key FROM manager_license_progress WHERE manager_id = $1', [managerId]);
-                const teamRow = await pool.query(
-                    'SELECT t.team_id, s.stadium_id FROM teams t LEFT JOIN stadiums s ON s.team_id = t.team_id WHERE t.manager_id = $1',
-                    [managerId]
-                );
-                const completedKeys = progress.rows.map(r => r.test_key);
-                const { team_id, stadium_id } = teamRow.rows[0] || {};
-                res.json({ success: true, tests: tests.rows, completedKeys, teamId: team_id, stadiumId: stadium_id });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                // GET /manager-license?managerId=X — active tests, user progress, routing ids
+                app.get('/manager-license', async (req, res) => {
+                    const { managerId } = req.query;
+                    if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
+                    try {
+                        const tests = await pool.query('SELECT * FROM manager_license_tests WHERE is_active = TRUE ORDER BY sort_order');
+                        const progress = await pool.query('SELECT test_key FROM manager_license_progress WHERE manager_id = $1', [managerId]);
+                        const teamRow = await pool.query(
+                            'SELECT t.team_id, s.stadium_id FROM teams t LEFT JOIN stadiums s ON s.team_id = t.team_id WHERE t.manager_id = $1',
+                            [managerId]
+                        );
+                        const completedKeys = progress.rows.map(r => r.test_key);
+                        const { team_id, stadium_id } = teamRow.rows[0] || {};
+                        res.json({ success: true, tests: tests.rows, completedKeys, teamId: team_id, stadiumId: stadium_id });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // Recompensas hardcodeadas — independiente del estado de la tabla manager_license_tests
-        // visit_premium = null → activa 30 días Premium en lugar de dar dinero
-        const CARNET_REWARDS = {
-            visit_premium: null,   // 30 días Premium
-            visit_team: 25000,
-            visit_players: 25000,
-            visit_transfer_market: 25000,
-            visit_matches: 25000,
-            visit_finances: 25000,
-            visit_stadium: 25000,
-            visit_training: 25000,
-            visit_forums: 25000,
-            visit_community: 25000,
-        };
-        const TOTAL_CARNET_TESTS = Object.keys(CARNET_REWARDS).length; // 10
+                // Recompensas hardcodeadas — independiente del estado de la tabla manager_license_tests
+                // visit_premium = null → activa 30 días Premium en lugar de dar dinero
+                const CARNET_REWARDS = {
+                    visit_premium: null,   // 30 días Premium
+                    visit_team: 25000,
+                    visit_players: 25000,
+                    visit_transfer_market: 25000,
+                    visit_matches: 25000,
+                    visit_finances: 25000,
+                    visit_stadium: 25000,
+                    visit_training: 25000,
+                    visit_forums: 25000,
+                    visit_community: 25000,
+                };
+                const TOTAL_CARNET_TESTS = Object.keys(CARNET_REWARDS).length; // 10
 
-        // POST /manager-license/complete/:testKey — mark test done + award reward (idempotent)
-        app.post('/manager-license/complete/:testKey', async (req, res) => {
-            const { testKey } = req.params;
-            const { managerId } = req.body;
-            if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
-            if (!(testKey in CARNET_REWARDS)) return res.status(404).json({ error: 'Prueba no encontrada' });
-            const client = await pool.connect();
-            try {
-                await client.query('BEGIN');
-                const exists = await client.query(
-                    'SELECT id FROM manager_license_progress WHERE manager_id = $1 AND test_key = $2',
-                    [managerId, testKey]
-                );
-                if (exists.rows.length > 0) {
-                    await client.query('ROLLBACK');
-                    return res.json({ success: true, alreadyCompleted: true });
-                }
-                await client.query(
-                    'INSERT INTO manager_license_progress (manager_id, test_key) VALUES ($1, $2)',
-                    [managerId, testKey]
-                );
-                if (CARNET_REWARDS[testKey] === null) {
-                    // Primera prueba: activar Premium 30 días
-                    await client.query(
-                        `UPDATE managers SET is_premium = 1, premium_expires_at = NOW() + INTERVAL '30 days' WHERE user_id = $1`,
-                        [managerId]
-                    );
-                    await client.query('COMMIT');
-                    return res.json({ success: true, premiumActivated: true, alreadyCompleted: false });
-                }
-                // Resto de pruebas: recompensa en efectivo
-                const reward = CARNET_REWARDS[testKey];
-                const team = await client.query('SELECT team_id FROM teams WHERE manager_id = $1', [managerId]);
-                if (team.rows.length > 0) {
-                    await client.query(
-                        'UPDATE team_finances SET cash_balance = cash_balance + $1 WHERE team_id = $2',
-                        [reward, team.rows[0].team_id]
-                    );
-                }
-                await client.query('COMMIT');
-                res.json({ success: true, reward, alreadyCompleted: false });
-            } catch (err) {
-                await client.query('ROLLBACK');
-                res.status(500).json({ error: err.message });
-            } finally {
-                client.release();
-            }
-        });
+                // POST /manager-license/complete/:testKey — mark test done + award reward (idempotent)
+                app.post('/manager-license/complete/:testKey', async (req, res) => {
+                    const { testKey } = req.params;
+                    const { managerId } = req.body;
+                    if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
+                    if (!(testKey in CARNET_REWARDS)) return res.status(404).json({ error: 'Prueba no encontrada' });
+                    const client = await pool.connect();
+                    try {
+                        await client.query('BEGIN');
+                        const exists = await client.query(
+                            'SELECT id FROM manager_license_progress WHERE manager_id = $1 AND test_key = $2',
+                            [managerId, testKey]
+                        );
+                        if (exists.rows.length > 0) {
+                            await client.query('ROLLBACK');
+                            return res.json({ success: true, alreadyCompleted: true });
+                        }
+                        await client.query(
+                            'INSERT INTO manager_license_progress (manager_id, test_key) VALUES ($1, $2)',
+                            [managerId, testKey]
+                        );
+                        if (CARNET_REWARDS[testKey] === null) {
+                            // Primera prueba: activar Premium 30 días
+                            await client.query(
+                                `UPDATE managers SET is_premium = 1, premium_expires_at = NOW() + INTERVAL '30 days' WHERE user_id = $1`,
+                                [managerId]
+                            );
+                            await client.query('COMMIT');
+                            return res.json({ success: true, premiumActivated: true, alreadyCompleted: false });
+                        }
+                        // Resto de pruebas: recompensa en efectivo
+                        const reward = CARNET_REWARDS[testKey];
+                        const team = await client.query('SELECT team_id FROM teams WHERE manager_id = $1', [managerId]);
+                        if (team.rows.length > 0) {
+                            await client.query(
+                                'UPDATE team_finances SET cash_balance = cash_balance + $1 WHERE team_id = $2',
+                                [reward, team.rows[0].team_id]
+                            );
+                        }
+                        await client.query('COMMIT');
+                        res.json({ success: true, reward, alreadyCompleted: false });
+                    } catch (err) {
+                        await client.query('ROLLBACK');
+                        res.status(500).json({ error: err.message });
+                    } finally {
+                        client.release();
+                    }
+                });
 
-        // POST /manager-license/claim — claim carnet after all tests done → status='active' + asigna BOT team
-        app.post('/manager-license/claim', async (req, res) => {
-            const { managerId } = req.body;
-            if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
-            const client = await pool.connect();
-            try {
-                const completed = await client.query('SELECT COUNT(*) FROM manager_license_progress WHERE manager_id = $1', [managerId]);
-                if (parseInt(completed.rows[0].count) < TOTAL_CARNET_TESTS) {
-                    client.release();
-                    return res.status(400).json({ error: 'No has completado todas las pruebas' });
-                }
+                // POST /manager-license/claim — claim carnet after all tests done → status='active' + asigna BOT team
+                app.post('/manager-license/claim', async (req, res) => {
+                    const { managerId } = req.body;
+                    if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
+                    const client = await pool.connect();
+                    try {
+                        const completed = await client.query('SELECT COUNT(*) FROM manager_license_progress WHERE manager_id = $1', [managerId]);
+                        if (parseInt(completed.rows[0].count) < TOTAL_CARNET_TESTS) {
+                            client.release();
+                            return res.status(400).json({ error: 'No has completado todas las pruebas' });
+                        }
 
-                await client.query('BEGIN');
-                await client.query('UPDATE managers SET status = $1 WHERE user_id = $2', ['active', managerId]);
-                // Garantizar que el manager tiene todo: liga, jugadores, estadio, finanzas
-                await fullyActivateManager(client, managerId);
-                await client.query('COMMIT');
-                res.json({ success: true });
-            } catch (err) {
-                await client.query('ROLLBACK');
-                res.status(500).json({ error: err.message });
-            } finally {
-                client.release();
-            }
-        });
+                        await client.query('BEGIN');
+                        await client.query('UPDATE managers SET status = $1 WHERE user_id = $2', ['active', managerId]);
+                        // Garantizar que el manager tiene todo: liga, jugadores, estadio, finanzas
+                        await fullyActivateManager(client, managerId);
+                        await client.query('COMMIT');
+                        res.json({ success: true });
+                    } catch (err) {
+                        await client.query('ROLLBACK');
+                        res.status(500).json({ error: err.message });
+                    } finally {
+                        client.release();
+                    }
+                });
 
-        // Liga stats por region
-        app.get('/leagues/:regionId', async (req, res) => {
-            const regionId = parseInt(req.params.regionId, 10);
-            if (!regionId) return res.status(400).json({ error: 'regionId inválido' });
-            try {
-                const regionResult = await pool.query(
-                    'SELECT region_id, name FROM leagues_regions WHERE region_id = $1',
-                    [regionId]
-                );
-                if (!regionResult.rows[0]) return res.status(404).json({ error: 'Liga no encontrada' });
+                // Liga stats por region
+                app.get('/leagues/:regionId', async (req, res) => {
+                    const regionId = parseInt(req.params.regionId, 10);
+                    if (!regionId) return res.status(400).json({ error: 'regionId inválido' });
+                    try {
+                        const regionResult = await pool.query(
+                            'SELECT region_id, name FROM leagues_regions WHERE region_id = $1',
+                            [regionId]
+                        );
+                        if (!regionResult.rows[0]) return res.status(404).json({ error: 'Liga no encontrada' });
 
-                const teamsResult = await pool.query(
-                    'SELECT COUNT(DISTINCT team_id)::int AS total FROM teams WHERE country_id = $1',
-                    [regionId]
-                );
-                const managersResult = await pool.query(
-                    'SELECT COUNT(DISTINCT manager_id)::int AS total FROM teams WHERE country_id = $1 AND manager_id IS NOT NULL AND series_id IS NOT NULL',
-                    [regionId]
-                );
+                        const teamsResult = await pool.query(
+                            'SELECT COUNT(DISTINCT team_id)::int AS total FROM teams WHERE country_id = $1',
+                            [regionId]
+                        );
+                        const managersResult = await pool.query(
+                            'SELECT COUNT(DISTINCT manager_id)::int AS total FROM teams WHERE country_id = $1 AND manager_id IS NOT NULL AND series_id IS NOT NULL',
+                            [regionId]
+                        );
 
-                let seriesList = [];
-                try {
-                    const seriesResult = await pool.query(
-                        `SELECT s.series_id, s.division, s.group_number,
+                        let seriesList = [];
+                        try {
+                            const seriesResult = await pool.query(
+                                `SELECT s.series_id, s.division, s.group_number,
                         (SELECT COUNT(*)::int FROM teams t2 WHERE t2.series_id = s.series_id) AS team_count
                  FROM series s
                  WHERE s.region_id = $1
                  ORDER BY s.division ASC, s.group_number ASC`,
-                        [regionId]
-                    );
-                    seriesList = seriesResult.rows;
-                } catch (seriesErr) {
-                    console.warn('series table not available:', seriesErr.message);
-                }
+                                [regionId]
+                            );
+                            seriesList = seriesResult.rows;
+                        } catch (seriesErr) {
+                            console.warn('series table not available:', seriesErr.message);
+                        }
 
-                res.json({
-                    success: true,
-                    stats: {
-                        regionId: regionResult.rows[0].region_id,
-                        regionName: regionResult.rows[0].name,
-                        totalTeams: teamsResult.rows[0]?.total || 0,
-                        totalManagers: managersResult.rows[0]?.total || 0,
-                        totalSeries: seriesList.length,
-                        seriesList
+                        res.json({
+                            success: true,
+                            stats: {
+                                regionId: regionResult.rows[0].region_id,
+                                regionName: regionResult.rows[0].name,
+                                totalTeams: teamsResult.rows[0]?.total || 0,
+                                totalManagers: managersResult.rows[0]?.total || 0,
+                                totalSeries: seriesList.length,
+                                seriesList
+                            }
+                        });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
                     }
                 });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
 
-        // Serie (standings) por serie_id
-        app.get('/series/:id', async (req, res) => {
-            const seriesId = parseInt(req.params.id, 10);
-            if (!seriesId) return res.status(400).json({ error: 'seriesId inválido' });
-            try {
-                const seriesResult = await pool.query(
-                    `SELECT s.series_id, s.division, s.group_number, s.region_id, s.season,
+                // Serie (standings) por serie_id
+                app.get('/series/:id', async (req, res) => {
+                    const seriesId = parseInt(req.params.id, 10);
+                    if (!seriesId) return res.status(400).json({ error: 'seriesId inválido' });
+                    try {
+                        const seriesResult = await pool.query(
+                            `SELECT s.series_id, s.division, s.group_number, s.region_id, s.season,
                     r.name AS region_name
              FROM series s
              LEFT JOIN leagues_regions r ON r.region_id = s.region_id
              WHERE s.series_id = $1`,
-                    [seriesId]
-                );
-                if (!seriesResult.rows[0]) return res.status(404).json({ error: 'Serie no encontrada' });
-                const seriesInfo = seriesResult.rows[0];
+                            [seriesId]
+                        );
+                        if (!seriesResult.rows[0]) return res.status(404).json({ error: 'Serie no encontrada' });
+                        const seriesInfo = seriesResult.rows[0];
 
-                // Cargar todos los equipos asignados a esta serie (con o sin partidos)
-                const allTeamsResult = await pool.query(
-                    `SELECT t.team_id, t.name AS team_name, t.club_logo AS team_logo, t.is_bot
+                        // Cargar todos los equipos asignados a esta serie (con o sin partidos)
+                        const allTeamsResult = await pool.query(
+                            `SELECT t.team_id, t.name AS team_name, t.club_logo AS team_logo, t.is_bot
              FROM teams t
              WHERE t.series_id = $1
              ORDER BY t.is_bot ASC, t.team_id ASC`,
-                    [seriesId]
-                );
-                const teamsMap = {};
-                for (const t of allTeamsResult.rows) {
-                    teamsMap[t.team_id] = { team_id: t.team_id, team_name: t.team_name, team_logo: t.club_logo, played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0, points: 0, is_bot: t.is_bot, form: [] };
-                }
+                            [seriesId]
+                        );
+                        const teamsMap = {};
+                        for (const t of allTeamsResult.rows) {
+                            teamsMap[t.team_id] = { team_id: t.team_id, team_name: t.team_name, team_logo: t.club_logo, played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0, points: 0, is_bot: t.is_bot, form: [] };
+                        }
 
-                // Sobreescribir stats con partidos completados
-                const matchesResult = await pool.query(
-                    `SELECT m.home_team_id, m.away_team_id, m.home_score, m.away_score,
+                        // Sobreescribir stats con partidos completados
+                        const matchesResult = await pool.query(
+                            `SELECT m.home_team_id, m.away_team_id, m.home_score, m.away_score,
                     ht.name AS home_team_name, at.name AS away_team_name,
                     ht.club_logo AS home_team_logo, at.club_logo AS away_team_logo,
                     ht.is_bot AS home_is_bot, at.is_bot AS away_is_bot
@@ -4348,90 +4346,90 @@ app.delete('/groups/:id', async (req, res) => {
              JOIN teams ht ON ht.team_id = m.home_team_id
              JOIN teams at ON at.team_id = m.away_team_id
              WHERE m.series_id = $1 AND m.status = 'completed'`,
-                    [seriesId]
-                );
-                for (const m of matchesResult.rows) {
-                    // Añadir equipos de partidos que no están en series_id (compatibilidad)
-                    if (!teamsMap[m.home_team_id]) {
-                        teamsMap[m.home_team_id] = { team_id: m.home_team_id, team_name: m.home_team_name, team_logo: m.home_team_logo, played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0, points: 0, is_bot: m.home_is_bot, form: [] };
-                    }
-                    if (!teamsMap[m.away_team_id]) {
-                        teamsMap[m.away_team_id] = { team_id: m.away_team_id, team_name: m.away_team_name, team_logo: m.away_team_logo, played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0, points: 0, is_bot: m.away_is_bot, form: [] };
-                    }
-                    const home = teamsMap[m.home_team_id];
-                    const away = teamsMap[m.away_team_id];
-                    home.played++; away.played++;
-                    home.goals_for += m.home_score || 0; home.goals_against += m.away_score || 0;
-                    away.goals_for += m.away_score || 0; away.goals_against += m.home_score || 0;
-                    if (m.home_score > m.away_score) {
-                        home.won++; home.points += 3; home.form.push('W');
-                        away.lost++; away.form.push('L');
-                    } else if (m.home_score === m.away_score) {
-                        home.drawn++; home.points += 1; home.form.push('D');
-                        away.drawn++; away.points += 1; away.form.push('D');
-                    } else {
-                        away.won++; away.points += 3; away.form.push('W');
-                        home.lost++; home.form.push('L');
-                    }
-                }
+                            [seriesId]
+                        );
+                        for (const m of matchesResult.rows) {
+                            // Añadir equipos de partidos que no están en series_id (compatibilidad)
+                            if (!teamsMap[m.home_team_id]) {
+                                teamsMap[m.home_team_id] = { team_id: m.home_team_id, team_name: m.home_team_name, team_logo: m.home_team_logo, played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0, points: 0, is_bot: m.home_is_bot, form: [] };
+                            }
+                            if (!teamsMap[m.away_team_id]) {
+                                teamsMap[m.away_team_id] = { team_id: m.away_team_id, team_name: m.away_team_name, team_logo: m.away_team_logo, played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0, points: 0, is_bot: m.away_is_bot, form: [] };
+                            }
+                            const home = teamsMap[m.home_team_id];
+                            const away = teamsMap[m.away_team_id];
+                            home.played++; away.played++;
+                            home.goals_for += m.home_score || 0; home.goals_against += m.away_score || 0;
+                            away.goals_for += m.away_score || 0; away.goals_against += m.home_score || 0;
+                            if (m.home_score > m.away_score) {
+                                home.won++; home.points += 3; home.form.push('W');
+                                away.lost++; away.form.push('L');
+                            } else if (m.home_score === m.away_score) {
+                                home.drawn++; home.points += 1; home.form.push('D');
+                                away.drawn++; away.points += 1; away.form.push('D');
+                            } else {
+                                away.won++; away.points += 3; away.form.push('W');
+                                home.lost++; home.form.push('L');
+                            }
+                        }
 
-                const teams = Object.values(teamsMap).map(t => ({
-                    ...t,
-                    goal_difference: t.goals_for - t.goals_against,
-                    form: t.form.slice(-5)
-                })).sort((a, b) => b.points - a.points || (b.goal_difference - a.goal_difference) || (b.goals_for - a.goals_for) || a.is_bot - b.is_bot || a.team_id - b.team_id);
+                        const teams = Object.values(teamsMap).map(t => ({
+                            ...t,
+                            goal_difference: t.goals_for - t.goals_against,
+                            form: t.form.slice(-5)
+                        })).sort((a, b) => b.points - a.points || (b.goal_difference - a.goal_difference) || (b.goals_for - a.goals_for) || a.is_bot - b.is_bot || a.team_id - b.team_id);
 
-                res.json({
-                    success: true,
-                    league: {
-                        series_id: seriesInfo.series_id,
-                        league_id: seriesInfo.series_id,
-                        league_name: `Division ${seriesInfo.division} Group ${seriesInfo.group_number}`,
-                        division: seriesInfo.division,
-                        group_number: seriesInfo.group_number,
-                        region_id: seriesInfo.region_id,
-                        region_name: seriesInfo.region_name,
-                        season: seriesInfo.season || 1,
-                        teams
+                        res.json({
+                            success: true,
+                            league: {
+                                series_id: seriesInfo.series_id,
+                                league_id: seriesInfo.series_id,
+                                league_name: `Division ${seriesInfo.division} Group ${seriesInfo.group_number}`,
+                                division: seriesInfo.division,
+                                group_number: seriesInfo.group_number,
+                                region_id: seriesInfo.region_id,
+                                region_name: seriesInfo.region_name,
+                                season: seriesInfo.season || 1,
+                                teams
+                            }
+                        });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
                     }
                 });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
 
-        // Estadísticas de la temporada activa de una serie
-        app.get('/series/:id/stats', async (req, res) => {
-            const seriesId = parseInt(req.params.id, 10);
-            if (!seriesId) return res.status(400).json({ error: 'seriesId inválido' });
-            try {
-                // Top goleadores (jugadores de equipos en esta serie)
-                const scorersResult = await pool.query(
-                    `SELECT p.player_id, p.first_name, p.last_name, p.position, p.goals,
+                // Estadísticas de la temporada activa de una serie
+                app.get('/series/:id/stats', async (req, res) => {
+                    const seriesId = parseInt(req.params.id, 10);
+                    if (!seriesId) return res.status(400).json({ error: 'seriesId inválido' });
+                    try {
+                        // Top goleadores (jugadores de equipos en esta serie)
+                        const scorersResult = await pool.query(
+                            `SELECT p.player_id, p.first_name, p.last_name, p.position, p.goals,
                     t.team_id, t.name AS team_name, t.club_logo AS team_logo
              FROM players p
              JOIN teams t ON t.team_id = p.team_id
              WHERE t.series_id = $1 AND p.goals > 0
              ORDER BY p.goals DESC, p.assists DESC
              LIMIT 10`,
-                    [seriesId]
-                );
+                            [seriesId]
+                        );
 
-                // Top asistidores
-                const assistsResult = await pool.query(
-                    `SELECT p.player_id, p.first_name, p.last_name, p.position, p.assists,
+                        // Top asistidores
+                        const assistsResult = await pool.query(
+                            `SELECT p.player_id, p.first_name, p.last_name, p.position, p.assists,
                     t.team_id, t.name AS team_name, t.club_logo AS team_logo
              FROM players p
              JOIN teams t ON t.team_id = p.team_id
              WHERE t.series_id = $1 AND p.assists > 0
              ORDER BY p.assists DESC, p.goals DESC
              LIMIT 10`,
-                    [seriesId]
-                );
+                            [seriesId]
+                        );
 
-                // Equipos con menos goles encajados (a partir de partidos completados)
-                const concededResult = await pool.query(
-                    `SELECT t.team_id, t.name AS team_name, t.club_logo AS team_logo,
+                        // Equipos con menos goles encajados (a partir de partidos completados)
+                        const concededResult = await pool.query(
+                            `SELECT t.team_id, t.name AS team_name, t.club_logo AS team_logo,
                     COALESCE(SUM(CASE WHEN m.home_team_id = t.team_id THEN m.away_score
                                      WHEN m.away_team_id = t.team_id THEN m.home_score
                                      ELSE 0 END), 0)::int AS goals_against,
@@ -4443,12 +4441,12 @@ app.delete('/groups/:id', async (req, res) => {
              GROUP BY t.team_id, t.name, t.club_logo
              ORDER BY goals_against ASC, played DESC
              LIMIT 8`,
-                    [seriesId]
-                );
+                            [seriesId]
+                        );
 
-                // Partidos jugados (completados), más recientes primero
-                const playedResult = await pool.query(
-                    `SELECT m.match_id_int AS match_id, m.home_team_id, m.away_team_id,
+                        // Partidos jugados (completados), más recientes primero
+                        const playedResult = await pool.query(
+                            `SELECT m.match_id_int AS match_id, m.home_team_id, m.away_team_id,
                     ht.name AS home_team_name, at.name AS away_team_name,
                     ht.club_logo AS home_team_logo, at.club_logo AS away_team_logo,
                     m.home_score, m.away_score, m.match_date
@@ -4458,12 +4456,12 @@ app.delete('/groups/:id', async (req, res) => {
              WHERE m.series_id = $1 AND m.status = 'completed'
              ORDER BY m.match_date DESC, m.match_id_int DESC
              LIMIT 20`,
-                    [seriesId]
-                );
+                            [seriesId]
+                        );
 
-                // Próximos partidos (pendientes), más cercanos primero
-                const upcomingResult = await pool.query(
-                    `SELECT m.match_id_int AS match_id, m.home_team_id, m.away_team_id,
+                        // Próximos partidos (pendientes), más cercanos primero
+                        const upcomingResult = await pool.query(
+                            `SELECT m.match_id_int AS match_id, m.home_team_id, m.away_team_id,
                     ht.name AS home_team_name, at.name AS away_team_name,
                     ht.club_logo AS home_team_logo, at.club_logo AS away_team_logo,
                     m.match_date
@@ -4473,120 +4471,120 @@ app.delete('/groups/:id', async (req, res) => {
              WHERE m.series_id = $1 AND m.status != 'completed'
              ORDER BY m.match_date ASC, m.match_id_int ASC
              LIMIT 20`,
-                    [seriesId]
-                );
+                            [seriesId]
+                        );
 
-                res.json({
-                    success: true,
-                    topScorers: scorersResult.rows,
-                    topAssists: assistsResult.rows,
-                    fewestConceded: concededResult.rows,
-                    playedMatches: playedResult.rows,
-                    upcomingMatches: upcomingResult.rows
+                        res.json({
+                            success: true,
+                            topScorers: scorersResult.rows,
+                            topAssists: assistsResult.rows,
+                            fewestConceded: concededResult.rows,
+                            playedMatches: playedResult.rows,
+                            upcomingMatches: upcomingResult.rows
+                        });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
                 });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
 
-        // Temporadas disponibles para una serie (misma div/grupo/región)
-        app.get('/series/:id/seasons', async (req, res) => {
-            const seriesId = parseInt(req.params.id, 10);
-            if (!seriesId) return res.status(400).json({ error: 'seriesId inválido' });
-            try {
-                const base = await pool.query(
-                    'SELECT division, group_number, region_id FROM series WHERE series_id = $1',
-                    [seriesId]
-                );
-                if (!base.rows[0]) return res.status(404).json({ error: 'Serie no encontrada' });
-                const { division, group_number, region_id } = base.rows[0];
-                const result = await pool.query(
-                    `SELECT series_id, season FROM series
+                // Temporadas disponibles para una serie (misma div/grupo/región)
+                app.get('/series/:id/seasons', async (req, res) => {
+                    const seriesId = parseInt(req.params.id, 10);
+                    if (!seriesId) return res.status(400).json({ error: 'seriesId inválido' });
+                    try {
+                        const base = await pool.query(
+                            'SELECT division, group_number, region_id FROM series WHERE series_id = $1',
+                            [seriesId]
+                        );
+                        if (!base.rows[0]) return res.status(404).json({ error: 'Serie no encontrada' });
+                        const { division, group_number, region_id } = base.rows[0];
+                        const result = await pool.query(
+                            `SELECT series_id, season FROM series
              WHERE region_id = $1 AND division = $2 AND group_number = $3
              ORDER BY season ASC`,
-                    [region_id, division, group_number]
-                );
-                res.json({ success: true, seasons: result.rows });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
+                            [region_id, division, group_number]
+                        );
+                        res.json({ success: true, seasons: result.rows });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
+                });
 
-        // Jerarquía de series (superior / inferior)
-        app.get('/series/:id/hierarchy', async (req, res) => {
-            const seriesId = parseInt(req.params.id, 10);
-            if (!seriesId) return res.status(400).json({ error: 'seriesId inválido' });
-            try {
-                const currentResult = await pool.query(
-                    `SELECT series_id, division, group_number, region_id, season,
+                // Jerarquía de series (superior / inferior)
+                app.get('/series/:id/hierarchy', async (req, res) => {
+                    const seriesId = parseInt(req.params.id, 10);
+                    if (!seriesId) return res.status(400).json({ error: 'seriesId inválido' });
+                    try {
+                        const currentResult = await pool.query(
+                            `SELECT series_id, division, group_number, region_id, season,
                     COALESCE(parent_series_id, NULL) AS parent_series_id
              FROM series WHERE series_id = $1`,
-                    [seriesId]
-                );
-                if (!currentResult.rows[0]) return res.status(404).json({ error: 'Serie no encontrada' });
-                const current = currentResult.rows[0];
+                            [seriesId]
+                        );
+                        if (!currentResult.rows[0]) return res.status(404).json({ error: 'Serie no encontrada' });
+                        const current = currentResult.rows[0];
 
-                // Navegación secuencial: II.1 → II.2 → III.1 → III.2 → ...
-                // "Arriba" (previous): grupo anterior en misma división; si no existe, último grupo de división-1
-                let higherSeries = null;
-                if (current.group_number > 1) {
-                    const r = await pool.query(
-                        'SELECT series_id, division, group_number, region_id, season, parent_series_id FROM series WHERE region_id = $1 AND division = $2 AND group_number = $3',
-                        [current.region_id, current.division, current.group_number - 1]
-                    );
-                    higherSeries = r.rows[0] || null;
-                }
-                if (!higherSeries && current.division > 1) {
-                    // Saltar a la división superior: ir al último grupo de esa división
-                    const r = await pool.query(
-                        'SELECT series_id, division, group_number, region_id, season, parent_series_id FROM series WHERE region_id = $1 AND division = $2 ORDER BY group_number DESC LIMIT 1',
-                        [current.region_id, current.division - 1]
-                    );
-                    higherSeries = r.rows[0] || null;
-                }
+                        // Navegación secuencial: II.1 → II.2 → III.1 → III.2 → ...
+                        // "Arriba" (previous): grupo anterior en misma división; si no existe, último grupo de división-1
+                        let higherSeries = null;
+                        if (current.group_number > 1) {
+                            const r = await pool.query(
+                                'SELECT series_id, division, group_number, region_id, season, parent_series_id FROM series WHERE region_id = $1 AND division = $2 AND group_number = $3',
+                                [current.region_id, current.division, current.group_number - 1]
+                            );
+                            higherSeries = r.rows[0] || null;
+                        }
+                        if (!higherSeries && current.division > 1) {
+                            // Saltar a la división superior: ir al último grupo de esa división
+                            const r = await pool.query(
+                                'SELECT series_id, division, group_number, region_id, season, parent_series_id FROM series WHERE region_id = $1 AND division = $2 ORDER BY group_number DESC LIMIT 1',
+                                [current.region_id, current.division - 1]
+                            );
+                            higherSeries = r.rows[0] || null;
+                        }
 
-                // "Abajo" (next): grupo siguiente en misma división; si no existe, primer grupo de división+1
-                let lowerSeries = null;
-                const nextGroupResult = await pool.query(
-                    'SELECT series_id, division, group_number, region_id, season, parent_series_id FROM series WHERE region_id = $1 AND division = $2 AND group_number = $3',
-                    [current.region_id, current.division, current.group_number + 1]
-                );
-                if (nextGroupResult.rows[0]) {
-                    lowerSeries = nextGroupResult.rows[0];
-                } else {
-                    const r = await pool.query(
-                        'SELECT series_id, division, group_number, region_id, season, parent_series_id FROM series WHERE region_id = $1 AND division = $2 ORDER BY group_number ASC LIMIT 1',
-                        [current.region_id, current.division + 1]
-                    );
-                    lowerSeries = r.rows[0] || null;
-                }
+                        // "Abajo" (next): grupo siguiente en misma división; si no existe, primer grupo de división+1
+                        let lowerSeries = null;
+                        const nextGroupResult = await pool.query(
+                            'SELECT series_id, division, group_number, region_id, season, parent_series_id FROM series WHERE region_id = $1 AND division = $2 AND group_number = $3',
+                            [current.region_id, current.division, current.group_number + 1]
+                        );
+                        if (nextGroupResult.rows[0]) {
+                            lowerSeries = nextGroupResult.rows[0];
+                        } else {
+                            const r = await pool.query(
+                                'SELECT series_id, division, group_number, region_id, season, parent_series_id FROM series WHERE region_id = $1 AND division = $2 ORDER BY group_number ASC LIMIT 1',
+                                [current.region_id, current.division + 1]
+                            );
+                            lowerSeries = r.rows[0] || null;
+                        }
 
-                res.json({
-                    success: true,
-                    currentSeries: { ...current, division_level: current.division },
-                    higherSeries: higherSeries ? { ...higherSeries, division_level: higherSeries.division } : null,
-                    lowerSeries: lowerSeries ? { ...lowerSeries, division_level: lowerSeries.division } : null
+                        res.json({
+                            success: true,
+                            currentSeries: { ...current, division_level: current.division },
+                            higherSeries: higherSeries ? { ...higherSeries, division_level: higherSeries.division } : null,
+                            lowerSeries: lowerSeries ? { ...lowerSeries, division_level: lowerSeries.division } : null
+                        });
+                    } catch (err) {
+                        res.status(500).json({ error: err.message });
+                    }
                 });
-            } catch (err) {
-                res.status(500).json({ error: err.message });
-            }
-        });
 
 
-        // Endpoint raíz después de inicialización de app
-        app.get('/', (req, res) => {
-            res.send('TeamSoccer API - Backend funcionando');
-        });
+                // Endpoint raíz después de inicialización de app
+                app.get('/', (req, res) => {
+                    res.send('TeamSoccer API - Backend funcionando');
+                });
 
-        const PORT = process.env.PORT || 3001;
-        app.listen(PORT, () => {
-            console.log(`Servidor backend escuchando en puerto ${PORT}`);
-        });
+                const PORT = process.env.PORT || 3001;
+                app.listen(PORT, () => {
+                    console.log(`Servidor backend escuchando en puerto ${PORT}`);
+                });
 
-        // Reparación automática cada 5 minutos: managers activos sin liga o con liga del país incorrecto
-        async function autoRepairLeagues() {
-            try {
-                const unassigned = await pool.query(`
+                // Reparación automática cada 5 minutos: managers activos sin liga o con liga del país incorrecto
+                async function autoRepairLeagues() {
+                    try {
+                        const unassigned = await pool.query(`
             SELECT m.user_id FROM managers m
             JOIN teams t ON t.manager_id = m.user_id
             LEFT JOIN series s ON s.series_id = t.series_id
@@ -4596,62 +4594,62 @@ app.delete('/groups/:id', async (req, res) => {
                 OR (t.country_id IS NOT NULL AND s.region_id IS DISTINCT FROM t.country_id)
               )
         `);
-                if (unassigned.rows.length === 0) return;
-                console.log(`🔧 Auto-reparación: ${unassigned.rows.length} manager(s) con liga incorrecta/nula detectados`);
-                for (const row of unassigned.rows) {
-                    const client = await pool.connect();
-                    try {
-                        await client.query('BEGIN');
-                        await fullyActivateManager(client, row.user_id);
-                        await client.query('COMMIT');
-                        console.log(`✅ Liga auto-reparada para manager ${row.user_id}`);
+                        if (unassigned.rows.length === 0) return;
+                        console.log(`🔧 Auto-reparación: ${unassigned.rows.length} manager(s) con liga incorrecta/nula detectados`);
+                        for (const row of unassigned.rows) {
+                            const client = await pool.connect();
+                            try {
+                                await client.query('BEGIN');
+                                await fullyActivateManager(client, row.user_id);
+                                await client.query('COMMIT');
+                                console.log(`✅ Liga auto-reparada para manager ${row.user_id}`);
+                            } catch (err) {
+                                await client.query('ROLLBACK');
+                                console.error(`❌ Error auto-reparando manager ${row.user_id}:`, err.message);
+                            } finally {
+                                client.release();
+                            }
+                        }
                     } catch (err) {
-                        await client.query('ROLLBACK');
-                        console.error(`❌ Error auto-reparando manager ${row.user_id}:`, err.message);
-                    } finally {
-                        client.release();
+                        console.error('❌ Error en autoRepairLeagues:', err.message);
                     }
                 }
-            } catch (err) {
-                console.error('❌ Error en autoRepairLeagues:', err.message);
-            }
-        }
-        setInterval(autoRepairLeagues, 5 * 60 * 1000);
+                setInterval(autoRepairLeagues, 5 * 60 * 1000);
 
-        // Inicialización de fondo: configura equipos BOT existentes sin jugadores en lotes de 100
-        async function initBotsInBackground() {
-            try {
-                const bots = await pool.query(`
+                // Inicialización de fondo: configura equipos BOT existentes sin jugadores en lotes de 100
+                async function initBotsInBackground() {
+                    try {
+                        const bots = await pool.query(`
             SELECT t.team_id, t.name, t.country_id
             FROM teams t
             WHERE t.is_bot = 1
             AND (SELECT COUNT(*) FROM players p WHERE p.team_id = t.team_id) < 18
             LIMIT 100
         `);
-                if (bots.rows.length === 0) {
-                    console.log('✅ Todos los equipos BOT están configurados con jugadores');
-                    return;
-                }
-                const client = await pool.connect();
-                try {
-                    for (const bot of bots.rows) {
-                        try {
-                            await setupBotTeam(client, bot.team_id, bot.name, bot.country_id);
-                        } catch (err) {
-                            console.error(`❌ Error iniciando BOT ${bot.team_id}:`, err.message);
+                        if (bots.rows.length === 0) {
+                            console.log('✅ Todos los equipos BOT están configurados con jugadores');
+                            return;
                         }
+                        const client = await pool.connect();
+                        try {
+                            for (const bot of bots.rows) {
+                                try {
+                                    await setupBotTeam(client, bot.team_id, bot.name, bot.country_id);
+                                } catch (err) {
+                                    console.error(`❌ Error iniciando BOT ${bot.team_id}:`, err.message);
+                                }
+                            }
+                        } finally {
+                            client.release();
+                        }
+                        console.log(`🤖 ${bots.rows.length} BOTs configurados, procesando siguiente lote...`);
+                        setTimeout(initBotsInBackground, 2000);
+                    } catch (err) {
+                        console.error('❌ Error en initBotsInBackground:', err.message);
+                        setTimeout(initBotsInBackground, 30000);
                     }
-                } finally {
-                    client.release();
                 }
-                console.log(`🤖 ${bots.rows.length} BOTs configurados, procesando siguiente lote...`);
-                setTimeout(initBotsInBackground, 2000);
-            } catch (err) {
-                console.error('❌ Error en initBotsInBackground:', err.message);
-                setTimeout(initBotsInBackground, 30000);
-            }
-        }
-        setTimeout(initBotsInBackground, 15000);
+                setTimeout(initBotsInBackground, 15000);
 
 
 
