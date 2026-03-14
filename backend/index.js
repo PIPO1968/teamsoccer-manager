@@ -31,21 +31,22 @@ app.get('*', (req, res, next) => {
 });
 
 // CORS seguro: solo dominios frontend y backend oficiales
+// CORS: producción y desarrollo
 const allowedOrigins = [
-    'https://teamsoccer-manager-production-f836.up.railway.app',
-    'https://thriving-fascination-production.up.railway.app', // Permitir también el backend como origen (opcional)
-    'https://teamsoccer-manager-production-f836.up.railway.app', // Frontend antiguo (por si acaso)
-    'https://teamsoccer-manager-production-f836.up.railway.app', // Frontend actual
+    'https://teamsoccer-manager-production-f836.up.railway.app', // Frontend Railway
+    'https://thriving-fascination-production.up.railway.app',   // Backend Railway
+    'http://localhost:3000', // Desarrollo local
+    'http://127.0.0.1:3000', // Desarrollo local
 ];
 app.use(cors({
     origin: function (origin, callback) {
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
-            callback(new Error('No permitido por CORS'));
+            callback(new Error('No permitido por CORS: ' + origin));
         }
     },
-    credentials: false // No se usan cookies/sesión
+    credentials: true // Permitir credenciales (cookies/JWT)
 }));
 console.log('CORS configurado. allowedOrigins:', allowedOrigins);
 app.use(express.json({ limit: '5mb' }));
