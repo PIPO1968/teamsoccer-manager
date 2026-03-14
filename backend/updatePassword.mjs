@@ -22,12 +22,16 @@ const newHash = '$2b$10$4FbBj1CY.4zKlCObzDs3UezNbHtTdem1kPwoMWNfHUsux99/qubBe';
 async function updatePassword() {
     try {
         const res = await pool.query(
-            'UPDATE users SET password_hash = $1 WHERE email = $2 RETURNING id, email',
+            'UPDATE managers SET password_hash = $1 WHERE email = $2 RETURNING user_id, email',
             [newHash, email]
         );
-        console.log('Resultado:', res.rows);
+        if (res.rowCount > 0) {
+            console.log('✅ Contraseña actualizada para:', res.rows[0].email);
+        } else {
+            console.log('❌ No se encontró el manager con ese email');
+        }
     } catch (err) {
-        console.error('Error en la consulta:', err);
+        console.error('❌ Error actualizando contraseña:', err);
     } finally {
         await pool.end();
     }

@@ -130,6 +130,7 @@ app.get('/meta/current-season', async (req, res) => {
 });
 
 // Endpoint de login con JWT
+const JWT_SECRET = process.env.JWT_SECRET;
 app.post('/login', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {

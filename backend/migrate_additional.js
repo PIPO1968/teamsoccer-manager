@@ -49,3 +49,5 @@ async function migrateAdditional() {
 }
 
 migrateAdditional();
+// Añadir columna password_hash a managers si no existe
+await pool.query(`ALTER TABLE managers ADD COLUMN IF NOT EXISTS password_hash TEXT`);
