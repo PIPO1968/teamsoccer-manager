@@ -12,7 +12,6 @@ import { getTimezoneForCountry } from './utils/countryTimezones.js';
 
 // Configuración principal
 
-console.log('🚀 Backend iniciado: index.js');
 const app = express();
 
 // CORS seguro: solo dominios frontend y backend oficiales
@@ -40,41 +39,32 @@ const allowedOrigins = [
     'http://localhost:3000', // Desarrollo local
     'http://127.0.0.1:3000', // Desarrollo local
 ];
-console.log('CORS configurado. allowedOrigins:', allowedOrigins);
 app.use(cors({
     origin: function (origin, callback) {
-        console.log('[CORS] Petición desde:', origin);
         if (!origin || allowedOrigins.includes(origin)) {
-            console.log('[CORS] Permitido:', origin);
             callback(null, true);
         } else {
-            console.log('[CORS] Bloqueado:', origin);
             callback(new Error('No permitido por CORS: ' + origin));
         }
     },
-    credentials: true // Permitir credenciales (cookies/JWT)
+    credentials: true
 }));
 app.use(express.json({ limit: '5mb' }));
 
 // Endpoint: /auth/me — Devuelve info básica del usuario autenticado (mock, sin JWT)
 app.get('/auth/me', async (req, res) => {
-    // En producción, deberías extraer el usuario del JWT
-    // Aquí solo se simula con un parámetro userId
     const userId = parseInt(req.query.userId, 10);
     if (!userId) {
-        console.error('❌ /auth/me: userId no proporcionado');
         return res.status(401).json({ error: 'No autenticado' });
     }
     try {
         const userResult = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
         if (userResult.rows.length === 0) {
-            console.error('❌ /auth/me: Usuario no encontrado', userId);
             return res.status(404).json({ error: 'Usuario no encontrado' });
         }
         const managerResult = await pool.query('SELECT * FROM managers WHERE user_id = $1', [userId]);
         res.json({ success: true, user: userResult.rows[0], manager: managerResult.rows[0] || null });
     } catch (err) {
-        console.error('❌ /auth/me: Error', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -139,47 +129,37 @@ const JWT_SECRET = process.env.JWT_SECRET;
 app.post('/login', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
-        console.error('❌ /login: Email o contraseña faltan');
         return res.status(400).json({ success: false, error: 'Email y contraseña requeridos' });
     }
     try {
-        console.log('Intentando login con email:', email);
         const result = await pool.query('SELECT * FROM managers WHERE email = $1', [email]);
         const manager = result.rows[0];
         if (!manager) {
-            console.error('❌ /login: No se encontró manager con email', email);
             return res.status(401).json({ success: false, error: 'Usuario no encontrado' });
         }
-        console.log('Manager encontrado:', manager);
         const valid = await bcrypt.compare(password, manager.password_hash || '');
-        console.log('Resultado bcrypt:', valid);
         if (!valid) {
-            console.error('❌ /login: Contraseña incorrecta');
             return res.status(401).json({ success: false, error: 'Contraseña incorrecta' });
         }
         // Generar JWT
         const token = jwt.sign({ user_id: manager.user_id, email: manager.email }, JWT_SECRET, { expiresIn: '7d' });
-        // No enviar password_hash al frontend
         delete manager.password_hash;
         res.json({ success: true, token, manager });
     } catch (err) {
-        console.error('❌ /login: Error', err);
         res.status(500).json({ success: false, error: err.message });
     }
-})
+});
 
 // ENDPOINT TEMPORAL: Eliminar todos los partidos (requiere clave secreta por seguridad)
 app.delete('/admin/delete-all-matches', async (req, res) => {
     const secret = req.headers['x-admin-secret'] || req.query.secret;
     if (secret !== process.env.ADMIN_DELETE_SECRET) {
-        console.error('❌ /admin/delete-all-matches: Clave secreta incorrecta');
         return res.status(403).json({ error: 'No autorizado' });
     }
     try {
         await pool.query('DELETE FROM matches');
         res.json({ success: true, message: 'Todos los partidos eliminados' });
     } catch (err) {
-        console.error('❌ /admin/delete-all-matches: Error', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -1064,50 +1044,6 @@ app.post('/register', async (req, res) => {
     }
 });
 
-// Endpoint para login básico
-app.post('/login', async (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) {
-        return res.status(400).json({ error: 'Faltan datos' });
-    }
-    try {
-        const userResult = await pool.query(
-            'SELECT * FROM users WHERE email = $1',
-            [email]
-        );
-        if (userResult.rows.length === 0) {
-            return res.status(401).json({ error: 'Credenciales incorrectas' });
-        }
-
-        const user = userResult.rows[0];
-        // Comparar la contraseña directamente (sin cifrado, solo para pruebas)
-        if (password !== user.password_hash) {
-            return res.status(401).json({ error: 'Credenciales incorrectas' });
-        }
-
-        const managerResult = await pool.query(
-            `SELECT m.*, t.team_id
-             FROM managers m
-             LEFT JOIN teams t ON t.manager_id = m.user_id
-             WHERE m.user_id = $1`,
-            [user.id]
-        );
-
-        const manager = managerResult.rows[0] || null;
-
-        // Marcar como online y actualizar last_login
-        if (manager) {
-            await pool.query(
-                'UPDATE managers SET is_online = true, last_login = now(), last_seen = now() WHERE user_id = $1',
-                [user.id]
-            );
-        }
-
-        res.json({ success: true, user, manager });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
 
 // Geolocalización de IP usando ip-api.com (gratuito, sin clave)
 const geolocateIp = (ip) => new Promise((resolve) => {
@@ -2741,225 +2677,223 @@ app.delete('/groups/:id', async (req, res) => {
     } catch (err) {
         await client.query('ROLLBACK');
         res.status(500).json({ error: err.message });
-    } finally {
-        client.release();
-    }
-});
 
-// Miembros del grupo
-app.get('/groups/:id/members', async (req, res) => {
-    const groupId = parseInt(req.params.id, 10);
-    if (!groupId) return res.status(400).json({ error: 'groupId invalido' });
-    try {
-        const result = await pool.query(
-            `SELECT gm.*, m.username AS manager_username
-             FROM group_members gm JOIN managers m ON m.user_id = gm.manager_id
-             WHERE gm.group_id=$1 AND gm.is_active=true`,
-            [groupId]
-        );
-        const members = result.rows.map(r => ({ ...r, manager: { username: r.manager_username } }));
-        res.json({ success: true, members });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Solicitudes pendientes del grupo
-app.get('/groups/:id/applications', async (req, res) => {
-    const groupId = parseInt(req.params.id, 10);
-    if (!groupId) return res.status(400).json({ error: 'groupId invalido' });
-    try {
-        const result = await pool.query(
-            `SELECT ga.*, m.username AS applicant_username
-             FROM group_applications ga JOIN managers m ON m.user_id = ga.applicant_id
-             WHERE ga.group_id=$1 AND ga.status='pending'`,
-            [groupId]
-        );
-        const applications = result.rows.map(r => ({ ...r, applicant: { username: r.applicant_username } }));
-        res.json({ success: true, applications });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Solicitud del usuario para un grupo
-app.get('/groups/:id/applications/user/:managerId', async (req, res) => {
-    const groupId = parseInt(req.params.id, 10);
-    const managerId = parseInt(req.params.managerId, 10);
-    if (!groupId || !managerId) return res.status(400).json({ error: 'Datos invalidos' });
-    try {
-        const result = await pool.query(
-            `SELECT * FROM group_applications WHERE group_id=$1 AND applicant_id=$2 AND status='pending' LIMIT 1`,
-            [groupId, managerId]
-        );
-        res.json({ success: true, application: result.rows[0] || null });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Solicitar unirse a un grupo
-app.post('/groups/:id/apply', async (req, res) => {
-    const groupId = parseInt(req.params.id, 10);
-    const { managerId, message } = req.body;
-    if (!groupId || !managerId) return res.status(400).json({ error: 'Faltan datos' });
-    try {
-        const existing = await pool.query(
-            `SELECT id FROM group_applications WHERE group_id=$1 AND applicant_id=$2 AND status='pending'`,
-            [groupId, managerId]
-        );
-        if (existing.rows.length > 0) return res.status(400).json({ error: 'You have already applied to this group' });
-        const result = await pool.query(
-            `INSERT INTO group_applications (group_id, applicant_id, message) VALUES ($1, $2, $3) RETURNING *`,
-            [groupId, managerId, message || null]
-        );
-        res.json({ success: true, application: result.rows[0] });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Responder a una solicitud (aprobar/rechazar)
-app.put('/groups/:id/applications/:appId/respond', async (req, res) => {
-    const groupId = parseInt(req.params.id, 10);
-    const appId = parseInt(req.params.appId, 10);
-    const { status } = req.body; // 'approved' or 'rejected'
-    if (!groupId || !appId || !status) return res.status(400).json({ error: 'Faltan datos' });
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-        if (status === 'approved') {
-            const appRes = await client.query('SELECT applicant_id, group_id FROM group_applications WHERE id=$1', [appId]);
-            if (appRes.rows[0]) {
-                await client.query(
-                    `INSERT INTO group_members (group_id, manager_id, role, is_active) VALUES ($1, $2, 'member', true)`,
-                    [appRes.rows[0].applicant_id, appRes.rows[0].group_id]
-                );
+        // Consolidación: endpoints de grupos y managers
+        // GET /groups — all groups with member count
+        app.get('/groups', async (req, res) => {
+            try {
+                const result = await pool.query(`
+                SELECT g.*, COUNT(gm.id) FILTER (WHERE gm.is_active = true) AS member_count
+                FROM groups g LEFT JOIN group_members gm ON gm.group_id = g.id
+                GROUP BY g.id ORDER BY g.created_at DESC
+            `);
+                res.json({ success: true, groups: result.rows });
+            } catch (err) {
+                res.status(500).json({ error: err.message });
             }
-        }
-        const result = await client.query(
-            `UPDATE group_applications SET status=$1, responded_at=NOW() WHERE id=$2 RETURNING *`,
-            [status, appId]
-        );
-        await client.query('COMMIT');
-        res.json({ success: true, application: result.rows[0] });
-    } catch (err) {
-        await client.query('ROLLBACK');
-        res.status(500).json({ error: err.message });
-    } finally {
-        client.release();
-    }
-});
-app.get('/community/top-posters', async (req, res) => {
-    try {
-        const result = await pool.query(
-            `SELECT fp.author_id AS user_id, m.username, COUNT(*)::int AS post_count,
-                    m.country_id, r.name AS country_name
-             FROM forum_posts fp
-             JOIN managers m ON m.user_id = fp.author_id
-             LEFT JOIN leagues_regions r ON r.region_id = m.country_id
-             GROUP BY fp.author_id, m.username, m.country_id, r.name
-             ORDER BY post_count DESC
-             LIMIT 10`
-        );
-        const posters = result.rows.map(row => ({
-            user_id: row.user_id,
-            username: row.username,
-            post_count: row.post_count,
-            manager: row.country_id ? { country_id: row.country_id, country: { name: row.country_name } } : undefined
-        }));
-        res.json({ success: true, posters });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Hilos recientes del foro
-app.get('/forums/recent-threads', async (req, res) => {
-    const limit = parseInt(req.query.limit || '5', 10);
-    try {
-        const result = await pool.query(
-            `SELECT ft.*, f.name AS forum_name, f.category_id
-             FROM forum_threads ft
-             JOIN forums f ON f.id = ft.forum_id
-             WHERE f.category_id IN (2, 5)
-             ORDER BY ft.last_post_at DESC NULLS LAST
-             LIMIT $1`,
-            [limit]
-        );
-        res.json({ success: true, threads: result.rows });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Categorías y foros con conteo de hilos/posts
-app.get('/forums', async (req, res) => {
-    const isAdmin = parseInt(req.query.isAdmin || '0', 10) > 0;
-    try {
-        const catResult = await pool.query('SELECT * FROM forum_categories ORDER BY order_number');
-        let categories = catResult.rows;
-        if (!isAdmin) categories = categories.filter(c => c.id !== 4);
-        const forumsResult = await pool.query(
-            `SELECT f.*,
-                (SELECT COUNT(*)::int FROM forum_threads ft WHERE ft.forum_id = f.id) AS thread_count,
-                (SELECT COUNT(*)::int FROM forum_posts fp
-                 JOIN forum_threads ft ON ft.id = fp.thread_id
-                 WHERE ft.forum_id = f.id)::int AS post_count
-            FROM forums f ORDER BY f.category_id, f.id`
-        );
-        let forums = forumsResult.rows;
-        if (!isAdmin) forums = forums.filter(f => f.category_id !== 4);
-        res.json({ success: true, categories, forums });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Hilos de un foro con conteo paginado
-app.get('/forums/:id/threads', async (req, res) => {
-    const forumId = parseInt(req.params.id, 10);
-    const page = parseInt(req.query.page || '1', 10);
-    const limit = parseInt(req.query.limit || '10', 10);
-    const offset = (page - 1) * limit;
-    if (!forumId) return res.status(400).json({ error: 'forumId invalido' });
-    try {
-        const result = await pool.query(
-            `SELECT ft.*,
-                (SELECT COUNT(*)::int FROM forum_posts fp WHERE fp.thread_id = ft.id) AS reply_count,
-                (SELECT m.username FROM managers m WHERE m.user_id = ft.last_post_user_id) AS last_post_manager_username
-             FROM forum_threads ft WHERE ft.forum_id = $1
-             ORDER BY ft.is_sticky DESC, ft.last_post_at DESC NULLS LAST`,
-            [forumId]
-        );
-        const sticky = result.rows.filter(t => t.is_sticky);
-        const normal = result.rows.filter(t => !t.is_sticky);
-        res.json({
-            success: true, stickyThreads: sticky,
-            normalThreads: normal.slice(offset, offset + limit),
-            totalCount: normal.length,
-            totalPages: Math.ceil(normal.length / limit), currentPage: page
         });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
 
-// Crear hilo en un foro
-app.post('/forums/:id/threads', async (req, res) => {
-    const forumId = parseInt(req.params.id, 10);
-    const { userId, title, content } = req.body;
-    if (!forumId || !userId || !title || !content) return res.status(400).json({ error: 'Faltan datos' });
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-        const now = new Date().toISOString();
-        const threadResult = await client.query(
-            `INSERT INTO forum_threads (title, forum_id, user_id, last_post_at, last_post_user_id, view_count, is_locked, is_sticky, created_at) VALUES ($1, $2, $3, $4, $3, 0, false, false, $4) RETURNING *`,
-            [title, forumId, userId, now]
-        );
-        const thread = threadResult.rows[0];
-        await client.query(`INSERT INTO forum_posts (thread_id, content, user_id, created_at) VALUES ($1, $2, $3, $4)`, [thread.id, content, userId, now]);
+        // POST /groups — create group
+        app.post('/groups', async (req, res) => {
+            const { name, description, owner_id } = req.body;
+            if (!name || !owner_id) return res.status(400).json({ error: 'Faltan datos' });
+            try {
+                const result = await pool.query(
+                    `INSERT INTO groups (name, description, owner_id) VALUES ($1, $2, $3) RETURNING *`,
+                    [name, description || null, owner_id]
+                );
+                res.json({ success: true, group: result.rows[0] });
+            } catch (err) {
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        // DELETE /groups/:id — delete group (owner only, cascade)
+        app.delete('/groups/:id', async (req, res) => {
+            const groupId = parseInt(req.params.id);
+            const { managerId } = req.body;
+            const client = await pool.connect();
+            try {
+                await client.query('BEGIN');
+                const groupResult = await client.query(`SELECT * FROM groups WHERE id = $1 AND owner_id = $2`, [groupId, managerId]);
+                if (!groupResult.rows.length) {
+                    await client.query('ROLLBACK');
+                    return res.status(403).json({ error: 'No tienes permiso para borrar este grupo' });
+                }
+                const forumId = groupResult.rows[0].forum_id;
+                await client.query(`DELETE FROM group_applications WHERE group_id = $1`, [groupId]);
+                await client.query(`DELETE FROM group_members WHERE group_id = $1`, [groupId]);
+                await client.query(`DELETE FROM groups WHERE id = $1`, [groupId]);
+                if (forumId) {
+                    const threadIds = await client.query(`SELECT id FROM forum_threads WHERE forum_id = $1`, [forumId]);
+                    if (threadIds.rows.length) {
+                        const ids = threadIds.rows.map(r => r.id);
+                        await client.query(`DELETE FROM forum_posts WHERE thread_id = ANY($1::int[])`, [ids]);
+                        await client.query(`DELETE FROM forum_threads WHERE forum_id = $1`, [forumId]);
+                    }
+                    await client.query(`DELETE FROM forums WHERE id = $1`, [forumId]);
+                }
+                await client.query('COMMIT');
+                res.json({ success: true });
+            } catch (err) {
+                await client.query('ROLLBACK');
+                res.status(500).json({ error: err.message });
+            } finally {
+                client.release();
+            }
+        });
+
+        // GET /groups/:id/members
+        app.get('/groups/:id/members', async (req, res) => {
+            const groupId = parseInt(req.params.id);
+            try {
+                const result = await pool.query(`
+                SELECT gm.*, m.username AS manager_username
+                FROM group_members gm
+                JOIN managers m ON m.user_id = gm.manager_id
+                WHERE gm.group_id = $1 AND gm.is_active = true
+            `, [groupId]);
+                const members = result.rows.map(r => ({ ...r, manager: { username: r.manager_username } }));
+                res.json({ success: true, members });
+            } catch (err) {
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        // GET /groups/:id/applications
+        app.get('/groups/:id/applications', async (req, res) => {
+            const groupId = parseInt(req.params.id);
+            try {
+                const result = await pool.query(`
+                SELECT ga.*, m.username AS applicant_username
+                FROM group_applications ga
+                JOIN managers m ON m.user_id = ga.applicant_id
+                WHERE ga.group_id = $1 AND ga.status = 'pending'
+            `, [groupId]);
+                const applications = result.rows.map(r => ({ ...r, applicant: { username: r.applicant_username } }));
+                res.json({ success: true, applications });
+            } catch (err) {
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        // GET /groups/:id/user-application?managerId=X
+        app.get('/groups/:id/user-application', async (req, res) => {
+            const groupId = parseInt(req.params.id);
+            const { managerId } = req.query;
+            if (!managerId) return res.json({ success: true, application: null });
+            try {
+                const result = await pool.query(
+                    `SELECT * FROM group_applications WHERE group_id = $1 AND applicant_id = $2 AND status = 'pending' LIMIT 1`,
+                    [groupId, managerId]
+                );
+                res.json({ success: true, application: result.rows[0] || null });
+            } catch (err) {
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        // POST /groups/:id/apply
+        app.post('/groups/:id/apply', async (req, res) => {
+            const groupId = parseInt(req.params.id);
+            const { managerId, message } = req.body;
+            if (!managerId) return res.status(400).json({ error: 'Falta managerId' });
+            try {
+                const existing = await pool.query(
+                    `SELECT id FROM group_applications WHERE group_id = $1 AND applicant_id = $2 AND status = 'pending'`,
+                    [groupId, managerId]
+                );
+                if (existing.rows.length) return res.status(400).json({ error: 'Ya tienes una solicitud pendiente' });
+                const result = await pool.query(
+                    `INSERT INTO group_applications (group_id, applicant_id, message, status) VALUES ($1, $2, $3, 'pending') RETURNING *`,
+                    [groupId, managerId, message || null]
+                );
+                res.json({ success: true, application: result.rows[0] });
+            } catch (err) {
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        // PUT /group-applications/:id/respond
+        app.put('/group-applications/:id/respond', async (req, res) => {
+            const appId = parseInt(req.params.id);
+            const { status } = req.body;
+            if (!status) return res.status(400).json({ error: 'Falta status' });
+            const client = await pool.connect();
+            try {
+                await client.query('BEGIN');
+                const appResult = await client.query(`SELECT * FROM group_applications WHERE id = $1`, [appId]);
+                if (!appResult.rows.length) {
+                    await client.query('ROLLBACK');
+                    return res.status(404).json({ error: 'Solicitud no encontrada' });
+                }
+                const application = appResult.rows[0];
+                if (status === 'approved') {
+                    await client.query(
+                        `INSERT INTO group_members (group_id, manager_id, role, is_active) VALUES ($1, $2, 'member', true) ON CONFLICT DO NOTHING`,
+                        [application.group_id, application.applicant_id]
+                    );
+                }
+                const result = await client.query(
+                    `UPDATE group_applications SET status = $1, responded_at = NOW() WHERE id = $2 RETURNING *`,
+                    [status, appId]
+                );
+                await client.query('COMMIT');
+                res.json({ success: true, application: result.rows[0] });
+            } catch (err) {
+                await client.query('ROLLBACK');
+                res.status(500).json({ error: err.message });
+            } finally {
+                client.release();
+            }
+        });
+
+        // PUT /groups/:id/logo
+        app.put('/groups/:id/logo', async (req, res) => {
+            const groupId = parseInt(req.params.id);
+            const { club_logo, managerId } = req.body;
+            if (!club_logo) return res.status(400).json({ error: 'Falta club_logo' });
+            try {
+                const result = await pool.query(
+                    `UPDATE groups SET club_logo = $1, updated_at = NOW() WHERE id = $2 AND owner_id = $3 RETURNING id`,
+                    [club_logo, groupId, managerId]
+                );
+                if (!result.rows.length) return res.status(403).json({ error: 'No autorizado' });
+                res.json({ success: true });
+            } catch (err) {
+                res.status(500).json({ error: err.message });
+            }
+        });
+
+        // GET /managers/:id/info
+        app.get('/managers/:id/info', async (req, res) => {
+            const managerId = parseInt(req.params.id);
+            try {
+                const mResult = await pool.query(
+                    `SELECT m.username, m.is_admin, m.is_premium, m.premium_expires_at, r.name AS country_name
+                 FROM managers m
+                 LEFT JOIN leagues_regions r ON r.region_id = m.country_id
+                 WHERE m.user_id = $1`,
+                    [managerId]
+                );
+                if (!mResult.rows.length) return res.status(404).json({ error: 'Manager no encontrado' });
+                const manager = mResult.rows[0];
+                const tResult = await pool.query(`SELECT name, team_id FROM teams WHERE manager_id = $1`, [managerId]);
+                const team = tResult.rows[0] || null;
+                res.json({
+                    success: true,
+                    manager_name: manager.username,
+                    team_name: team?.name || null,
+                    team_id: team?.team_id || null,
+                    is_admin: manager.is_admin || 0,
+                    is_premium: manager.is_premium || 0,
+                    premium_expires_at: manager.premium_expires_at || null,
+                    country_name: manager.country_name || null
+                });
+            } catch (err) {
+                res.status(500).json({ error: err.message });
+            }
+        });
         await client.query('COMMIT');
         res.json({ success: true, thread });
     } catch (err) {
