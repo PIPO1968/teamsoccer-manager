@@ -16,13 +16,6 @@ console.log('🚀 Backend iniciado: index.js');
 const app = express();
 
 // CORS seguro: solo dominios frontend y backend oficiales
-// CORS: producción y desarrollo
-const allowedOrigins = [
-    'https://teamsoccer-manager-production-f836.up.railway.app', // Frontend Railway
-    'https://thriving-fascination-production.up.railway.app',   // Backend Railway
-    'http://localhost:3000', // Desarrollo local
-    'http://127.0.0.1:3000', // Desarrollo local
-];
 app.use(cors({
     origin: function (origin, callback) {
         if (!origin || allowedOrigins.includes(origin)) {
