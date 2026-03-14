@@ -2,6 +2,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+// Forzar deploy Railway
 import { Pool } from 'pg';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
