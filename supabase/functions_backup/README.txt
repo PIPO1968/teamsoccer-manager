@@ -1,0 +1,1 @@
+Backup de funciones serverless originales de Supabase. Migradas a consumo de API backend Express (Postgres Railway).

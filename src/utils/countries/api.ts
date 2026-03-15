@@ -1,5 +1,5 @@
 
-// import { supabase } from "@/integrations/supabase/client";
+
 import { apiFetch } from "@/services/apiClient";
 import { CountryData } from "./types";
 

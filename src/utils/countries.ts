@@ -1,5 +1,5 @@
 
-// import { supabase } from "@/integrations/supabase/client";
+
 import { getCountryCode, specialCases } from "@/utils/countries/codes";
 import { getCountriesByContinent } from "@/utils/countries/continents";
 import { apiFetch } from "@/services/apiClient";

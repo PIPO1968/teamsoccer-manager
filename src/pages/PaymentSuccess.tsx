@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { CheckCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-// import { supabase } from "@/integrations/supabase/client";
+
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
