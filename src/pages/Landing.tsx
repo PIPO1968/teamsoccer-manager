@@ -53,7 +53,7 @@ const Landing = () => {
               </h2>
               <div className="aspect-video bg-gradient-to-b from-sky-400 to-sky-300 rounded-lg mb-6 flex items-center justify-center relative overflow-hidden">
                 <img
-                  src="/teamsoccer-assets/a7ab3828-e52e-4afe-a8d911b98e923aa9.png"
+                  src="/teamsoccer-assets/a7ab3828-e52e-4afe-a8d9-11b98e923aa9.png"
                   alt="Team Soccer Manager Game"
                   className="w-full h-full object-contain"
                 />
