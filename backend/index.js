@@ -53,8 +53,8 @@ app.options('*', cors({
     credentials: true
 }));
 
-// Servir archivos estáticos desde la carpeta public
-app.use(express.static(path.join(__dirname, '../public')));
+// Servir archivos estáticos desde la carpeta public (ruta absoluta desde root del proyecto)
+app.use(express.static(path.join(process.cwd(), 'public')));
 
 // Endpoint de test para servir imágenes y mostrar errores
 app.get('/test-image/:name', (req, res) => {
