@@ -2,6 +2,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+dotenv.config();
 // Forzar deploy Railway
 import { Pool } from 'pg';
 import cors from 'cors';
@@ -10,7 +11,8 @@ import https from 'https';
 import http from 'http';
 import { getTimezoneForCountry } from './utils/countryTimezones.js';
 
-import path from 'path';
+// ...existing code...
+// import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -25,7 +27,6 @@ const app = express();
 // ...existing code...
 
 // Servir archivos estáticos desde la carpeta public
-import path from 'path';
 app.use(express.static(path.join(__dirname, '../public')));
 
 // ...existing code...
