@@ -37,7 +37,7 @@ const GameStatusBar = () => {
           <Link to="/" className="flex items-center">
             <img
               src={GAME_LOGO}
-              alt="Game Logo"
+              alt="cbc230b4-3215-4a9f-9673-4064a3ad90c4.png"
               className="h-12 w-auto"
             />
           </Link>
