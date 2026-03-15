@@ -1,4 +1,5 @@
 import { useGame } from '../context/GameContext';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
@@ -6,10 +7,30 @@ import { Trophy, Users, TrendingUp, Calendar, DollarSign, Target } from 'lucide-
 
 export default function Dashboard() {
   const { state, simulateMatch } = useGame();
+  const [serie, setSerie] = useState<{ name: string; id: string; region: string } | null>(null);
+  const [loadingSerie, setLoadingSerie] = useState(false);
+  useEffect(() => {
+    async function fetchSerie() {
+      setLoadingSerie(true);
+      try {
+        // Suponiendo que el equipo tiene un id fijo (por ejemplo 1)
+        const teamId = 1;
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/teams/${teamId}/serie`);
+        if (!res.ok) throw new Error('No se pudo obtener la serie');
+        const data = await res.json();
+        setSerie({ name: data.name, id: data.id, region: data.region });
+      } catch {
+        setSerie(null);
+      } finally {
+        setLoadingSerie(false);
+      }
+    }
+    fetchSerie();
+  }, []);
   const myTeam = state.leagueTable.find(t => t.name === state.teamName);
   const nextMatch = state.matches.find(m => !m.played);
   const recentMatches = state.matches.filter(m => m.played).slice(-3).reverse();
-  
+
   const topScorer = [...state.players].sort((a, b) => b.goals - a.goals)[0];
   const position = state.leagueTable.findIndex(t => t.name === state.teamName) + 1;
 
@@ -26,6 +47,21 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-green-700">{state.teamName}</h1>
+          {/* Serie debajo del nombre del club */}
+          <div className="mt-1">
+            {loadingSerie ? (
+              <span className="text-sm text-muted-foreground">Cargando serie...</span>
+            ) : serie ? (
+              <a
+                href={`/series/${serie.id}`}
+                className="text-green-600 font-semibold text-sm hover:underline"
+              >
+                {serie.region} - {serie.name}
+              </a>
+            ) : (
+              <span className="text-sm text-red-600">Serie no asignada</span>
+            )}
+          </div>
           <p className="text-muted-foreground">Semana {state.week} de la temporada</p>
         </div>
         {nextMatch && (
