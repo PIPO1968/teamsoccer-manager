@@ -69,7 +69,7 @@ app.get('*', (req, res, next) => {
 });
 
 
-app.use(express.json({ limit: '5mb' }));
+
 
 // Endpoint: /auth/me — Devuelve info básica del usuario autenticado (mock, sin JWT)
 app.get('/auth/me', async (req, res) => {
