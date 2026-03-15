@@ -24,7 +24,34 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 // CORS seguro: solo dominios frontend y backend oficiales
-// ...existing code...
+const allowedOrigins = [
+    'https://teamsoccer-manager-production-f836.up.railway.app', // Frontend Railway
+    'https://thriving-fascination-production.up.railway.app',   // Backend Railway
+    'http://localhost:3000', // Desarrollo local
+    'http://127.0.0.1:3000', // Desarrollo local
+];
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('No permitido por CORS: ' + origin));
+        }
+    },
+    credentials: true
+}));
+
+// Manejar preflight OPTIONS para todas las rutas
+app.options('*', cors({
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('No permitido por CORS: ' + origin));
+        }
+    },
+    credentials: true
+}));
 
 // Servir archivos estáticos desde la carpeta public
 app.use(express.static(path.join(__dirname, '../public')));
