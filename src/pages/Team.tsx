@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useGame } from '../context/GameContext';
 import { Card, CardContent } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -100,16 +100,52 @@ export default function Team() {
   const { state, sellPlayer } = useGame();
   const [selectedFormation, setSelectedFormation] = useState(formations[0]);
   const [activeTab, setActiveTab] = useState<'squad' | 'formation'>('squad');
+  const [league, setLeague] = useState<{ name: string; id: string } | null>(null);
+  const [loadingLeague, setLoadingLeague] = useState(false);
 
   const starters = state.players.slice(0, 11);
   const bench = state.players.slice(11);
   const avgOverall = starters.length > 0 ? Math.round(starters.reduce((sum, p) => sum + p.overall, 0) / starters.length) : 0;
 
+  useEffect(() => {
+    async function fetchLeague() {
+      setLoadingLeague(true);
+      try {
+        // Suponiendo que el equipo tiene un id fijo (por ejemplo 1)
+        const teamId = 1;
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/teams/${teamId}/league`);
+        if (!res.ok) throw new Error('No se pudo obtener la liga');
+        const data = await res.json();
+        setLeague({ name: data.name, id: data.id });
+      } catch {
+        setLeague(null);
+      } finally {
+        setLoadingLeague(false);
+      }
+    }
+    fetchLeague();
+  }, []);
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-green-700">Mi Equipo</h1>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col items-start justify-between">
+        <h1 className="text-3xl font-bold text-green-700">{state.teamName}</h1>
+        {/* Bloque de liga debajo del nombre del club */}
+        <div className="mt-1">
+          {loadingLeague ? (
+            <span className="text-sm text-muted-foreground">Cargando liga...</span>
+          ) : league ? (
+            <a
+              href={`/league/${league.id}`}
+              className="text-green-600 font-semibold text-sm hover:underline"
+            >
+              {league.name}
+            </a>
+          ) : (
+            <span className="text-sm text-red-600">Liga no encontrada</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 mt-2">
           <Shield className="h-5 w-5 text-green-600" />
           <span className="font-semibold">Media: {avgOverall}</span>
         </div>
