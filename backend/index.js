@@ -56,6 +56,18 @@ app.options('*', cors({
 // Servir archivos estáticos desde la carpeta public
 app.use(express.static(path.join(__dirname, '../public')));
 
+// Endpoint de test para servir imágenes y mostrar errores
+app.get('/test-image/:name', (req, res) => {
+    const imgPath = path.join(__dirname, '../public/teamsoccer-assets', req.params.name);
+    console.log('🔎 Solicitando imagen:', imgPath);
+    res.sendFile(imgPath, (err) => {
+        if (err) {
+            console.error('❌ Error sirviendo imagen:', err);
+            res.status(500).send('Error sirviendo imagen: ' + err.message);
+        }
+    });
+});
+
 // ...existing code...
 // Redirigir todo lo que no sea archivo estático a index.html (para SPA)
 // Regla SPA mejorada: solo rutas sin punto y que no sean endpoints conocidos
