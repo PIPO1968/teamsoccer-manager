@@ -68,22 +68,7 @@ app.get('*', (req, res, next) => {
     res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
-const allowedOrigins = [
-    'https://teamsoccer-manager-production-f836.up.railway.app', // Frontend Railway
-    'https://thriving-fascination-production.up.railway.app',   // Backend Railway
-    'http://localhost:3000', // Desarrollo local
-    'http://127.0.0.1:3000', // Desarrollo local
-];
-app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error('No permitido por CORS: ' + origin));
-        }
-    },
-    credentials: true
-}));
+
 app.use(express.json({ limit: '5mb' }));
 
 // Endpoint: /auth/me — Devuelve info básica del usuario autenticado (mock, sin JWT)
