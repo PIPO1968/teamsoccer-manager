@@ -100,49 +100,49 @@ export default function Team() {
   const { state, sellPlayer } = useGame();
   const [selectedFormation, setSelectedFormation] = useState(formations[0]);
   const [activeTab, setActiveTab] = useState<'squad' | 'formation'>('squad');
-  const [league, setLeague] = useState<{ name: string; id: string } | null>(null);
-  const [loadingLeague, setLoadingLeague] = useState(false);
+  const [serie, setSerie] = useState<{ name: string; id: string; region: string } | null>(null);
+  const [loadingSerie, setLoadingSerie] = useState(false);
 
   const starters = state.players.slice(0, 11);
   const bench = state.players.slice(11);
   const avgOverall = starters.length > 0 ? Math.round(starters.reduce((sum, p) => sum + p.overall, 0) / starters.length) : 0;
 
   useEffect(() => {
-    async function fetchLeague() {
-      setLoadingLeague(true);
+    async function fetchSerie() {
+      setLoadingSerie(true);
       try {
         // Suponiendo que el equipo tiene un id fijo (por ejemplo 1)
         const teamId = 1;
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/teams/${teamId}/league`);
-        if (!res.ok) throw new Error('No se pudo obtener la liga');
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/teams/${teamId}/serie`);
+        if (!res.ok) throw new Error('No se pudo obtener la serie');
         const data = await res.json();
-        setLeague({ name: data.name, id: data.id });
+        setSerie({ name: data.name, id: data.id, region: data.region });
       } catch {
-        setLeague(null);
+        setSerie(null);
       } finally {
-        setLoadingLeague(false);
+        setLoadingSerie(false);
       }
     }
-    fetchLeague();
+    fetchSerie();
   }, []);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col items-start justify-between">
         <h1 className="text-3xl font-bold text-green-700">{state.teamName}</h1>
-        {/* Bloque de liga debajo del nombre del club */}
+        {/* Bloque de serie debajo del nombre del club */}
         <div className="mt-1">
-          {loadingLeague ? (
-            <span className="text-sm text-muted-foreground">Cargando liga...</span>
-          ) : league ? (
+          {loadingSerie ? (
+            <span className="text-sm text-muted-foreground">Cargando serie...</span>
+          ) : serie ? (
             <a
-              href={`/league/${league.id}`}
+              href={`/series/${serie.id}`}
               className="text-green-600 font-semibold text-sm hover:underline"
             >
-              {league.name}
+              {serie.region} - {serie.name}
             </a>
           ) : (
-            <span className="text-sm text-red-600">Liga no encontrada</span>
+            <span className="text-sm text-red-600">Serie no asignada</span>
           )}
         </div>
         <div className="flex items-center gap-2 mt-2">
