@@ -28,8 +28,7 @@ export default function Navbar() {
                 to={to}
                 end={to === '/'}
                 className={({ isActive }) =>
-                  `flex items-center gap-1 px-2 sm:px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    isActive ? 'bg-green-600 text-white' : 'text-green-100 hover:bg-green-700'
+                  `flex items-center gap-1 px-2 sm:px-3 py-2 rounded-md text-sm font-medium transition-colors ${isActive ? 'bg-green-600 text-white' : 'text-green-100 hover:bg-green-700'
                   }`
                 }
               >
@@ -49,6 +48,13 @@ export default function Navbar() {
             >
               <RotateCcw className="h-4 w-4" />
             </Button>
+            {/* Botón Visor de partidos */}
+            <a
+              href="https://lovable.dev/projects/a06bd253-1a1e-4a58-b4ae-ebd15a06d87b"
+              className="bg-green-600 text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-green-700 transition-colors ml-2"
+            >
+              Visor de partidos
+            </a>
           </div>
         </div>
       </div>
